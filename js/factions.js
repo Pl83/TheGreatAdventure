@@ -1,6 +1,11 @@
 const container = document.querySelector('#factions');
+let logoUrl = null;
 
-const logoUrl = 'img/logo/';
+if ( window.location.href.includes('github') ) {
+    logoUrl = 'https://raw.githubusercontent.com/Pl83/TheGreatAdventure/main/img/logo/'
+} else {
+    logoUrl = 'img/logo/';
+}
 const showPersoUrl = 'personages.html?filter=';
 
 factions.forEach(faction => {
@@ -15,7 +20,7 @@ factions.forEach(faction => {
     let a = document.createElement('a');
 
     img.loading = 'lazy';
-    img.src = logoUrl + faction.name + '.webp';
+    img.src = logoUrl + faction.slug + '.webp';
     img.alt = faction.name;
     
     h3.innerText = faction.name;
