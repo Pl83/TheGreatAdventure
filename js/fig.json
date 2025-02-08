@@ -274,55 +274,55 @@
 
     },
     "Mandalorian Tribe": {
-        "Djin": {
-            "title": ["Wielder of the drak saber", "Sucessor of mandalor the firt"],
+        "Din": {
+            "title": ["Wielder of the Dark Saber", "Successor of Mandalore the First"],
             "unique": true,
             "species": "Human",
-            "weapon": "The dark saber, a light blaster",
+            "weapon": "The Dark Saber, a light blaster",
             "power": null,
             "weakness": null,
-            "description": "A pround mandalorian warrior. He won in battle the dark saber, making him the heir to trone of Mandalore. Just like other mandalorian warrior, he is equiped with a an amor and a jet pack made of beskar.",
-            "url": ["Mandalorien/mandalorian_sucessor_djin.jpg"]
+            "description": "A proud Mandalorian warrior. He won the Dark Saber in battle, making him the heir to the throne of Mandalore. Just like other Mandalorian warriors, he is equipped with armor and a jetpack made of Beskar.",
+            "url": ["Mandalorian/mandalorian_successor_djin.jpg"]
         },
         "Alpha": {
-            "title": ["The sky"],
+            "title": ["The Sky"],
             "unique": true,
             "species": "Human",
             "weapon": "A blaster",
             "power": null,
             "weakness": null,
-            "description": "A pround mandalorian warrior. He specialized himself in aerial combat and manuvoer. His fitghing style complete the one of his brother Omega. Just like other mandalorian warrior, he is equiped with a an amor and a custom jet pack made of beskar.",
-            "url": ["Mandalorien/mandalorian_warrior_alpha.jpg"]
+            "description": "A proud Mandalorian warrior. He specializes in aerial combat and maneuvers. His fighting style complements that of his brother Omega. Just like other Mandalorian warriors, he is equipped with armor and a custom jetpack made of Beskar.",
+            "url": ["Mandalorian/mandalorian_warrior_alpha.jpg"]
         },
         "Omega": {
-            "title": ["The earth"],
+            "title": ["The Earth"],
             "unique": true,
             "species": "Human",
             "weapon": "An electric staff",
             "power": null,
             "weakness": null,
-            "description": "A pround mandalorian warrior. He specialized himself in close combat on the ground. His fitghing style complete the one of his brother Alpha. Just like other mandalorian warrior, he is equiped with a an amor and a jet pack made of beskar.",
-            "url": ["Mandalorien/mandalorian_warrior_omega.jpg"]
+            "description": "A proud Mandalorian warrior. He specializes in close combat on the ground. His fighting style complements that of his brother Alpha. Just like other Mandalorian warriors, he is equipped with armor and a jetpack made of Beskar.",
+            "url": ["Mandalorian/mandalorian_warrior_omega.jpg"]
         },
         "Kamur": {
             "title": null,
             "unique": true,
             "species": "Human",
-            "weapon": "A laser crossbow, a ligth machine gun, a blater with a bayonet",
+            "weapon": "A laser crossbow, a light machine gun, a blaster with a bayonet",
             "power": null,
             "weakness": null,
-            "description": "A pround mandalorian warrior. He consider himself as a weapon expert. Just like other mandalorian warrior, he is equiped with a an amor made of beskar.",
-            "url": ["Mandalorien/mandalorian_warrior_kamur.jpg"]
+            "description": "A proud Mandalorian warrior. He considers himself a weapons expert. Just like other Mandalorian warriors, he is equipped with armor made of Beskar.",
+            "url": ["Mandalorian/mandalorian_warrior_kamur.jpg"]
         },
         "Katan": {
             "title": null,
             "unique": true,
             "species": "Human",
-            "weapon": "Two blaster",
+            "weapon": "Two blasters",
             "power": null,
             "weakness": null,
-            "description": "She is a pround mandalorian warrior. Just like other mandalorian warrior, he is equiped with a an amor and a jet pack made of beskar.",
-            "url": ["Mandalorien/mandalorian_warrior_katan.jpg"]
+            "description": "She is a proud Mandalorian warrior. Just like other Mandalorian warriors, she is equipped with armor and a jetpack made of Beskar.",
+            "url": ["Mandalorian/mandalorian_warrior_katan.jpg"]
         },
         "Ron": {
             "title": null,
@@ -331,18 +331,18 @@
             "weapon": "A light blaster and a combat knife",
             "power": null,
             "weakness": null,
-            "description": "He is a pround mandalorian warrior. Just like other mandalorian warrior, he is equiped with a an amor and a jet pack made of beskar.",
-            "url": ["Mandalorien/mandalorian_warrior_ron.jpg"]
+            "description": "He is a proud Mandalorian warrior. Just like other Mandalorian warriors, he is equipped with armor and a jetpack made of Beskar.",
+            "url": ["Mandalorian/mandalorian_warrior_ron.jpg"]
         },
         "Rhyx": {
             "title": null,
             "unique": true,
             "species": "Human",
-            "weapon": "A laser chainsword and an energie shield",
+            "weapon": "A laser chainsword and an energy shield",
             "power": null,
             "weakness": null,
-            "description": "A pround mandalorian warrior. He is a close combat instructor. Just like other mandalorian warrior, he is equiped with a an amor made of beskar.",
-            "url": ["Mandalorien/mandalorian_warrior_rhyx.jpg"]
+            "description": "A proud Mandalorian warrior. He is a close-combat instructor. Just like other Mandalorian warriors, he is equipped with armor made of Beskar.",
+            "url": ["Mandalorian/mandalorian_warrior_rhyx.jpg"]
         },
         "Verga": {
             "title": null,
@@ -351,8 +351,8 @@
             "weapon": "A laser bow",
             "power": null,
             "weakness": null,
-            "description": "A pround mandalorian warrior. She is a shouting instructor. Just like other mandalorian warrior, he is equiped with a an amor made of beskar.",
-            "url": ["Mandalorien/mandalorian_warrior_verga.jpg"]
+            "description": "A proud Mandalorian warrior. She is a shooting instructor. Just like other Mandalorian warriors, she is equipped with armor made of Beskar.",
+            "url": ["Mandalorian/mandalorian_warrior_verga.jpg"]
         },
         "Jango": {
             "title": null,
@@ -361,28 +361,28 @@
             "weapon": "A blaster, an automatic pistol",
             "power": null,
             "weakness": null,
-            "description": "A pround mandalorian warrior. He worked as a bounty hunter for many year before coming back to Mandalore. Just like other mandalorian warrior, he is equiped with a an amor and a jet pack made of beskar.",
-            "url": ["Mandalorien/mandalorian_warrior_jango.jpg"]
+            "description": "A proud Mandalorian warrior. He worked as a bounty hunter for many years before returning to Mandalore. Just like other Mandalorian warriors, he is equipped with armor and a jetpack made of Beskar.",
+            "url": ["Mandalorian/mandalorian_warrior_jango.jpg"]
         },
         "Boba": {
             "title": null,
             "unique": true,
             "species": "Human",
-            "weapon": "A long range blaster, a light blaster, a rocket lautcher, a flame trower",
+            "weapon": "A long-range blaster, a light blaster, a rocket launcher, a flamethrower",
             "power": null,
             "weakness": null,
-            "description": "A pround mandalorian warrior. Following the foot tep of his father Jango, departed from Madalore to became a bouty hunter. Just like other mandalorian warrior, he is equiped with a an amor and a jet pack made of beskar.",
-            "url": ["Mandalorien/mandalorian_warrior_boba.jpg"]
+            "description": "A proud Mandalorian warrior. Following in the footsteps of his father Jango, he departed from Mandalore to become a bounty hunter. Just like other Mandalorian warriors, he is equipped with armor and a jetpack made of Beskar.",
+            "url": ["Mandalorian/mandalorian_warrior_boba.jpg"]
         },
         "Grogu": {
             "title": null,
             "unique": true,
-            "species": "unknow",
+            "species": "Unknown",
             "weapon": null,
-            "power": ["force sensitif", "force push", "force grab"],
+            "power": ["Force-sensitive", "Force push", "Force grab"],
             "weakness": null,
-            "description": "A child found and adopted by Djin during one of is mission. Djin decided to take care of him and train him to become a mandalorian warrior. For now he is a trainee.",
-            "url": ["Mandalorien/mandalorien_trainee_grogu.jpg"]
+            "description": "A child found and adopted by Din during one of his missions. Din decided to take care of him and train him to become a Mandalorian warrior. For now, he is a trainee.",
+            "url": ["Mandalorian/mandalorian_trainee_grogu.jpg"]
         }
     },
     "The Horde": {
