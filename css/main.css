@@ -1,11 +1,15 @@
 /* GLOBAL STYLES */
-
-:root{
+:root {
     --text-color: #09160f;
     --bg-color: #f1fbf6;
     --primary-color: #00CC60;
     --secondary-color: #84F4B8;
     --accent-color: #43F395;
+    --shadow-color: rgba(0, 0, 0, 0.3);
+    --card-bg: #d6f5e3;
+    --highlight: #00aa4f;
+    --unique-bg: #e0e7b0;
+    --unique-border: #b5ba72;
 }
 
 * {
@@ -16,8 +20,9 @@
 }
 
 body {
-    font-family: 'Poppins', sans-serif;
     background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: 'Poppins', sans-serif;
 }
 
 /* ================================================================================================================================= */
@@ -226,6 +231,181 @@ details[close] summary ~ * {
     margin-bottom: 20px;
     padding: 20px;
 }
+
+.maps {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: left;
+    gap: 50px;
+}
+
+.maps article {
+    width: 300px;
+    margin-bottom: 20px;
+    padding: 40px;
+    background: white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    border-radius: 5px;
+}
+
+.maps article summary {
+    cursor: pointer;
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.maps article details {
+    display: flex;
+    flex-direction: row !important;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.maps article details img {
+    width: 300px;
+    height: 200px;
+    object-fit: cover;
+    margin-bottom: 20px;
+}
+
+.maps article details ul li {
+    margin-bottom: 10px;
+}
+
+#sideBar {
+    position: absolute;
+    z-index: 10;
+    background-color: blueviolet;
+    padding: 25px 10px;
+    top: 0;
+    height: 100vh;
+    width: 250px;
+    
+}
+
+#sideBar #facts {
+    display: flex;
+    flex-direction: column !important;
+    height: 90%;
+    width: auto;
+    overflow-y: scroll;
+    overflow-x: hidden;
+    padding-top: 20px;
+    gap: 10px;
+    scrollbar-width: 20px;
+}
+
+#sideBar #facts li {
+    list-style: none;
+}
+
+#fig {
+    margin: auto;
+    padding: 20px;
+    background-color: white;
+}
+
+#fig > div {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+#fig img {
+    max-width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--primary-color);
+}
+
+#fig h3 {
+    font-size: 1.8em;
+    font-weight: bold;
+    color: var(--highlight);
+}
+
+#fig .cards-wrapper {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: center;
+}
+
+#fig .card {
+    background-color: var(--card-bg);
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 4px 8px var(--shadow-color);
+    transition: transform 0.3s ease-in-out;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 650px;
+    width: 30%;
+}
+
+#fig .card.unique {
+    background-color: var(--unique-bg);
+    border: 2px solid var(--unique-border);
+    box-shadow: 0 4px 8px rgba(181, 186, 114, 0.6);
+}
+
+#fig .card .top h4 {
+    margin: 0;
+    font-size: 1.5em;
+    color: var(--highlight);
+    font-weight: bold;
+}
+
+#fig .card .top p {
+    margin: 5px 0;
+    font-size: 1em;
+    color: var(--text-color);
+    opacity: 0.8;
+}
+
+#fig .card .middle {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-grow: 1;
+}
+
+#fig .card .middle .left {
+    height: 250px;
+    width: 250px;
+    object-fit: cover;
+    border-radius: 12px;
+    box-shadow: 0 3px 6px var(--shadow-color);
+}
+
+#fig .card .middle .right {
+    list-style: none;
+    padding: 0;
+}
+
+#fig .card .middle .right li {
+    background-color: var(--bg-color);
+    margin: 8px 0;
+    padding: 12px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px var(--shadow-color);
+    font-size: 1em;
+    font-weight: 500;
+}
+
+#fig .card .bottom {
+    margin-top: 20px;
+    font-size: 1em;
+    line-height: 1.6;
+    color: var(--text-color);
+    opacity: 0.9;
+    flex-shrink: 0;
+}
+
 
 
 

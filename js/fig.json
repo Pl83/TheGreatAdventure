@@ -1,0 +1,400 @@
+{
+    "Valarjar": {
+
+    },
+    "Helarjar": {
+
+    },
+    "Elves Kingdom": {
+
+    },
+    "Ninjas": {
+
+    },
+    "The imperium": {
+
+    },
+    "Swamp Tribe": {
+
+    },
+    "The Guild": {
+
+    },
+    "Mercenarys": {
+
+    },
+    "Sky Pirates": {
+
+    },
+    "Nexo-knights Kingdom": {
+
+    },
+    "Squeletons": {
+
+    },
+    "Dwarves Kingdom": {
+
+    },
+    "Space": {
+
+    },
+    "Heros of Ninjago": {
+
+    },
+    "Ghost": {
+        "Morrow": {
+            "title": ["Master of Wind", "Ghost Lord", "General of Hela"],
+            "unique": true, 
+            "species": "Ghost",
+            "weapon": "A one-handed scythe",
+            "power": [
+                "Immunity to physical attacks",
+                "Phase through physical objects",
+                "Wind elemental power"
+            ],
+            "weakness": [
+                "Magic",
+                "Water"
+            ],
+            "description": "Ex-disciple of Sensei Wu and candidate for the position of Green Ninja. After being rejected, he fell into darkness and wandered into the Ghost Realm in pursuit of power. There, he became a ghost himself and trained under a new master before unifying all the ghosts under him and trying to take his revenge on Sensei Wu and the ninja. After his defeat, Hela recruited him and made him one of her four generals, placing him in charge of spying and assassination matters.",
+            "url": ["Gost/ghost_morow_chained.jpg"]
+        },
+        "Morrow Incarnated": {
+            "title": ["Master of Wind", "Ghost Lord", "General of Hela", "The Revenant", "Master of the Sanjiegun"],
+            "unique": true,
+            "species": "Ghost/Human",
+            "weapon": "The Sanjiegun of Shiva",
+            "power": [
+                "Immunity to physical attacks",
+                "Phase through physical objects",
+                "Wind elemental power",
+                "Small destruction and creation power"
+            ],
+            "weakness": null,
+            "description": "After the final conflict against Sigfried, Morrow, angry at his weakness and jealous of the power of the ninja, departed on a quest to grow stronger. He returned with an artifact as well as a new body—half ghost, half human. His new body has all the advantages of a ghost without the weaknesses.",
+            "url": ["Gost/ghost_morow_unchained_1.jpg", "Gost/ghost_morow_unchained_2.jpg"]
+        },
+        "Annastasia": {
+            "title": null,
+            "unique": true,
+            "species": "Ghost",
+            "weapon": "Dual ghost blades enhanced with wind power by Morrow.",
+            "power": [
+                "Immunity to physical attacks",
+                "Phase through physical objects"
+            ],
+            "weakness": [
+                "Magic",
+                "Water"
+            ],
+            "description": "Right arm of Morrow as well as his big sister, she is the most skilled assassin of the Ghost World.",
+            "url": ["Gost/ghost_annastasia.jpg"]
+        },
+        "Ghost Assassins": {
+            "title": null,
+            "unique": false,
+            "species": "Ghost",
+            "weapon": "Varies",
+            "power": [
+                "Immunity to physical attacks",
+                "Phase through physical objects"
+            ],
+            "weakness": [
+                "Magic",
+                "Water"
+            ],
+            "description": "Ghost soldiers working under Annastasia's command.",
+            "url": ["Gost/ghost_assassin_1.jpg", "Gost/ghost_assassin_2.jpg"]
+        },
+        "Rasputin": {
+            "title": ["Ultimate Weapon", "The Hybrid"],
+            "unique": true,
+            "species": "Ghost",
+            "weapon": "An anti-magic staff enhanced with ice and fire power.",
+            "power": [
+                "Immunity to physical attacks",
+                "Phase through physical objects",
+                "Ice magic",
+                "Fire magic"
+            ],
+            "weakness": [
+                "Magic",
+                "Water"
+            ],
+            "description": "A ghost soldier who was the test subject of Dr. Victor under Hela's orders. He was infused with ice and fire magic and given an anti-magic staff to create a warrior with no weaknesses.",
+            "url": ["Gost/ghost_rasputin.jpg"]
+        },
+        "Ghost Hound Master": {
+            "title": null,
+            "unique": true,
+            "species": "Ghost",
+            "weapon": "A sword with a chain",
+            "power": [
+                "Immunity to physical attacks",
+                "Phase through physical objects",
+                "Command ghost hounds"
+            ],
+            "weakness": [
+                "Magic",
+                "Water"
+            ],
+            "description": "A ghost soldier in charge of training and controlling ghost hounds.",
+            "url": ["Gost/ghost_hound_handler.jpg"]
+        },
+        "Ghost Hounds": {
+            "title": null,
+            "unique": false,
+            "species": "Ghost",
+            "weapon": null,
+            "power": [
+                "Immunity to physical attacks",
+                "Phase through physical objects",
+                "Possession of other beings"
+            ],
+            "weakness": [
+                "Magic",
+                "Water"
+            ],
+            "description": "Ghost hounds can possess people and control them.",
+            "url": ["Gost/ghost_hound_1.jpg", "Gost/ghost_hound_2.jpg"]
+        },
+        "Ghost Captains": {
+            "title": null,
+            "unique": true,
+            "species": "Ghost",
+            "weapon": "A ghost sword",
+            "power": [
+                "Immunity to physical attacks",
+                "Phase through physical objects"
+            ],
+            "weakness": [
+                "Magic",
+                "Water"
+            ],
+            "description": "A ghost soldier who, after multiple battles, was granted the rank of captain.",
+            "url": ["Gost/ghost_soldier_captain.jpg"]
+        },
+        "Ghost Soldiers": {
+            "title": null,
+            "unique": false,
+            "species": "Ghost",
+            "weapon": "A ghost sword",
+            "power": [
+                "Immunity to physical attacks",
+                "Phase through physical objects"
+            ],
+            "weakness": [
+                "Magic",
+                "Water"
+            ],
+            "description": "A ghost soldier.",
+            "url": ["Gost/ghost_soldier_swordman_1.jpg", "Gost/ghost_soldier_swordman_2.jpg"]
+        },
+        "Ghost Archers": {
+            "title": null,
+            "unique": false,
+            "species": "Ghost",
+            "weapon": "A crossbow",
+            "power": [
+                "Immunity to physical attacks",
+                "Phase through physical objects"
+            ],
+            "weakness": [
+                "Magic",
+                "Water"
+            ],
+            "description": "A ghost soldier who attacks from long range.",
+            "url": ["Gost/ghost_soldier_archer.jpg"]
+        }
+    },
+    "Swarms":{
+
+    },
+    "Martians": {
+
+    },
+    "Brainiacs": {
+
+    },
+    "Lion Tribe": {
+
+    },
+    "Crocodile Tribe": {
+
+    },
+    "Eagle Tribe": {
+
+    },
+    "Wolve Tribe": {
+
+    },
+    "Gorilla Tribe": {
+
+    },
+    "Bear Tribe": {
+
+    },
+    "Raven Tribe": {
+
+    },
+    "Snake Tribe": {
+
+    },
+    "Sea Tribe": {
+
+    },
+    "Insectoid Tribe": {
+
+    },
+    "Pheonix Tribe": {
+
+    },
+    "Tiger Tribe": {
+
+    },
+    "Polar-Bear Tribe": {
+
+    },
+    "SaberTooth Tribe": {
+
+    },
+    "Vulture Tribe": {
+
+    },
+    "Ice Shogun": {
+
+    },
+    "Island Ruler": {
+
+    },
+    "Jedi Temple": {
+
+    },
+    "Sith Congregation": {
+
+    },
+    "Mandalorian Tribe": {
+        "Djin": {
+            "title": ["Wielder of the drak saber", "Sucessor of mandalor the firt"],
+            "unique": true,
+            "species": "Human",
+            "weapon": "The dark saber, a light blaster",
+            "power": null,
+            "weakness": null,
+            "description": "A pround mandalorian warrior. He won in battle the dark saber, making him the heir to trone of Mandalore. Just like other mandalorian warrior, he is equiped with a an amor and a jet pack made of beskar.",
+            "url": ["Mandalorien/mandalorian_sucessor_djin.jpg"]
+        },
+        "Alpha": {
+            "title": ["The sky"],
+            "unique": true,
+            "species": "Human",
+            "weapon": "A blaster",
+            "power": null,
+            "weakness": null,
+            "description": "A pround mandalorian warrior. He specialized himself in aerial combat and manuvoer. His fitghing style complete the one of his brother Omega. Just like other mandalorian warrior, he is equiped with a an amor and a custom jet pack made of beskar.",
+            "url": ["Mandalorien/mandalorian_warrior_alpha.jpg"]
+        },
+        "Omega": {
+            "title": ["The earth"],
+            "unique": true,
+            "species": "Human",
+            "weapon": "An electric staff",
+            "power": null,
+            "weakness": null,
+            "description": "A pround mandalorian warrior. He specialized himself in close combat on the ground. His fitghing style complete the one of his brother Alpha. Just like other mandalorian warrior, he is equiped with a an amor and a jet pack made of beskar.",
+            "url": ["Mandalorien/mandalorian_warrior_omega.jpg"]
+        },
+        "Kamur": {
+            "title": null,
+            "unique": true,
+            "species": "Human",
+            "weapon": "A laser crossbow, a ligth machine gun, a blater with a bayonet",
+            "power": null,
+            "weakness": null,
+            "description": "A pround mandalorian warrior. He consider himself as a weapon expert. Just like other mandalorian warrior, he is equiped with a an amor made of beskar.",
+            "url": ["Mandalorien/mandalorian_warrior_kamur.jpg"]
+        },
+        "Katan": {
+            "title": null,
+            "unique": true,
+            "species": "Human",
+            "weapon": "Two blaster",
+            "power": null,
+            "weakness": null,
+            "description": "She is a pround mandalorian warrior. Just like other mandalorian warrior, he is equiped with a an amor and a jet pack made of beskar.",
+            "url": ["Mandalorien/mandalorian_warrior_katan.jpg"]
+        },
+        "Ron": {
+            "title": null,
+            "unique": true,
+            "species": "Human",
+            "weapon": "A light blaster and a combat knife",
+            "power": null,
+            "weakness": null,
+            "description": "He is a pround mandalorian warrior. Just like other mandalorian warrior, he is equiped with a an amor and a jet pack made of beskar.",
+            "url": ["Mandalorien/mandalorian_warrior_ron.jpg"]
+        },
+        "Rhyx": {
+            "title": null,
+            "unique": true,
+            "species": "Human",
+            "weapon": "A laser chainsword and an energie shield",
+            "power": null,
+            "weakness": null,
+            "description": "A pround mandalorian warrior. He is a close combat instructor. Just like other mandalorian warrior, he is equiped with a an amor made of beskar.",
+            "url": ["Mandalorien/mandalorian_warrior_rhyx.jpg"]
+        },
+        "Verga": {
+            "title": null,
+            "unique": true,
+            "species": "Human",
+            "weapon": "A laser bow",
+            "power": null,
+            "weakness": null,
+            "description": "A pround mandalorian warrior. She is a shouting instructor. Just like other mandalorian warrior, he is equiped with a an amor made of beskar.",
+            "url": ["Mandalorien/mandalorian_warrior_verga.jpg"]
+        },
+        "Jango": {
+            "title": null,
+            "unique": true,
+            "species": "Human",
+            "weapon": "A blaster, an automatic pistol",
+            "power": null,
+            "weakness": null,
+            "description": "A pround mandalorian warrior. He worked as a bounty hunter for many year before coming back to Mandalore. Just like other mandalorian warrior, he is equiped with a an amor and a jet pack made of beskar.",
+            "url": ["Mandalorien/mandalorian_warrior_jango.jpg"]
+        },
+        "Boba": {
+            "title": null,
+            "unique": true,
+            "species": "Human",
+            "weapon": "A long range blaster, a light blaster, a rocket lautcher, a flame trower",
+            "power": null,
+            "weakness": null,
+            "description": "A pround mandalorian warrior. Following the foot tep of his father Jango, departed from Madalore to became a bouty hunter. Just like other mandalorian warrior, he is equiped with a an amor and a jet pack made of beskar.",
+            "url": ["Mandalorien/mandalorian_warrior_boba.jpg"]
+        },
+        "Grogu": {
+            "title": null,
+            "unique": true,
+            "species": "unknow",
+            "weapon": null,
+            "power": ["force sensitif", "force push", "force grab"],
+            "weakness": null,
+            "description": "A child found and adopted by Djin during one of is mission. Djin decided to take care of him and train him to become a mandalorian warrior. For now he is a trainee.",
+            "url": ["Mandalorien/mandalorien_trainee_grogu.jpg"]
+        }
+    },
+    "The Horde": {
+
+    },
+    "The Infernos": {
+
+    },
+    "The destruction": {
+
+    },
+    "Nightmare": {
+
+    }
+}

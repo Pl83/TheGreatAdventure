@@ -39,7 +39,8 @@ const factions = [
     {name: "Mandalorian Tribe", text: "A tribe of proud warrior who follows the way of mandalore. They never prefer to die than to remove their helmet and show their face. They also are the only civilisation with the knowledge of how to forge Beskar, the strongest metal.", alignement: "true neutral", slug: "mandalorian-tribe"},
     {name: "The Horde", text: "Multiple tribe of monsters has regrouped to form a horde.", alignement: "chaotic evil", slug: "the-horde"},
     {name: "The Infernos", text: "A group of monsters who obeys the enchantress, a powerful sorceress. The enchantress gave them the ability to regenerate and come back forever.", alignement: "chaotic evil", slug: "the-infernos"},
-    {name: "The destruction", text: "Those who serve Siegfried, the avatar of destruction. Theire only goal is to destroy everything that existe down to the last atom.", alignement: "chaotic evil", slug: "the-destruction"}
+    {name: "The destruction", text: "Those who serve Siegfried, the avatar of destruction. Theire only goal is to destroy everything that existe down to the last atom.", alignement: "chaotic evil", slug: "the-destruction"},
+    {name: "Nightmare", text: "Trapped in the dark realm, they serve the Nightmare King.", alignement: "chaotic evil", slug: "nightmare"},
 ];
 
 const realms = [
@@ -117,4 +118,5 @@ const artifacts = [
     {name: "Atlas masse", divinity: "Atlas", power: "Indestrutible masse that grant it's user incredible strenght.", slug: "atlas-masse", status: "Held by Jay", "autority": 3},
     {name: "Souls blade", divinity: "Unknown", power: "The sword can absorb the soul of it's victim. The user can use the soul to increase his power.", slug: "souls-blade", status: "Held by White", "autority": 8},
     {name: "Appolo's bow", divinity: "Appolo", power: "The bow can create arrow of light that can pierce anything.", slug: "appolos-bow", status: "Held by Tormak", "autority": 4},
+    {name: "The Sanjiegun of Shiva", divinity: "Shiva", power: "A three part nunchaku granting it's user small power of creation and detruction.", slug: "sanjiegun", status: "Held by Morrow", "autority": 7},
 ];

@@ -6,7 +6,8 @@ if ( window.location.href.includes('github') ) {
 } else {
     logoUrl = 'img/logo/';
 }
-const showPersoUrl = 'personages.html?filter=';
+//const showPersoUrl = 'personages.html?filter=';
+const showPersoUrl = 'personages.html';
 
 factions.forEach(faction => {
     let article = document.createElement('article');
@@ -30,7 +31,8 @@ factions.forEach(faction => {
     p.innerText = faction.text;
     p2.innerText = "Alignement : " + faction.alignement;
 
-    a.href = showPersoUrl + faction.slug;
+    //a.href = showPersoUrl + faction.slug;
+    a.href = showPersoUrl;
     a.innerText = "See Caracters affiliated to this factions";
 
     div.appendChild(img);
