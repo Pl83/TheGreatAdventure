@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="img/logo/lego.webp" type="image/x-icon">
+    <link rel="stylesheet" href="css/main.css">
+    <script src="js/main.js" defer></script>
+    <script src="js/dnl.js" defer></script>
+    <title>The Great Adventure</title>
+</head>
+<body>
+    <header>
+        <h1>The great Adventure !!!</h1>
+        <nav>
+            <ul>
+                <li class="menu"><a href="index.html">Home</a></li>
+                <li class="menu"><a href="personages.html">Caracters</a></li>
+                <li class="menu"><a href="factions.html">Factions</a></li>
+                <!-- <li class="menu"><a href="maps.html">World</a></li> -->
+                <li class="menu"><a href="artifacts.html">Artifacts</a></li>
+                <li class="active menu"><a href="dnl.html">D&L</a></li>
+                <!-- <li class="active menu"><a href="timeline.html">Time Line</a></li> -->
+            </ul>
+        </nav>
+    </header> 
+    <main>
+        <h2>D&L</h2>
+        <section id="dnl">
+                <h2>Status Effects</h2>
+                <section id="effectSection" class="card" aria-labelledby="table-title">
+                    <h2 id="table-title" class="sr-only">Status effects table</h2>
+
+                    <div class="controls" role="group" aria-label="Table controls">
+                        <label>
+                        <span class="sr-only">Search</span>
+                        <input id="q" type="search" placeholder="Search status or notes…" autocomplete="off" />
+                        </label>
+                        <label>
+                        <span class="sr-only">Has damage</span>
+                        <select id="damageFilter" title="Filter by damage presence">
+                            <option value="all">All</option>
+                            <option value="has">Has damage</option>
+                            <option value="none">No damage</option>
+                        </select>
+                        </label>
+                    </div>
+
+                    <div class="table-wrap">
+                        <table aria-describedby="table-caption">
+                        <colgroup>
+                            <col style="width: 16rem;" />
+                            <col style="width: 10rem;" />
+                            <col style="width: 12rem;" />
+                            <col />
+                        </colgroup>
+                        <thead>
+                            <tr>
+                            <th scope="col">Condition</th>
+                            <th scope="col">Damage Dice</th>
+                            <th scope="col">Type</th>
+                            <th scope="col">Restrictions / Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody">
+                            <!-- Rows injected by JS -->
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                            <td colspan="4">Tip: Use the search box to quickly find a condition (e.g., “unable”, “fire”, “spell”).</td>
+                            </tr>
+                        </tfoot>
+                        </table>
+                    </div>
+                </section>
+                <br>
+                <br>
+                <section id="gatcha">
+                    <h2>Titles Gatcha</h2>
+
+                    <button onclick="rollGacha()">Pull 5 Titles</button>
+
+                    <div id="results" class="results"></div>
+                </section>
+        </section>
+
+        
+    </main>
+    <footer>
+        <p>© 2020 The Great Adventure by Pilou</p>
+    </footer>
+</body>
+</html>
+

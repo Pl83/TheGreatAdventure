@@ -10,6 +10,13 @@
     --highlight: #00aa4f;
     --unique-bg: #e0e7b0;
     --unique-border: #b5ba72;
+    --bg: #f1fbf6;           /* bg-color */
+    --panel: #d6f5e3;        /* card-bg */
+    --muted: #09160f;        /* text-color darker */
+    --text: #09160f;         /* text-color */
+    --accent: #43F395;       /* accent-color */
+    --border: #84F4B8;       /* secondary-color */
+    --ring: #00CC60;         /* primary-color */
 }
 
 * {
@@ -231,6 +238,130 @@ details[close] summary ~ * {
     margin-bottom: 20px;
     padding: 20px;
 }
+
+#dnl #effectSection p.lead { margin: 0.5rem 0 0; color: var(--muted); }
+
+#dnl #effectSection .card {
+    background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1rem;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    backdrop-filter: blur(4px);
+}
+
+/* Controls */
+#dnl #effectSection .controls { display: flex; gap: .75rem; align-items: center; flex-wrap: wrap; margin: 1rem 0; }
+#dnl #effectSection .controls label { font-size: 0.9rem; color: var(--muted); }
+#dnl #effectSection .controls input[type="search"], #dnl #effectSection .controls select {
+    appearance: none; border: 1px solid var(--border);  color: var(--text);
+    padding: .55rem .7rem; border-radius: 10px; outline: none; min-width: 12rem;
+}
+#dnl #effectSection .controls input[type="search"]:focus, #dnl #effectSection .controls select:focus { box-shadow: 0 0 0 3px rgba(14,165,233,.3); border-color: var(--ring); }
+
+/* Table */
+#dnl #effectSection .table-wrap { overflow: auto; border-radius: 12px; border: 1px solid var(--border); }
+#dnl #effectSection table { width: 100%; border-collapse: collapse;  }
+
+#dnl #effectSection caption { text-align: left; padding: .85rem 1rem; color: var(--muted); font-size: .95rem; }
+
+#dnl #effectSection thead th { position: sticky; top: 0;  color: var(--text); text-align: left; font-weight: 600; }
+#dnl #effectSection th, #dnl #effectSection td { padding: .8rem 1rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+#dnl #effectSection tbody tr:hover td { background: var(--secondary-color); }
+#dnl #effectSection td em { color: var(--muted); font-style: normal; }
+
+#dnl #effectSection .pill { display: inline-block; padding: .25rem .5rem; border: 1px solid var(--border); border-radius: 999px; font-size: .8rem; color: var(--text);  }
+#dnl #effectSection .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+
+#dnl #effectSection tfoot td { color: var(--muted); font-size: .9rem; }
+
+#dnl #gatcha button {
+    background: var(--primary-color);
+    border: none;
+    padding: 15px 30px;
+    font-size: 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.3s;
+  }
+  #dnl #gatcha button:hover {
+    background: var(--accent-color);
+  }
+  #dnl #gatcha .results {
+    margin-top: 30px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 15px;
+  }
+  #dnl #gatcha .card {
+    width: 220px;
+    height: 120px;
+    perspective: 1000px;
+	padding: 7px;
+  }
+  #dnl #gatcha .card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    text-align: center;
+    transform-style: preserve-3d;
+    transition: transform 0.6s;
+  }
+  #dnl #gatcha .flipped {
+    transform: rotateY(180deg);
+  }
+  #dnl #gatcha .card-front, .card-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+  #dnl #gatcha .card-front {
+    background: #555;
+    color: #fff;
+    font-size: 20px;
+  }
+  #dnl #gatcha .card-back {
+    transform: rotateY(180deg);
+    padding: 10px;
+    font-size: 16px;
+  }
+  #dnl #gatcha .common { background: #ccc; color: #000; }
+  #dnl #gatcha .uncommon { background: #4caf50; }
+  #dnl #gatcha .rare { background: #2196f3; }
+  #dnl #gatcha .epic { background: #9c27b0; }
+
+  /* Glow animations */
+  @keyframes glow-common {
+    0% { box-shadow: 0 0 0px #fff; }
+    50% { box-shadow: 0 0 20px #fff; }
+    100% { box-shadow: 0 0 0px #fff; }
+  }
+  @keyframes glow-uncommon {
+    0% { box-shadow: 0 0 0px #4caf50; }
+    50% { box-shadow: 0 0 25px #4caf50; }
+    100% { box-shadow: 0 0 0px #4caf50; }
+  }
+  @keyframes glow-rare {
+    0% { box-shadow: 0 0 0px #2196f3; }
+    50% { box-shadow: 0 0 25px #2196f3; }
+    100% { box-shadow: 0 0 0px #2196f3; }
+  }
+  @keyframes glow-epic {
+    0% { box-shadow: 0 0 0px #9c27b0; }
+    50% { box-shadow: 0 0 30px #9c27b0; }
+    100% { box-shadow: 0 0 0px #9c27b0; }
+  }
+  .glow-common { animation: glow-common 1s ease-in-out; }
+  .glow-uncommon { animation: glow-uncommon 1s ease-in-out; }
+  .glow-rare { animation: glow-rare 1s ease-in-out; }
+  .glow-epic { animation: glow-epic 1s ease-in-out; }
 
 .maps {
     display: flex;

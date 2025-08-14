@@ -29,7 +29,7 @@ factions.forEach(faction => {
     summary.innerText = "Who are they ?";
 
     p.innerText = faction.text;
-    p2.innerText = "Alignement : " + faction.alignement;
+    p2.innerText = "Alignement : " + faction.alignment;
 
     //a.href = showPersoUrl + faction.slug;
     a.href = showPersoUrl;

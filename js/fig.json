@@ -11,8 +11,40 @@
     "Ninjas": {
 
     },
-    "The imperium": {
-
+    "The Imperium": {
+        "Reia": {
+            "title": ["Empress of the Kingdom of Imperium"],
+            "unique": true,
+            "species": "Human",
+            "weapon": "Imperium Sword, Pause Time Blade",
+            "power": null,
+            "weakness": null,
+            "description": "She is the totalitarian ruler of the Kingdom of Imperium. Long before The Merge, she allied with Ras to murder her father, Levo, and banished her twin sister and rightful heir, Zeatrix, in order to take the throne. After Imperium merged with the other realms, she sought to capture the Source Dragons to meet the energy needs of Imperium forever while also gaining control of every other realm. However, for now, the ninjas always manage to defeat her.",
+            "url": ["Imperium/imperium_reia.jpg"]
+        },
+        "Ras": {
+            "title": ["Lord Ras", "Leader of the Claws of Imperium"],
+            "unique": true,
+            "species": "Tiger Tribe",
+            "weapon": "One-handed war hammer",
+            "power": [
+                "Superhuman speed, durability, and strength",
+                "Night vision"
+            ],
+            "weakness": null,
+            "description": "Before The Merge, Ras came to Imperium and assisted Empress Reia in gaining control of the kingdom by assassinating her father, becoming the leader of the Claws of Imperium afterward. Despite being a capable commander and a highly skilled warrior, he has failed to stop Arin, Sora, and Lloyd from freeing and escaping with the dragons Imperium had captured. Consequently, Ras was stripped of his title as leader of the Claws and imprisoned.",
+            "url": ["Imperium/imperium_ras.jpg"]
+        },
+        "Imperial Soldier": {
+            "title": null,
+            "unique": false,
+            "species": "Human",
+            "weapon": "A Claw staff",
+            "power": null,
+            "weakness": null,
+            "description": "A soldier of the Imperium working for Empress Reia.",
+            "url": ["Imperium/imperium_captain.jpg"]
+        }
     },
     "Swamp Tribe": {
 
@@ -50,11 +82,14 @@
             "power": [
                 "Immunity to physical attacks",
                 "Phase through physical objects",
+                "Levitation",
+                "Invisibility",
                 "Wind elemental power"
             ],
             "weakness": [
-                "Magic",
-                "Water"
+                "Water",
+                "Deepstone",
+                "Vengestone"
             ],
             "description": "Ex-disciple of Sensei Wu and candidate for the position of Green Ninja. After being rejected, he fell into darkness and wandered into the Ghost Realm in pursuit of power. There, he became a ghost himself and trained under a new master before unifying all the ghosts under him and trying to take his revenge on Sensei Wu and the ninja. After his defeat, Hela recruited him and made him one of her four generals, placing him in charge of spying and assassination matters.",
             "url": ["Gost/ghost_morow_chained.jpg"]
@@ -68,9 +103,11 @@
                 "Immunity to physical attacks",
                 "Phase through physical objects",
                 "Wind elemental power",
+                "Levitation",
+                "Invisibility",
                 "Small destruction and creation power"
             ],
-            "weakness": null,
+            "weakness": ["Vengestone"],
             "description": "After the final conflict against Sigfried, Morrow, angry at his weakness and jealous of the power of the ninja, departed on a quest to grow stronger. He returned with an artifact as well as a new body—half ghost, half human. His new body has all the advantages of a ghost without the weaknesses.",
             "url": ["Gost/ghost_morow_unchained_1.jpg", "Gost/ghost_morow_unchained_2.jpg"]
         },
@@ -81,11 +118,14 @@
             "weapon": "Dual ghost blades enhanced with wind power by Morrow.",
             "power": [
                 "Immunity to physical attacks",
-                "Phase through physical objects"
+                "Phase through physical objects",
+                "Levitation",
+                "Invisibility"
             ],
             "weakness": [
-                "Magic",
-                "Water"
+                "Water",
+                "Deepstone",
+                "Vengestone"
             ],
             "description": "Right arm of Morrow as well as his big sister, she is the most skilled assassin of the Ghost World.",
             "url": ["Gost/ghost_annastasia.jpg"]
@@ -97,11 +137,14 @@
             "weapon": "Varies",
             "power": [
                 "Immunity to physical attacks",
-                "Phase through physical objects"
+                "Phase through physical objects",
+                "Levitation",
+                "Invisibility"
             ],
             "weakness": [
-                "Magic",
-                "Water"
+                "Water",
+                "Deepstone",
+                "Vengestone"
             ],
             "description": "Ghost soldiers working under Annastasia's command.",
             "url": ["Gost/ghost_assassin_1.jpg", "Gost/ghost_assassin_2.jpg"]
@@ -114,12 +157,15 @@
             "power": [
                 "Immunity to physical attacks",
                 "Phase through physical objects",
+                "Levitation",
+                "Invisibility",
                 "Ice magic",
                 "Fire magic"
             ],
             "weakness": [
-                "Magic",
-                "Water"
+                "Water",
+                "Deepstone",
+                "Vengestone"
             ],
             "description": "A ghost soldier who was the test subject of Dr. Victor under Hela's orders. He was infused with ice and fire magic and given an anti-magic staff to create a warrior with no weaknesses.",
             "url": ["Gost/ghost_rasputin.jpg"]
@@ -132,11 +178,14 @@
             "power": [
                 "Immunity to physical attacks",
                 "Phase through physical objects",
+                "Levitation",
+                "Invisibility",
                 "Command ghost hounds"
             ],
             "weakness": [
-                "Magic",
-                "Water"
+                "Water",
+                "Deepstone",
+                "Vengestone"
             ],
             "description": "A ghost soldier in charge of training and controlling ghost hounds.",
             "url": ["Gost/ghost_hound_handler.jpg"]
@@ -149,11 +198,14 @@
             "power": [
                 "Immunity to physical attacks",
                 "Phase through physical objects",
+                "Levitation",
+                "Invisibility",
                 "Possession of other beings"
             ],
             "weakness": [
-                "Magic",
-                "Water"
+                "Water",
+                "Deepstone",
+                "Vengestone"
             ],
             "description": "Ghost hounds can possess people and control them.",
             "url": ["Gost/ghost_hound_1.jpg", "Gost/ghost_hound_2.jpg"]
@@ -165,11 +217,14 @@
             "weapon": "A ghost sword",
             "power": [
                 "Immunity to physical attacks",
-                "Phase through physical objects"
+                "Phase through physical objects",
+                "Levitation",
+                "Invisibility"
             ],
             "weakness": [
-                "Magic",
-                "Water"
+                "Water",
+                "Deepstone",
+                "Vengestone"
             ],
             "description": "A ghost soldier who, after multiple battles, was granted the rank of captain.",
             "url": ["Gost/ghost_soldier_captain.jpg"]
@@ -181,11 +236,14 @@
             "weapon": "A ghost sword",
             "power": [
                 "Immunity to physical attacks",
-                "Phase through physical objects"
+                "Phase through physical objects",
+                "Levitation",
+                "Invisibility"
             ],
             "weakness": [
-                "Magic",
-                "Water"
+                "Water",
+                "Deepstone",
+                "Vengestone"
             ],
             "description": "A ghost soldier.",
             "url": ["Gost/ghost_soldier_swordman_1.jpg", "Gost/ghost_soldier_swordman_2.jpg"]
@@ -197,11 +255,14 @@
             "weapon": "A crossbow",
             "power": [
                 "Immunity to physical attacks",
-                "Phase through physical objects"
+                "Phase through physical objects",
+                "Levitation",
+                "Invisibility"
             ],
             "weakness": [
-                "Magic",
-                "Water"
+                "Water",
+                "Deepstone",
+                "Vengestone"
             ],
             "description": "A ghost soldier who attacks from long range.",
             "url": ["Gost/ghost_soldier_archer.jpg"]
@@ -262,7 +323,6 @@
 
     },
     "Ice Shogun": {
-
     },
     "Island Ruler": {
 
@@ -271,7 +331,215 @@
 
     },
     "Sith Congregation": {
-
+        "Dark Vador": {
+            "title": ["Sith Lord"],
+            "unique": true,
+            "species": "Human",
+            "weapon": "Red light-saber",
+            "power": [
+                "Force grab",
+                "Force push",
+                "Force-sensitive",
+                "Force lighting"
+            ],
+            "weakness": null,
+            "description": "Even among the sith lord, he is feared and know as the strongest. He wear and armor with a life systeme integrated making is breathing and voice heavy and mechanicle.",
+            "url": ["Sith/sith_lord_dark_vador.jpg"]
+        },
+        "Dark Tyranus": {
+            "title": ["Sith Lord"],
+            "unique": true,
+            "species": "Human",
+            "weapon": "Red light-saber with bend handle",
+            "power": [
+                "Force grab",
+                "Force push",
+                "Force-sensitive",
+                "Force lighting"
+            ],
+            "weakness": null,
+            "description": "The man considered as the best duelist in the entire galaxy. His mastery over his ligth saber making him a strong foe.",
+            "url": ["Sith/sith_lord_dark_tyranus.jpg"]
+        },
+        "Dark Sidious": {
+            "title": ["Sith Lord"],
+            "unique": true,
+            "species": "Human",
+            "weapon": null,
+            "power": [
+                "Force grab",
+                "Force push",
+                "Force-sensitive",
+                "Force storm",
+                "Force thunder"
+            ],
+            "weakness": null,
+            "description": "The oldest sith as well as a cunning man. His knowledge allow him an incredible mastery of the force.",
+            "url": ["Sith/sith_lord_dark_sidious.jpg"]
+        },
+        "Dark Revan": {
+            "title": ["Sith Lord"],
+            "unique": true,
+            "species": "Human",
+            "weapon": "Red light-saber, purple ligth-saber",
+            "power": [
+                "Force grab",
+                "Force push",
+                "Force-sensitive",
+                "Force teleportation",
+                "Force heal"
+            ],
+            "weakness": null,
+            "description": "",
+            "url": ["Sith/sith_lord_dark_revan.jpg"]
+        },
+        "Dark Malgus": {
+            "title": ["Sith Lord"],
+            "unique": true,
+            "species": "Human",
+            "weapon": "Red light-saber",
+            "power": [
+                "Force grab",
+                "Force push",
+                "Force-sensitive",
+                "Force lighting"
+            ],
+            "weakness": null,
+            "description": "",
+            "url": ["Sith/sith_lord_dark_malgus.jpg"]
+        },
+        "Dark Steirn": {
+            "title": ["Sith"],
+            "unique": true,
+            "species": "Human",
+            "weapon": "Red light-saber, cortosis shield",
+            "power": [
+                "Force push",
+                "Force-sensitive"
+            ],
+            "weakness": null,
+            "description": "",
+            "url": ["Sith/sith_dark_steirn.jpg"]
+        },
+        "Dark Spyder": {
+            "title": ["Sith"],
+            "unique": true,
+            "species": "Unknow",
+            "weapon": "Red light-halberd",
+            "power": [
+                "Force grab",
+                "Force push",
+                "Force-sensitive"
+            ],
+            "weakness": null,
+            "description": "",
+            "url": ["Sith/sith_dark_steirn.jpg"]
+        },
+        "Dark Ren": {
+            "title": ["Sith"],
+            "unique": true,
+            "species": "Human",
+            "weapon": "Red cross guard light-saber",
+            "power": [
+                "Force grab",
+                "Force push",
+                "Force-sensitive",
+                "Force lighting"
+            ],
+            "weakness": null,
+            "description": "",
+            "url": ["Sith/sith_dark_ren.jpg"]
+        },
+        "Dark Maul eldest": {
+            "title": ["Sith"],
+            "unique": true,
+            "species": "Human",
+            "weapon": "Red light-scythe",
+            "power": [
+                "Force grab",
+                "Force push",
+                "Force-sensitive"
+            ],
+            "weakness": null,
+            "description": "",
+            "url": ["Sith/sith_dark_maul_first_born.jpg"]
+        },
+        "Dark Maul middle": {
+            "title": ["Sith"],
+            "unique": true,
+            "species": "Human",
+            "weapon": "Two red light-saber",
+            "power": [
+                "Force grab",
+                "Force push",
+                "Force-sensitive"
+            ],
+            "weakness": null,
+            "description": "",
+            "url": ["Sith/sith_dark_maul_second_born.jpg"]
+        },
+        "Dark Maul Yougest": {
+            "title": ["Sith"],
+            "unique": true,
+            "species": "Human",
+            "weapon": "Double red light-saber",
+            "power": [
+                "Force grab",
+                "Force push",
+                "Force-sensitive"
+            ],
+            "weakness": null,
+            "description": "",
+            "url": ["Sith/sith_dark_maul_third_born.jpg"]
+        },
+        "Reva": {
+            "title": ["Apprentice Sith"],
+            "unique": true,
+            "species": "Human",
+            "weapon": "Red light-saber",
+            "power": [
+                "Force grab",
+                "Force-sensitive"
+            ],
+            "weakness": null,
+            "description": "",
+            "url": ["Sith/sith_apprentice_reva.jpg"]
+        },
+        "Jhon": {
+            "title": ["Apprentice Sith"],
+            "unique": true,
+            "species": "Human",
+            "weapon": "Red light-saber",
+            "power": [
+                "Force-sensitive"
+            ],
+            "weakness": null,
+            "description": "",
+            "url": ["Sith/sith_apprentice_jhon.jpg"]
+        },
+        "Jack": {
+            "title": ["Apprentice Sith"],
+            "unique": true,
+            "species": "Human",
+            "weapon": "Double red light-saber",
+            "power": [
+                "Force push",
+                "Force-sensitive"
+            ],
+            "weakness": null,
+            "description": "",
+            "url": ["Sith/sith_apprentice_jack.jpg"]
+        },
+        "Sith guard": {
+            "title": null,
+            "unique": false,
+            "species": "Human",
+            "weapon": "Cortosis sword",
+            "power": null,
+            "weakness": null,
+            "description": "",
+            "url": ["Sith/sith_guard_1.jpg", "Sith/sith_guard_2.jpg"]
+        }
     },
     "Mandalorian Tribe": {
         "Din": {
@@ -384,6 +652,9 @@
             "description": "A child found and adopted by Din during one of his missions. Din decided to take care of him and train him to become a Mandalorian warrior. For now, he is a trainee.",
             "url": ["Mandalorien/mandalorien_trainee_grogu.jpg"]
         }
+    },
+    "Wolf Clan": {
+
     },
     "The Horde": {
 
