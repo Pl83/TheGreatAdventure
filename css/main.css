@@ -336,6 +336,7 @@ details[close] summary ~ * {
   #dnl #gatcha .uncommon { background: #4caf50; }
   #dnl #gatcha .rare { background: #2196f3; }
   #dnl #gatcha .epic { background: #9c27b0; }
+  #dnl #gatcha .legendary { background: #eba92e; }
 
   /* Glow animations */
   @keyframes glow-common {
@@ -358,10 +359,16 @@ details[close] summary ~ * {
     50% { box-shadow: 0 0 30px #9c27b0; }
     100% { box-shadow: 0 0 0px #9c27b0; }
   }
+  @keyframes glow-legendary {
+    0% { box-shadow: 0 0 0px #eba92e; }
+    50% { box-shadow: 0 0 30px #eba92e; }
+    100% { box-shadow: 0 0 0px #eba92e; }
+  }
   .glow-common { animation: glow-common 1s ease-in-out; }
   .glow-uncommon { animation: glow-uncommon 1s ease-in-out; }
   .glow-rare { animation: glow-rare 1s ease-in-out; }
   .glow-epic { animation: glow-epic 1s ease-in-out; }
+  .glow-legendary { animation: glow-legendary 1s ease-in-out; }
 
 .maps {
     display: flex;

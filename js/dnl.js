@@ -1,57 +1,61 @@
+document.addEventListener('DOMContentLoaded', () => {
+  
+});
+
 const tbody = document.getElementById('tbody');
-    const count = document.getElementById('count');
-    const searchInput = document.getElementById('q');
-    const damageFilter = document.getElementById('damageFilter');
+const count = document.getElementById('count');
+const searchInput = document.getElementById('q');
+const damageFilter = document.getElementById('damageFilter');
 
-    function hasDamage(effect) {
-      return effect.dice && effect.dice !== '—';
-    }
+function hasDamage(effect) {
+  return effect.dice && effect.dice !== '—';
+}
 
-    function renderRows(list) {
-      tbody.innerHTML = '';
-      for (const eff of list) {
-        const tr = document.createElement('tr');
+function renderRows(list) {
+  tbody.innerHTML = '';
+  for (const eff of list) {
+    const tr = document.createElement('tr');
 
-        const tdName = document.createElement('td');
-        tdName.innerHTML = `<strong>${eff.name}</strong>`;
+    const tdName = document.createElement('td');
+    tdName.innerHTML = `<strong>${eff.name}</strong>`;
 
-        const tdDice = document.createElement('td');
-        tdDice.textContent = eff.dice || '—';
+    const tdDice = document.createElement('td');
+    tdDice.textContent = eff.dice || '—';
 
-        const tdType = document.createElement('td');
-        tdType.textContent = eff.type || '—';
+    const tdType = document.createElement('td');
+    tdType.textContent = eff.type || '—';
 
-        const tdNotes = document.createElement('td');
-        tdNotes.innerHTML = eff.notes ? eff.notes : '<em>—</em>';
+    const tdNotes = document.createElement('td');
+    tdNotes.innerHTML = eff.notes ? eff.notes : '<em>—</em>';
 
-        tr.append(tdName, tdDice, tdType, tdNotes);
-        tbody.appendChild(tr);
-      }
-      count.textContent = `${list.length} ${list.length === 1 ? 'effect' : 'effects'}`;
-    }
+    tr.append(tdName, tdDice, tdType, tdNotes);
+    tbody.appendChild(tr);
+  }
+  //count.textContent = `${list.length} ${list.length === 1 ? 'effect' : 'effects'}`;
+}
 
-    function applyFilters() {
-      const q = searchInput.value.trim().toLowerCase();
-      const damageMode = damageFilter.value; // all | has | none
+function applyFilters() {
+  const q = searchInput.value.trim().toLowerCase();
+  const damageMode = damageFilter.value; // all | has | none
 
-      let results = EFFECTS.filter(eff => {
-        const text = `${eff.name} ${eff.dice} ${eff.type} ${eff.notes}`.toLowerCase();
-        const matchesText = q ? text.includes(q) : true;
-        const matchesDamage = damageMode === 'all'
-          ? true
-          : damageMode === 'has' ? hasDamage(eff) : !hasDamage(eff);
-        return matchesText && matchesDamage;
-      });
+  let results = EFFECTS.filter(eff => {
+    const text = `${eff.name} ${eff.dice} ${eff.type} ${eff.notes}`.toLowerCase();
+    const matchesText = q ? text.includes(q) : true;
+    const matchesDamage = damageMode === 'all'
+      ? true
+      : damageMode === 'has' ? hasDamage(eff) : !hasDamage(eff);
+    return matchesText && matchesDamage;
+  });
 
-      renderRows(results);
-    }
+  renderRows(results);
+}
 
-    // Initialize
-    renderRows(EFFECTS);
+// Initialize
+renderRows(EFFECTS);
 
-    // Events
-    searchInput.addEventListener('input', applyFilters);
-    damageFilter.addEventListener('change', applyFilters);
+// Events
+searchInput.addEventListener('input', applyFilters);
+damageFilter.addEventListener('change', applyFilters);
 
 
 function rollOne(exclude = []) {
@@ -86,7 +90,9 @@ function rollGacha() {
   results.forEach((r, index) => {
     const rarityClass = r.rarity === 1 ? 'common' :
                         r.rarity === 2 ? 'uncommon' :
-                        r.rarity === 3 ? 'rare' : 'epic';
+                        r.rarity === 3 ? 'rare' : 
+                        r.rarity === 4 ? 'epic' : 'legendary' ;
+
     const card = document.createElement('div');
     card.className = 'card';
     card.innerHTML = `
@@ -107,7 +113,8 @@ function rollGacha() {
       cardEl.classList.add('flipped');
       const rarityGlow = r.rarity === 1 ? 'glow-common' :
                          r.rarity === 2 ? 'glow-uncommon' :
-                         r.rarity === 3 ? 'glow-rare' : 'glow-epic';
+                         r.rarity === 3 ? 'glow-rare' : 
+                         r.rarity === 4 ? 'glow-epic' : 'glow-legendary' ;
       cardEl.querySelector('.card-back').classList.add(rarityGlow);
     }, i * 800);
   });
