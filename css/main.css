@@ -370,6 +370,44 @@ details[close] summary ~ * {
   .glow-epic { animation: glow-epic 1s ease-in-out; }
   .glow-legendary { animation: glow-legendary 1s ease-in-out; }
 
+  #capa .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1rem;
+      box-shadow: 0 10px 30px var(--shadow-color);
+    }
+
+    /* Controls */
+    #capa .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1.75rem; align-items: center; margin: 1rem 0; }
+    #capa .controls label { font-size: 0.9rem; color: var(--muted); display: grid; gap: .35rem; }
+    #capa .controls input[type="search"], #capa .controls select, #capa .controls input[type="number"] {
+      appearance: none; border: 1px solid var(--border); background: #fff; color: var(--text);
+      padding: .55rem .7rem; border-radius: 10px; outline: none; min-width: 12rem;
+    }
+    #capa .controls input[type="search"]:focus, #capa .controls select:focus, #capa .controls input[type="number"]:focus { box-shadow: 0 0 0 3px rgba(0,204,96,.2); border-color: var(--ring); }
+    #capa .controls .row { display: contents; }
+    #capa .btn {
+      appearance: none; border: 1px solid var(--ring); background: var(--primary-color); color: #fff; font-weight: 600;
+      padding: .6rem .9rem; border-radius: 10px; cursor: pointer; box-shadow: 0 4px 12px rgba(0, 0, 0, .12);
+    }
+
+    /* Table */
+    #capa .table-wrap { overflow: auto; border-radius: 12px; border: 1px solid var(--border); }
+    #capa table { width: 100%; border-collapse: collapse; background: #fff; }
+
+    #capa caption { text-align: left; padding: .85rem 1rem; color: var(--muted); font-size: .95rem; }
+
+    #capa thead th { position: sticky; top: 0; background: var(--secondary-color); color: #05361f; text-align: left; font-weight: 700; }
+    #capa th, #capa td { padding: .8rem 1rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+    #capa tbody tr:hover td { background: #e9fff5; }
+    #capa td em { color: var(--muted); font-style: normal; }
+
+    #capa .pill { display: inline-block; padding: .25rem .5rem; border: 1px solid var(--border); border-radius: 999px; font-size: .8rem; color: var(--text); background: #ffffff; }
+    #capa .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+
+    #capa .tag { display: inline-block; padding: .15rem .45rem; margin: 0 .25rem .25rem 0; border-radius: 999px; font-size: .8rem; border: 1px solid var(--border); background: #fff; }
+
 .maps {
     display: flex;
     flex-wrap: wrap;

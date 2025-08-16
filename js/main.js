@@ -131,6 +131,39 @@ const artifacts = [
 ];
 
 
+const capacitis = [
+    {type: "Technique", name: "Vorpal slash", element: ["—"], weapon: "Sword", target: ["mono"], desc: "Powerfull estoc with the sword healing it's user.", cat: ["offence", "sustain"], resource: "4T", style: "Aincrad style"/*, dice: "1d12+12, 100%heal"*/},
+    {type: "Technique", name: "Reaver", element: ["—"], weapon: "Cleaver", target: ["aoe"], desc: "Small dash into close range, cleave atk with chance to inflict bleed.", cat: ["offence", "mouvement", "status"], resource: "3T", style: "Aincrad style"/*, dice: "1d8+4, 1d2 bleed"*/},
+    {type: "Technique", name: "Farant fullmoon", element: ["—"], weapon: "Cleaver", target: ["aoe"], desc: "Four qwick slash with the weapon", cat: ["offence"], resource: "3T", style: "Aincrad style"/*, dice: "4d6+8"*/},
+    {type: "Technique", name: "Raging chopper", element: ["—"], weapon: "Cleaver", target: ["cone", "mono"], desc: "Two cleaving cut followed by a vertical slash", cat: ["offence"], resource: "3T", style: "Aincrad style"/*, dice: "2d8+4"*/},
+    {type: "Technique", name: "Sonic leap", element: ["—"], weapon: "Sword", target: ["mono"], desc: "Dash toward a target followed by a strong cut", cat: ["offence", "mouvement"], resource: "2T", style: "Aincrad style"/*, dice: "1d8+2"*/},
+    {type: "Technique", name: "Howling Octave", element: ["Fire"], weapon: "Cleaver", target: ["aoe"], desc: "A 8 hit combo with the final hit behind umbued in fire. burn.", cat: ["offence", "element", "ultimate", "status"], resource: "6T", style: "Kaelgrym style"/*, dice: "7d6+14+1d12+4, burn"*/},
+    {type: "Technique", name: "Deadly Sins", element: ["—"], weapon: "Sword", target: ["mono"], desc: "A seven hit combo followed by a backward dash.", cat: ["offence", "mouvement"], resource: "4T", style: "Aincrad style"/*, dice: "7d6+14"*/},
+    {type: "Technique", name: "Legion Destroyer", element: ["—"], weapon: "Sword", target: ["cone", "mono"], desc: "Six cleaving slash followed by a repositioning dash to unleash a powerfull cut", cat: ["offence", "mouvement", "ultimate", "status"], resource: "6T", style: "Aincrad style"/*, dice: "6d6+12+1d12+6, 1d2 bleed"*/},
+    {type: "Technique", name: "Sonic Charge", element: ["—"], weapon: "Spear", target: ["mono"], desc: "A dash followed by an estoc.", cat: ["offence", "mouvement"], resource: "2T", style: "Aincrad style"/*, dice: "1d6+4"*/},
+    {type: "Technique", name: "Hellical Twice", element: ["—"], weapon: "Spear", target: ["aoe"], desc: "Rotate the lance around the user, deviating projectile and knowking back ennemie", cat: ["deffense", "cc"], resource: "2T", style: "Aincrad style"/*, dice: ""*/},
+    {type: "Technique", name: "Imperial Southern Cross", element: ["—"], weapon: "Spear", target: ["mono"], desc: "Five rapid estoc followed by a jump and powerfull descending thrust.", cat: ["offence", "mouvement", "ultimate"], resource: "3T", style: "Aincrad style"/*, dice: "5d6+10+1d12+6"*/},
+    {type: "Technique", name: "Dimension Stampede", element: ["—"], weapon: "Spear", target: ["cone", "mono"], desc: "Four horizontal slash followed by a strong estoc", cat: ["offence"], resource: "3T", style: "Aincrad style"/*, dice: "4d6+8+1d12+4"*/},
+    {type: "Technique", name: "Avalanche", element: ["—"], weapon: "Two hand sword", target: ["mono"], desc: "A powerfull top to down slash", cat: ["offence"], resource: "3T", style: "Aincrad style"/*, dice: "1d12+8"*/},
+    {type: "Technique", name: "Lightning", element: ["—"], weapon: "Two hand sword", target: ["mono"], desc: "Four strike following the target", cat: ["offence", "sure hit"], resource: "4T", style: "Aincrad style"/*, dice: "4d6+8"*/},
+    {type: "Technique", name: "Blast", element: ["—"], weapon: "Two hand sword", target: ["mono"], desc: "A powerfull strike with a delayed shock wave", cat: ["offence"], resource: "2T", style: "Aincrad style"/*, dice: "1d8+4+1d12"*/},
+    {type: "Technique", name: "Flashing Penetrater", element: ["—"], weapon: "Rapier", target: ["mono"], desc: "A powerfull dash followed by a storm of strike each mean to kill", cat: ["offence", "ArPen", "mouvement"], resource: "3T", style: "Aincrad style"/*, dice: "9d6+9"*/},
+    {type: "Technique", name: "Twilight Resurrection", element: ["—"], weapon: "Rapier", target: ["mono"], desc: "A high it combo design to overhelm the target", cat: ["offence", "ultimate"], resource: "6T", style: "Aincrad style"/*, dice: "35d6+35"*/},
+    {type: "Technique", name: "Valkyrie Knights", element: ["—"], weapon: "Rapier", target: ["mono"], desc: "Nine vital thrust", cat: ["offence", "ArPen"], resource: "2T", style: "Aincrad style"/*, dice: "9d6+12"*/},
+    {type: "Technique", name: "Spica Caliber", element: ["—"], weapon: "Rapier", target: ["cone"], desc: "3 qwick slash", cat: ["offence", "ArPen"], resource: "2T", style: "Aincrad style"/*, dice: "3d6+3"*/},
+    {type: "Technique", name: "Megaton Swing", element: ["—"], weapon: "Masse", target: ["mono"], desc: "a strong swing that push bakc the target", cat: ["offence", "cc"], resource: "3T", style: "Aincrad style"/*, dice: "1d12+4"*/},
+    {type: "Technique", name: "Colossus Crusher", element: ["—"], weapon: "Masse", target: ["aoe", "mono"], desc: "3 qwick slash", cat: ["offence", "cc"], resource: "5T", style: "Aincrad style"/*, dice: "3d6+3"*/},
+    {type: "Technique", name: "Speedy Hammer", element: ["—"], weapon: "Masse", target: ["mono"], desc: "3 rapid heavy hit that may stun", cat: ["offence", "status"], resource: "3T", style: "Aincrad style"/*, dice: "3d8+12, 1d2 stun"*/},
+    {type: "Technique", name: "Grand Destruct", element: ["—"], weapon: "Two hand Axe", target: ["aoe"], desc: "A powerfull strike capable of grounding ennemie", cat: ["offence", "cc"], resource: "2T", style: "Aincrad style"/*, dice: "1d12+6, 1d2 grounded"*/},
+    {type: "Technique", name: "Ultimate Breaker", element: ["—"], weapon: "Two hand Axe", target: ["mono"], desc: "3 strong swing made to break guard", cat: ["offence", "guard break"], resource: "3T", style: "Aincrad style"/*, dice: "3d8+18"*/},
+    {type: "Technique", name: "Explode Catapult", element: ["—"], weapon: "Two hand Axe", target: ["mono"], desc: "Jump on the target before inflicting two rapid strike", cat: ["offence", "mouvement", "status"], resource: "3T", style: "Aincrad style"/*, dice: "2d8+12, 1d2 bleed"*/},
+    {type: "Technique", name: "Armor Pierce", element: ["—"], weapon: "Dague", target: ["mono"], desc: "A stab with the dague", cat: ["offence", "ArPen", "status"], resource: "1T", style: "Aincrad style"/*, dice: "1d6+2, 1d2 bleed"*/},
+    {type: "Technique", name: "Rapid Bite", element: ["—"], weapon: "Dague", target: ["mono"], desc: "A double stab", cat: ["offence", "ArPen"], resource: "2T", style: "Aincrad style"/*, dice: "2d6+4"*/},
+    {type: "Technique", name: "Starlight Splash", element: ["—"], weapon: "Dague", target: ["mono"], desc: "8 thrust target to vital area", cat: ["offence", "status", "ultimate"], resource: "3T", style: "Aincrad style"/*, dice: "8d6+16, bleed"*/},
+
+];
+
+
 const EFFECTS = [
     { name: "Burn", dice: "1d4", type: "fire", notes: "fire dam" },
     { name: "Toxic", dice: "1d4", type: "poison", notes: "poison dam" },
@@ -141,7 +174,11 @@ const EFFECTS = [
     { name: "Root", dice: "—", type: "—", notes: "can't move from position or use movement ability" },
     { name: "Stun", dice: "—", type: "—", notes: "unable to move / act" },
     { name: "Blind", dice: "—", type: "—", notes: "triple disadv" },
-    { name: "Cocoon", dice: "—", type: "—", notes: "unable to move / act" }
+    { name: "Cocoon", dice: "—", type: "—", notes: "unable to move / act" },
+    { name: "Sure hit", dice: "—", type: "—", notes: "can't be dodge" },
+    { name: "Guard breaker", dice: "—", type: "—", notes: "can't be blocked" },
+    { name: "ArPen", dice: "—", type: "—", notes: "Ignore armor" }
+
 ];
 
 const titles = {
@@ -210,7 +247,9 @@ const titles = {
   "Wyrm’s Blood": { effect: "Immunity to fire & +1d8+4 damage with breath weapon attacks", rarity: 5 },
   "Shadow Emperor": { effect: "+2 stealth, +2 deception, & advantage on ambush/opportunity rolls", rarity: 5 },
   "Avatar of War": { effect: "+3 to all weapon rolls, +1d6 damage, cannot be disarmed", rarity: 5 },
-
+  "Master of the Aincrad style" : { effect: "Allow to use the ultimate skill, also to use any from different weapon type", rarity: 5},
+  "Advanced Aincrad style" : { effect: "Also to use any from different weapon type, with restriction", rarity : 3},
+  "Aincrad student" : { effect: "Allow to use Aincrad style skills", rarity : 2},
 };
 
 const weights = { 1: 50, 2: 30, 3: 15, 4: 4, 5: 1 };

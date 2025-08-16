@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="img/logo/lego.webp" type="image/x-icon">
+    <link rel="stylesheet" href="css/main.css">
+    <script src="js/main.js" defer></script>
+    <script src="js/capa.js" defer></script>
+    <title>The Great Adventure</title>
+</head>
+<body>
+    <header>
+        <h1>The great Adventure !!!</h1>
+        <nav>
+            <ul>
+                <li class="menu"><a href="index.html">Home</a></li>
+                <li class="menu"><a href="personages.html">Characters</a></li>
+                <li class="menu"><a href="factions.html">Factions</a></li>
+                <!-- <li class="menu"><a href="maps.html">World</a></li> -->
+                <li class="menu"><a href="artifacts.html">Artifacts</a></li>
+                <li class="active menu"><a href="dnl.html">D&L</a></li>
+                <!-- <li class="active menu"><a href="timeline.html">Time Line</a></li> -->
+            </ul>
+        </nav>
+    </header> 
+    <main>
+        <h2>D&L capacity</h2>
+        <section id="capa">
+            <section class="card" aria-labelledby="table-title">
+      <h2 id="table-title" class="sr-only">Capacities table</h2>
+
+      <div class="controls" role="group" aria-label="Table controls">
+        <label>
+          <span>Search</span>
+          <input id="q" type="search" placeholder="Search name, desc, tags…" autocomplete="off" />
+        </label>
+        <label>
+          <span>Type</span>
+          <select id="typeFilter"><option value="all">All</option></select>
+        </label>
+        <label>
+          <span>Weapon</span>
+          <select id="weaponFilter"><option value="all">All</option></select>
+        </label>
+        <label>
+          <span>Element</span>
+          <select id="elementFilter"><option value="all">All</option></select>
+        </label>
+        <label>
+          <span>Target</span>
+          <select id="targetFilter"><option value="all">All</option></select>
+        </label>
+        <label>
+          <span>Category</span>
+          <select id="categoryFilter"><option value="all">All</option></select>
+        </label>
+        <label>
+          <span>Max Resource (T)</span>
+          <select id="resourceFilter">
+            <option value="all">Any</option>
+            <option value="2">≤ 2T</option>
+            <option value="3">≤ 3T</option>
+            <option value="4">≤ 4T</option>
+            <option value="5">≤ 5T</option>
+            <option value="6">≤ 6T</option>
+          </select>
+        </label>
+        <div>
+          <span class="sr-only">Actions</span>
+          <button id="resetBtn" class="btn" type="button">Reset filters</button>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table aria-describedby="table-caption">
+          <caption id="table-caption">Capacities with elements, weapons, targets, categories, resource cost, and style.</caption>
+          <colgroup>
+            <col style="width: 8rem;" />
+            <col style="width: 14rem;" />
+            <col style="width: 10rem;" />
+            <col style="width: 10rem;" />
+            <col style="width: 10rem;" />
+            <col />
+            <col style="width: 14rem;" />
+            <col style="width: 6rem;" />
+            <col style="width: 12rem;" />
+          </colgroup>
+          <thead>
+            <tr>
+              <th scope="col">Type</th>
+              <th scope="col">Name</th>
+              <th scope="col">Element</th>
+              <th scope="col">Weapon</th>
+              <th scope="col">Target</th>
+              <th scope="col">Description</th>
+              <th scope="col">Categories</th>
+              <th scope="col">Res.</th>
+              <th scope="col">Style</th>
+            </tr>
+          </thead>
+          <tbody id="tbody">
+            <!-- Rows injected by JS -->
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="9">Tip: Use the search box to find by name, element (e.g., Fire), or tags like "mouvement", "ultimate".</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </section>
+        </section>
+    </main>
+    <footer>
+        <p>© 2020 The Great Adventure by Pilou</p>
+    </footer>
+</body>
+</html>
+
