@@ -177,7 +177,8 @@ const EFFECTS = [
     { name: "Cocoon", dice: "—", type: "—", notes: "unable to move / act" },
     { name: "Sure hit", dice: "—", type: "—", notes: "can't be dodge" },
     { name: "Guard breaker", dice: "—", type: "—", notes: "can't be blocked" },
-    { name: "ArPen", dice: "—", type: "—", notes: "Ignore armor" }
+    { name: "ArPen", dice: "—", type: "—", notes: "Ignore armor" },
+    { name: "Fear", dice: "—", type: "psy", notes: "unable to move / act, vulnerabe to psy dam"}
 
 ];
 
@@ -250,6 +251,12 @@ const titles = {
   "Master of the Aincrad style" : { effect: "Allow to use the ultimate skill, also to use any from different weapon type", rarity: 5},
   "Advanced Aincrad style" : { effect: "Also to use any from different weapon type, with restriction", rarity : 3},
   "Aincrad student" : { effect: "Allow to use Aincrad style skills", rarity : 2},
+  "Holy knight" : {effect: "+1d6 dam when using a weapon", rarity : 3},
+  "Hero of dawn" : {effect: "immun radiant dam, -1d8 dark dam, +1d12 vs evil", rarity : 5},
+  "Divine body" : {effect: "+5ki", rarity : 3},
+  "mana veines" : {effect: "+3 spell slot", rarity : 3},
+  "Brave heart" : {effect: "Immunity to fear", rarity: 2},
+  "Heart of the beast" : {effect : "Immunity to fear and toxic, +1 decep", rarity: 3}
 };
 
 const weights = { 1: 50, 2: 30, 3: 15, 4: 4, 5: 1 };
