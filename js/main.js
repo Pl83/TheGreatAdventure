@@ -44,8 +44,6 @@ const factions = [
     {name: "Wolf Clan", text: "The Wolf Clan were a cult formed by the Forbidden Five millennia ago. They were reassembled by Lord Ras to aid him in his quest to conquer the Merged Realms on behalf of his master. They attempted to release the Forbidden Five in the Ritual of the Blood Moon", alignment: "neutral evil", slug: "wolf-clan"}
 ];
 
-
-
 const realms = [
     {name:"Origine's realm", size:"Major", description:"The first realm and the bigest. It served as the base realm during the Great Merge.", slug:"origine-realm"},
     {name:"Asgard", size:"Minor", description:"Realm created by Odin when he assended to Godhood.", slug:"asgard"},
@@ -127,40 +125,156 @@ const artifacts = [
     {name: "Masse of Hephaistos", divinity: "Hephaistos", power: "Dense masse of fire that smash ennemi like nail on an enclume", slug: "masse-of-hephaistos", status: "held by Alicia", autority: 5},
     {name: "Sun wukong's Staff", divinity: "Ifrit", power: "Divine staff capable of changing size at the user’s will", slug: "sun-wukong-s-staff", status: "held by Sun", autority: 6},
     {name: "Celestial tower", divinity: "????", power: "Dimensional prison", slug: "celestial-tower", status: "held by Susano", autority: 4},
-    {name: "Vasavi Shakti", divinity: "Indra/Karna", power: "Lance of ligth capable of destroying one thing be it an ant or a god", slug: "vasavi-shakti", status: "held by Odin (temp Ninja)", autority: 7}
+    {name: "Vasavi Shakti", divinity: "Indra/Karna", power: "Lance of ligth capable of destroying one thing be it an ant or a god", slug: "vasavi-shakti", status: "held by Odin (temp Ninja)", autority: 7},
+    {name: "Heart of Wojira", divinity: "Wojira", power: "Grants full control over sea currents and tropical storms.", slug: "heart-of-wujira", status: "held by Island tribe", autority: 2},
+    {name: "Yggdrasil's coat", divinity: "Alberon", power: "Passively heals the wearer as long as he is in direct contact with soil or vegetation.", slug: "yggdrasil-s-coat", status: "held by Alberon", autority: 6},
+    {name: "shard of the Aurora", divinity: "????", power: "????", slug: "shard-of-the-aurora", status: "????", autority: 8},
+
 ];
 
 
 const capacitis = [
-    {type: "Technique", name: "Vorpal slash", element: ["—"], weapon: "Sword", target: ["mono"], desc: "Powerfull estoc with the sword healing it's user.", cat: ["offence", "sustain"], resource: "4T", style: "Aincrad style"/*, dice: "1d12+12, 100%heal"*/},
-    {type: "Technique", name: "Reaver", element: ["—"], weapon: "Cleaver", target: ["aoe"], desc: "Small dash into close range, cleave atk with chance to inflict bleed.", cat: ["offence", "mouvement", "status"], resource: "3T", style: "Aincrad style"/*, dice: "1d8+4, 1d2 bleed"*/},
-    {type: "Technique", name: "Farant fullmoon", element: ["—"], weapon: "Cleaver", target: ["aoe"], desc: "Four qwick slash with the weapon", cat: ["offence"], resource: "3T", style: "Aincrad style"/*, dice: "4d6+8"*/},
-    {type: "Technique", name: "Raging chopper", element: ["—"], weapon: "Cleaver", target: ["cone", "mono"], desc: "Two cleaving cut followed by a vertical slash", cat: ["offence"], resource: "3T", style: "Aincrad style"/*, dice: "2d8+4"*/},
-    {type: "Technique", name: "Sonic leap", element: ["—"], weapon: "Sword", target: ["mono"], desc: "Dash toward a target followed by a strong cut", cat: ["offence", "mouvement"], resource: "2T", style: "Aincrad style"/*, dice: "1d8+2"*/},
-    {type: "Technique", name: "Howling Octave", element: ["Fire"], weapon: "Cleaver", target: ["aoe"], desc: "A 8 hit combo with the final hit behind umbued in fire. burn.", cat: ["offence", "element", "ultimate", "status"], resource: "6T", style: "Kaelgrym style"/*, dice: "7d6+14+1d12+4, burn"*/},
-    {type: "Technique", name: "Deadly Sins", element: ["—"], weapon: "Sword", target: ["mono"], desc: "A seven hit combo followed by a backward dash.", cat: ["offence", "mouvement"], resource: "4T", style: "Aincrad style"/*, dice: "7d6+14"*/},
-    {type: "Technique", name: "Legion Destroyer", element: ["—"], weapon: "Sword", target: ["cone", "mono"], desc: "Six cleaving slash followed by a repositioning dash to unleash a powerfull cut", cat: ["offence", "mouvement", "ultimate", "status"], resource: "6T", style: "Aincrad style"/*, dice: "6d6+12+1d12+6, 1d2 bleed"*/},
-    {type: "Technique", name: "Sonic Charge", element: ["—"], weapon: "Spear", target: ["mono"], desc: "A dash followed by an estoc.", cat: ["offence", "mouvement"], resource: "2T", style: "Aincrad style"/*, dice: "1d6+4"*/},
-    {type: "Technique", name: "Hellical Twice", element: ["—"], weapon: "Spear", target: ["aoe"], desc: "Rotate the lance around the user, deviating projectile and knowking back ennemie", cat: ["deffense", "cc"], resource: "2T", style: "Aincrad style"/*, dice: ""*/},
-    {type: "Technique", name: "Imperial Southern Cross", element: ["—"], weapon: "Spear", target: ["mono"], desc: "Five rapid estoc followed by a jump and powerfull descending thrust.", cat: ["offence", "mouvement", "ultimate"], resource: "3T", style: "Aincrad style"/*, dice: "5d6+10+1d12+6"*/},
-    {type: "Technique", name: "Dimension Stampede", element: ["—"], weapon: "Spear", target: ["cone", "mono"], desc: "Four horizontal slash followed by a strong estoc", cat: ["offence"], resource: "3T", style: "Aincrad style"/*, dice: "4d6+8+1d12+4"*/},
-    {type: "Technique", name: "Avalanche", element: ["—"], weapon: "Two hand sword", target: ["mono"], desc: "A powerfull top to down slash", cat: ["offence"], resource: "3T", style: "Aincrad style"/*, dice: "1d12+8"*/},
-    {type: "Technique", name: "Lightning", element: ["—"], weapon: "Two hand sword", target: ["mono"], desc: "Four strike following the target", cat: ["offence", "sure hit"], resource: "4T", style: "Aincrad style"/*, dice: "4d6+8"*/},
-    {type: "Technique", name: "Blast", element: ["—"], weapon: "Two hand sword", target: ["mono"], desc: "A powerfull strike with a delayed shock wave", cat: ["offence"], resource: "2T", style: "Aincrad style"/*, dice: "1d8+4+1d12"*/},
-    {type: "Technique", name: "Flashing Penetrater", element: ["—"], weapon: "Rapier", target: ["mono"], desc: "A powerfull dash followed by a storm of strike each mean to kill", cat: ["offence", "ArPen", "mouvement"], resource: "3T", style: "Aincrad style"/*, dice: "9d6+9"*/},
-    {type: "Technique", name: "Twilight Resurrection", element: ["—"], weapon: "Rapier", target: ["mono"], desc: "A high it combo design to overhelm the target", cat: ["offence", "ultimate"], resource: "6T", style: "Aincrad style"/*, dice: "35d6+35"*/},
-    {type: "Technique", name: "Valkyrie Knights", element: ["—"], weapon: "Rapier", target: ["mono"], desc: "Nine vital thrust", cat: ["offence", "ArPen"], resource: "2T", style: "Aincrad style"/*, dice: "9d6+12"*/},
-    {type: "Technique", name: "Spica Caliber", element: ["—"], weapon: "Rapier", target: ["cone"], desc: "3 qwick slash", cat: ["offence", "ArPen"], resource: "2T", style: "Aincrad style"/*, dice: "3d6+3"*/},
-    {type: "Technique", name: "Megaton Swing", element: ["—"], weapon: "Masse", target: ["mono"], desc: "a strong swing that push bakc the target", cat: ["offence", "cc"], resource: "3T", style: "Aincrad style"/*, dice: "1d12+4"*/},
-    {type: "Technique", name: "Colossus Crusher", element: ["—"], weapon: "Masse", target: ["aoe", "mono"], desc: "3 qwick slash", cat: ["offence", "cc"], resource: "5T", style: "Aincrad style"/*, dice: "3d6+3"*/},
-    {type: "Technique", name: "Speedy Hammer", element: ["—"], weapon: "Masse", target: ["mono"], desc: "3 rapid heavy hit that may stun", cat: ["offence", "status"], resource: "3T", style: "Aincrad style"/*, dice: "3d8+12, 1d2 stun"*/},
-    {type: "Technique", name: "Grand Destruct", element: ["—"], weapon: "Two hand Axe", target: ["aoe"], desc: "A powerfull strike capable of grounding ennemie", cat: ["offence", "cc"], resource: "2T", style: "Aincrad style"/*, dice: "1d12+6, 1d2 grounded"*/},
-    {type: "Technique", name: "Ultimate Breaker", element: ["—"], weapon: "Two hand Axe", target: ["mono"], desc: "3 strong swing made to break guard", cat: ["offence", "guard break"], resource: "3T", style: "Aincrad style"/*, dice: "3d8+18"*/},
-    {type: "Technique", name: "Explode Catapult", element: ["—"], weapon: "Two hand Axe", target: ["mono"], desc: "Jump on the target before inflicting two rapid strike", cat: ["offence", "mouvement", "status"], resource: "3T", style: "Aincrad style"/*, dice: "2d8+12, 1d2 bleed"*/},
-    {type: "Technique", name: "Armor Pierce", element: ["—"], weapon: "Dague", target: ["mono"], desc: "A stab with the dague", cat: ["offence", "ArPen", "status"], resource: "1T", style: "Aincrad style"/*, dice: "1d6+2, 1d2 bleed"*/},
-    {type: "Technique", name: "Rapid Bite", element: ["—"], weapon: "Dague", target: ["mono"], desc: "A double stab", cat: ["offence", "ArPen"], resource: "2T", style: "Aincrad style"/*, dice: "2d6+4"*/},
-    {type: "Technique", name: "Starlight Splash", element: ["—"], weapon: "Dague", target: ["mono"], desc: "8 thrust target to vital area", cat: ["offence", "status", "ultimate"], resource: "3T", style: "Aincrad style"/*, dice: "8d6+16, bleed"*/},
+    {type: "Technique", name: "Vorpal slash", element: ["—"], weapon: "Sword", target: ["mono"], desc: "Powerfull estoc with the sword healing it's user.", cat: ["offence", "sustain"], resource: "4T", style: "Aincrad style", dice: "1d12+12, 100%heal"},
+    {type: "Technique", name: "Reaver", element: ["—"], weapon: "Cleaver", target: ["aoe"], desc: "Small dash into close range, cleave atk with chance to inflict bleed.", cat: ["offence", "mouvement", "status"], resource: "3T", style: "Aincrad style", dice: "1d8+4, 1d2 bleed"},
+    {type: "Technique", name: "Farant fullmoon", element: ["—"], weapon: "Cleaver", target: ["aoe"], desc: "Four qwick slash with the weapon", cat: ["offence"], resource: "3T", style: "Aincrad style", dice: "4d6+8"},
+    {type: "Technique", name: "Raging chopper", element: ["—"], weapon: "Cleaver", target: ["cone", "mono"], desc: "Two cleaving cut followed by a vertical slash", cat: ["offence"], resource: "3T", style: "Aincrad style", dice: "2d8+4"},
+    {type: "Technique", name: "Sonic leap", element: ["—"], weapon: "Sword", target: ["mono"], desc: "Dash toward a target followed by a strong cut", cat: ["offence", "mouvement"], resource: "2T", style: "Aincrad style", dice: "1d8+2"},
+    {type: "Technique", name: "Howling Octave", element: ["Fire"], weapon: "Cleaver", target: ["aoe"], desc: "A 8 hit combo with the final hit behind umbued in fire. burn.", cat: ["offence", "element", "ultimate", "status"], resource: "6T", style: "Kaelgrym style", dice: "7d6+14+1d12+4, burn"},
+    {type: "Technique", name: "Deadly Sins", element: ["—"], weapon: "Sword", target: ["mono"], desc: "A seven hit combo followed by a backward dash.", cat: ["offence", "mouvement"], resource: "4T", style: "Aincrad style", dice: "7d6+14"},
+    {type: "Technique", name: "Legion Destroyer", element: ["—"], weapon: "Sword", target: ["cone", "mono"], desc: "Six cleaving slash followed by a repositioning dash to unleash a powerfull cut", cat: ["offence", "mouvement", "ultimate", "status"], resource: "6T", style: "Aincrad style", dice: "6d6+12+1d12+6, 1d2 bleed"},
+    {type: "Technique", name: "Sonic Charge", element: ["—"], weapon: "Spear", target: ["mono"], desc: "A dash followed by an estoc.", cat: ["offence", "mouvement"], resource: "2T", style: "Aincrad style", dice: "1d6+4"},
+    {type: "Technique", name: "Hellical Twice", element: ["—"], weapon: "Spear", target: ["aoe"], desc: "Rotate the lance around the user, deviating projectile and knowking back ennemie", cat: ["deffense", "cc"], resource: "2T", style: "Aincrad style", dice: ""},
+    {type: "Technique", name: "Imperial Southern Cross", element: ["—"], weapon: "Spear", target: ["mono"], desc: "Five rapid estoc followed by a jump and powerfull descending thrust.", cat: ["offence", "mouvement", "ultimate"], resource: "3T", style: "Aincrad style", dice: "5d6+10+1d12+6"},
+    {type: "Technique", name: "Dimension Stampede", element: ["—"], weapon: "Spear", target: ["cone", "mono"], desc: "Four horizontal slash followed by a strong estoc", cat: ["offence"], resource: "3T", style: "Aincrad style", dice: "4d6+8+1d12+4"},
+    {type: "Technique", name: "Avalanche", element: ["—"], weapon: "Two hand sword", target: ["mono"], desc: "A powerfull top to down slash", cat: ["offence"], resource: "3T", style: "Aincrad style", dice: "1d12+8"},
+    {type: "Technique", name: "Lightning", element: ["—"], weapon: "Two hand sword", target: ["mono"], desc: "Four strike following the target", cat: ["offence", "sure hit"], resource: "4T", style: "Aincrad style", dice: "4d6+8"},
+    {type: "Technique", name: "Blast", element: ["—"], weapon: "Two hand sword", target: ["mono"], desc: "A powerfull strike with a delayed shock wave", cat: ["offence"], resource: "2T", style: "Aincrad style", dice: "1d8+4+1d12"},
+    {type: "Technique", name: "Flashing Penetrater", element: ["—"], weapon: "Rapier", target: ["mono"], desc: "A powerfull dash followed by a storm of strike each mean to kill", cat: ["offence", "ArPen", "mouvement"], resource: "3T", style: "Aincrad style", dice: "9d6+9"},
+    {type: "Technique", name: "Twilight Resurrection", element: ["—"], weapon: "Rapier", target: ["mono"], desc: "A high it combo design to overhelm the target", cat: ["offence", "ultimate"], resource: "6T", style: "Aincrad style", dice: "35d6+35"},
+    {type: "Technique", name: "Valkyrie Knights", element: ["—"], weapon: "Rapier", target: ["mono"], desc: "Nine vital thrust", cat: ["offence", "ArPen"], resource: "2T", style: "Aincrad style", dice: "9d6+12"},
+    {type: "Technique", name: "Spica Caliber", element: ["—"], weapon: "Rapier", target: ["cone"], desc: "3 qwick slash", cat: ["offence", "ArPen"], resource: "2T", style: "Aincrad style", dice: "3d6+3"},
+    {type: "Technique", name: "Megaton Swing", element: ["—"], weapon: "Masse", target: ["mono"], desc: "a strong swing that push bakc the target", cat: ["offence", "cc"], resource: "3T", style: "Aincrad style", dice: "1d12+4"},
+    {type: "Technique", name: "Colossus Crusher", element: ["—"], weapon: "Masse", target: ["aoe", "mono"], desc: "3 qwick slash", cat: ["offence", "cc"], resource: "5T", style: "Aincrad style", dice: "3d6+3"},
+    {type: "Technique", name: "Speedy Hammer", element: ["—"], weapon: "Masse", target: ["mono"], desc: "3 rapid heavy hit that may stun", cat: ["offence", "status"], resource: "3T", style: "Aincrad style", dice: "3d8+12, 1d2 stun"},
+    {type: "Technique", name: "Grand Destruct", element: ["—"], weapon: "Two hand Axe", target: ["aoe"], desc: "A powerfull strike capable of grounding ennemie", cat: ["offence", "cc"], resource: "2T", style: "Aincrad style", dice: "1d12+6, 1d2 grounded"},
+    {type: "Technique", name: "Ultimate Breaker", element: ["—"], weapon: "Two hand Axe", target: ["mono"], desc: "3 strong swing made to break guard", cat: ["offence", "guard break"], resource: "3T", style: "Aincrad style", dice: "3d8+18"},
+    {type: "Technique", name: "Explode Catapult", element: ["—"], weapon: "Two hand Axe", target: ["mono"], desc: "Jump on the target before inflicting two rapid strike", cat: ["offence", "mouvement", "status"], resource: "3T", style: "Aincrad style", dice: "2d8+12, 1d2 bleed"},
+    {type: "Technique", name: "Armor Pierce", element: ["—"], weapon: "Dague", target: ["mono"], desc: "A stab with the dague", cat: ["offence", "ArPen", "status"], resource: "1T", style: "Aincrad style", dice: "1d6+2, 1d2 bleed"},
+    {type: "Technique", name: "Rapid Bite", element: ["—"], weapon: "Dague", target: ["mono"], desc: "A double stab", cat: ["offence", "ArPen"], resource: "2T", style: "Aincrad style", dice: "2d6+4"},
+    {type: "Technique", name: "Starlight Splash", element: ["—"], weapon: "Dague", target: ["mono"], desc: "8 thrust target to vital area", cat: ["offence", "status", "ultimate"], resource: "3T", style: "Aincrad style", dice: "8d6+16, bleed"},
+    {type: "Technique", name: "Flame of the Dead", element: ["Fire"], weapon: "Two hand sword", target: ["mono"], desc: "Ethereal flames that burn the soul", cat: ["offence"], resource: "10A", style: "White's Style", dice: "1d8+3"},
+    {type: "Technique", name: "Phantom Sword of the Dead", element: ["—"], weapon: "Two hand sword", target: ["mono"], desc: "A ghostly strike that can instill fear", cat: ["offence", "status"], resource: "15A", style: "White's Style", dice: "2d6+4, 1d2 fear"},
+    {type: "Technique", name: "Rise of the Dead", element: ["—"], weapon: "Two hand sword", target: ["mono"], desc: "Powerful strike from the abyss", cat: ["offence", "sure hit"], resource: "25A", style: "White's Style", dice: "3d6+9"},
+    {type: "Technique", name: "Wake of the Dead", element: ["—"], weapon: "Two hand sword", target: ["aoe"], desc: "A shockwave of souls", cat: ["offence"], resource: "50S", style: "White's Style", dice: "3d8+4"},
+    {type: "Technique", name: "Seven Blood Spirit Blade", element: ["—"], weapon: "Two hand sword", target: ["mono"], desc: "Seven strikes combined with spiritual power", cat: ["offence", "ultimate"], resource: "100A", style: "White's Style", dice: "1d8+8"},
+    {type: "Technique", name: "Sword of Purple Storm", element: ["Thunder"], weapon: "Two hand sword", target: ["self"], desc: "Instant defense that reduces damage massively (10A/dam)", cat: ["block", "instant"], resource: "10A", style: "White's Style", dice: "—"},
+    {type: "Technique", name: "Diverging Deathly Sword of Heavenly Spirit", element: ["—"], weapon: "Two hand sword", target: ["mono"], desc: "An overwhelming strike capable of slaying gods", cat: ["adv", "guard breaker", "ultimate"], resource: "1000A", style: "White's Style", dice: "10d12+20"},
 
+    // --- ERAGON ---
+    {type: "Sort", name: "Fire Tornado", element: ["Fire", "Wind"], weapon: "—", target: ["aoe"], desc: "Creates a vortex of fire.", cat: ["offence"], resource: "1S", style: "—", dice: "2d12"},
+    {type: "Sort", name: "Runique Precast", element: ["Arcane"], weapon: "—", target: ["self"], desc: "Empowers the next spell with ancient runes", cat: ["buff"], resource: "1S", style: "—", dice: "+2d12 next spell"},
+    {type: "Sort", name: "Water Dragon", element: ["Water"], weapon: "—", target: ["mono"], desc: "A dragon of water that inflicts Wet", cat: ["offence", "status"], resource: "1S", style: "—", dice: "2d12+1d8"},
+    {type: "Sort", name: "Arcane Canal", element: ["Arcane"], weapon: "—", target: ["aoe"], desc: "Restores 4 spell slots to all allies except caster", cat: ["support"], resource: "1S", style: "—", dice: "—"},
+
+    // --- ALICIA ---
+    {type: "Sort", name: "Heat Wave", element: ["Fire"], weapon: "Mace", target: ["aoe"], desc: "A massive wave of scorching heat", cat: ["offence"], resource: "1S", style: "Holy Knight", dice: "6*1d6"},
+    {type: "Technique", name: "The Hanvil of War", element: ["Fire", "Physical"], weapon: "Mace", target: ["mono"], desc: "Crush the enemy like a nail on an anvil", cat: ["offence"], resource: "2T", style: "Holy Knight", dice: "10*(1d4+1d4)"},
+    {type: "Sort", name: "Odin's Wrath", element: ["Divine"], weapon: "Mace", target: ["aoe"], desc: "Divine retribution that can silence foes", cat: ["offence", "status"], resource: "1S", style: "Asgardian", dice: "1d10+10"},
+
+    // --- VORRAKAN DUSKBANE ---
+    {type: "Sort", name: "Black Hole", element: ["Shadow"], weapon: "—", target: ["aoe"], desc: "Sucks everything into the shadow void", cat: ["cc", "react"], resource: "1S", style: "Duskbane Style", dice: "—"},
+    {type: "Sort", name: "Shadow Dagger", element: ["Shadow"], weapon: "—", target: ["mono"], desc: "Deals damage based on missing HP", cat: ["offence"], resource: "1S", style: "Duskbane Style", dice: "1d4 + 50% missing HP"},
+    {type: "Technique", name: "Force Lightning", element: ["Thunder"], weapon: "—", target: ["mono"], desc: "Dark side energy. Massive damage against machines", cat: ["offence"], resource: "3T", style: "Sith", dice: "1d12+6 (+2d12 Mecha)"},
+    
+    {type: "Sort", name: "Fire Ball", element: ["Fire"], weapon: "—", target: ["aoe"], desc: "Launch a ball of fire", cat: ["offence"], resource: "1S", style: "Susano Style", dice: "1d10+10"},
+    {type: "Sort", name: "Lightning Shield", element: ["Thunder"], weapon: "—", target: ["mono"], desc: "Generate a shield of thunder, block an attack and purify debuffs", cat: ["block", "purify", "react"], resource: "1S", style: "Susano Style", dice: "—"},
+    {type: "Sort", name: "Mono Energie Beam", element: ["Energy"], weapon: "—", target: ["mono"], desc: "A beam of pure energy", cat: ["offence"], resource: "1S", style: "Susano Style", dice: "1d12+1d8+6"},
+    {type: "Sort", name: "Ice Coffin", element: ["Ice"], weapon: "—", target: ["mono"], desc: "Trap the target in ice, can freeze", cat: ["offence", "status"], resource: "1S", style: "Susano Style", dice: "1d12+3"},
+    {type: "Sort", name: "Earth Spike", element: ["Earth"], weapon: "—", target: ["cone"], desc: "Spikes emerge from the ground", cat: ["offence"], resource: "1S", style: "Susano Style", dice: "1d20+1d6+6"},
+    {type: "Sort", name: "Golden Beam", element: ["Energy"], weapon: "—", target: ["mono"], desc: "The ultimate power of the First Spinjitzu Master", cat: ["offence", "ultimate"], resource: "1S", style: "Susano Style", dice: "2d20+20"},
+    {type: "Technique", name: "Spinzutsu", element: ["—"], weapon: "—", target: ["aoe"], desc: "Classic martial art technique of Ninjago", cat: ["offence"], resource: "1T", style: "Spinjitzu", dice: "1d8+6"},
+
+    // --- AUTRES / TRIBUS ---
+    {type: "Technique", name: "Object Spinzutsu", element: ["—"], weapon: "—", target: ["mono"], desc: "Arin's unique spinjitzu using objects", cat: ["offence"], resource: "1T", style: "Spinjitzu", dice: "1d12"},
+    {type: "Sort", name: "Sea Rebound", element: ["Water"], weapon: "Spear", target: ["aoe"], desc: "Healing or damage that bounces between targets", cat: ["offence", "sustain"], resource: "1S", style: "Leviathan", dice: "1d12"},
+    {type: "Sort", name: "Gravity Up", element: ["—"], weapon: "—", target: ["mono"], desc: "Increases gravity to give disadvantage to the target", cat: ["status"], resource: "1S", style: "Gravity", dice: "—"},
+
+    // --- THORMAK ---
+    {type: "Sort", name: "Fire Spear", element: ["fire"], weapon: "Apolo's bow", target: ["mono", "aoe"], desc: "Throws a fiery spear dealing mono damage plus area splash", cat: ["offence"], resource: "1S", style: "Titan Slayer", dice: "1d20 + 1d12 aoe"},
+    {type: "Sort", name: "Blink", element: ["—"], weapon: "—", target: ["self"], desc: "Instant teleportation", cat: ["instant", "mouvement"], resource: "1S", style: "—", dice: "—"},
+    {type: "Technique", name: "Apollo's shot", element: ["light"], weapon: "Apolo's bow", target: ["mono"], desc: "Divine arrows with advantage", cat: ["offence", "adv"], resource: "3/3 arrows", style: "Relic", dice: "2d20+10"},
+
+    // --- SENSEI LLOYD & ONI LLOYD ---
+    {type: "Sort", name: "Energy Beam", element: ["energy"], weapon: "—", target: ["mono"], desc: "Focused energy blast", cat: ["offence"], resource: "1S", style: "Green Ninja", dice: "1d10+1d8"},
+    {type: "Sort", name: "Chain Thunder", element: ["thunder"], weapon: "—", target: ["aoe"], desc: "Lightning that jumps between targets with paralysis chance", cat: ["offence", "status"], resource: "1S", style: "Green Ninja", dice: "2d8+4 (1d2 para)"},
+
+    // --- KAI / ZANE / JAY (CLIMBERS) ---
+    {type: "Sort", name: "Fire Ball (Kai)", element: ["fire"], weapon: "—", target: ["aoe"], desc: "Explosive fire orb", cat: ["offence"], resource: "1S", style: "Climber Style", dice: "1d12+6"},
+    {type: "Sort", name: "Fire Shield", element: ["fire"], weapon: "—", target: ["self"], desc: "Instant block using flames", cat: ["block", "instant"], resource: "1S", style: "Climber Style", dice: "—"},
+    {type: "Sort", name: "Fire Breath (Dragon)", element: ["fire"], weapon: "—", target: ["cone"], desc: "Massive fire breath in dragon form", cat: ["offence"], resource: "1S", style: "Dragon Form", dice: "2d12+6"},
+    {type: "Sort", name: "Ice Arrow", element: ["ice"], weapon: "—", target: ["mono"], desc: "Ice projectile with advantage", cat: ["offence", "adv"], resource: "1S", style: "Climber Style", dice: "1d10+4"},
+    {type: "Sort", name: "Ice Cone", element: ["ice"], weapon: "—", target: ["aoe"], desc: "Freezing blast in a cone", cat: ["offence"], resource: "1S", style: "Climber Style", dice: "1d12+4"},
+    {type: "Sort", name: "Ice Breath (Dragon)", element: ["ice"], weapon: "—", target: ["cone"], desc: "Freezing dragon breath", cat: ["offence"], resource: "1S", style: "Dragon Form", dice: "2d12+6"},
+    {type: "Sort", name: "Lightning Chain", element: ["thunder"], weapon: "—", target: ["aoe"], desc: "Electric surge hitting multiple foes", cat: ["offence"], resource: "1S", style: "Climber Style", dice: "1d12+2"},
+    {type: "Sort", name: "Thunder", element: ["thunder"], weapon: "—", target: ["mono"], desc: "Powerful single bolt of thunder", cat: ["offence"], resource: "1S", style: "Climber Style", dice: "1d20"},
+
+    // --- NYA LEVIATHAN ---
+    {type: "Sort", name: "Sea Rebound", element: ["water"], weapon: "—", target: ["aoe"], desc: "Chain effect that heals allies or damages enemies", cat: ["offence", "sustain"], resource: "1S", style: "Leviathan Style", dice: "1d12"},
+    {type: "Sort", name: "Sea Bubble", element: ["water"], weapon: "—", target: ["mono"], desc: "Instant block and health regeneration", cat: ["block", "sustain", "instant"], resource: "1S", style: "Leviathan Style", dice: "regen 1d6+6"},
+    {type: "Sort", name: "Benediction of the Moon", element: ["—"], weapon: "—", target: ["mono"], desc: "Removes debuffs and grants immunity for 2 turns", cat: ["status", "buff"], resource: "1S", style: "Leviathan Style", dice: "—"},
+    {type: "Sort", name: "Water Shield", element: ["water"], weapon: "—", target: ["self"], desc: "Instant water block", cat: ["block", "instant"], resource: "1S", style: "Leviathan Style", dice: "—"},
+
+    // --- KAI DEMON ---
+    {type: "Technique", name: "Volcana", element: ["fire"], weapon: "—", target: ["aoe"], desc: "Massive volcanic eruption, hard to hit but devastating", cat: ["offence"], resource: "3T", style: "Demon Style", dice: "2d20+1d12+1d8+6"},
+    {type: "Technique", name: "Avida Slash", element: ["fire"], weapon: "—", target: ["mono"], desc: "An unblockable demonic strike", cat: ["offence", "guard break"], resource: "1T", style: "Demon Style", dice: "1d20+1d10+10"},
+
+    // --- WYLDFIRE ---
+    {type: "Sort", name: "Convert", element: ["water", "ice"], weapon: "—", target: ["aoe"], desc: "Freezes water or evaporates it", cat: ["utility"], resource: "1S", style: "Wild Style", dice: "—"},
+    {type: "Sort", name: "Heat Projectile", element: ["fire", "ice"], weapon: "—", target: ["mono"], desc: "Launches fire or ice projectiles", cat: ["offence"], resource: "1S", style: "Wild Style", dice: "2d8+2"},
+
+    // --- KAELGRYM ---
+    {type: "Sort", name: "Fire Rush", element: ["fire"], weapon: "—", target: ["mono"], desc: "Dash towards a target, triggers opportunity attacks", cat: ["mouvement", "offence"], resource: "1S", style: "Blacksmith", dice: "—"},
+    {type: "Technique", name: "Final Brasero", element: ["fire"], weapon: "Ifrit's bane", target: ["mono"], desc: "Ultimate fire strike that burns", cat: ["offence", "status", "ultimate"], resource: "5T", style: "Blacksmith", dice: "2d20+10 (burn)"},
+
+    // --- ADMIRAL JAINA ---
+    {type: "Sort", name: "Runik Water Shield", element: ["water"], weapon: "—", target: ["self"], desc: "Instant block, large heal and purge", cat: ["block", "sustain", "purify", "instant"], resource: "1S", style: "Runic", dice: "1d20 heal"},
+    {type: "Sort", name: "Runik Sea Dragon", element: ["water"], weapon: "—", target: ["mono"], desc: "Summons a massive runic water dragon", cat: ["offence"], resource: "1S", style: "Runic", dice: "1d20+1d12+8"},
+    {type: "Sort", name: "Runik Sea Bound", element: ["water"], weapon: "—", target: ["aoe"], desc: "Stuns and roots targets if field is wet", cat: ["status", "cc"], resource: "1S", style: "Runic", dice: "1d2: stun/root"},
+    {type: "Technique", name: "Dominion of the Seven Sea", element: ["water"], weapon: "—", target: ["aoe"], desc: "Ultimate water domain with advantage", cat: ["offence", "adv", "ultimate"], resource: "—", style: "Relic", dice: "7d12"},
+
+    // --- SUN / MEÏ / KRILIN / BAAL (KI USERS) ---
+    {type: "Technique", name: "Bunshin", element: ["—"], weapon: "—", target: ["self"], desc: "Instant dodge or half damage from AOE", cat: ["mouvement", "block", "react"], resource: "3ki", style: "Ki Art", dice: "—"},
+    {type: "Technique", name: "Eternal Bloom", element: ["—"], weapon: "—", target: ["self"], desc: "Protective shield of petals", cat: ["block", "react"], resource: "5ki", style: "Ki Art", dice: "—"},
+    {type: "Technique", name: "Field of Corruption", element: ["poison"], weapon: "—", target: ["aoe"], desc: "Cursed field inflicting multiple debuffs", cat: ["status", "cc"], resource: "10ki", style: "Ki Art", dice: "para/poison/burn/dis"},
+    {type: "Technique", name: "Field of Flower", element: ["—"], weapon: "—", target: ["aoe"], desc: "Healing field that removes debuffs", cat: ["sustain", "purify"], resource: "5ki", style: "Ki Art", dice: "10hp/t"},
+    {type: "Technique", name: "Jade Lightning", element: ["thunder"], weapon: "Jade sword", target: ["mono"], desc: "Fast green lightning strike", cat: ["offence"], resource: "3ki", style: "Ki Art", dice: "1d6+6"},
+    {type: "Technique", name: "Banquet", element: ["—"], weapon: "—", target: ["self"], desc: "Rests to recover HP and gain advantage", cat: ["sustain", "buff"], resource: "5ki", style: "Food Style", dice: "1d10+10hp"},
+    {type: "Technique", name: "Spirit of the Wild Boar", element: ["—"], weapon: "—", target: ["aoe"], desc: "Defensive stance that taunts and reduces damage", cat: ["deffense", "cc"], resource: "10ki", style: "Yokai", dice: "-10 dam received"},
+    {type: "Technique", name: "Breath of Fire (Baal)", element: ["fire"], weapon: "—", target: ["cone"], desc: "Fiery breath using Ki", cat: ["offence"], resource: "5ki", style: "Yokai", dice: "1d12+6"},
+
+    // --- KADGAR ---
+    {type: "Sort", name: "Greater Teleportation", element: ["—"], weapon: "—", target: ["aoe"], desc: "Instant teleportation of all allies", cat: ["mouvement", "react"], resource: "1S", style: "Archmage", dice: "—"},
+    {type: "Sort", name: "Thunder Storm", element: ["thunder"], weapon: "—", target: ["aoe"], desc: "Massive lightning storm", cat: ["offence"], resource: "1S", style: "Archmage", dice: "1d20+1d8+4"},
+    {type: "Sort", name: "Recursing Shield", element: ["—"], weapon: "—", target: ["self"], desc: "Instant multi-layered shield", cat: ["block", "instant"], resource: "1S", style: "Archmage", dice: "1d4*20 shield"},
+    {type: "Sort", name: "Arcane Missile", element: ["energy"], weapon: "—", target: ["mono"], desc: "Accurate arcane bolts with advantage", cat: ["offence", "adv"], resource: "1S", style: "Archmage", dice: "1d12+1d10+10"},
+
+    // --- WOLF CLAN (RAS, CINDER, GENERAL) ---
+    {type: "Technique", name: "Hunter Instinct", element: ["—"], weapon: "—", target: ["self"], desc: "Passive accuracy, guaranteed to hit", cat: ["buff", "instant", "sure hit"], resource: "3T", style: "Wolf Clan", dice: "—"},
+    {type: "Technique", name: "Shreder", element: ["—"], weapon: "Claw", target: ["mono"], desc: "Dash and slash with claws", cat: ["offence", "mouvement"], resource: "1T", style: "Wolf Clan", dice: "+2d6"},
+    {type: "Technique", name: "Shatterspin (Cinder)", element: ["—"], weapon: "—", target: ["aoe"], desc: "Corruption version of Spinzutsu", cat: ["offence"], resource: "2T", style: "Shatterspin", dice: "1d12"},
+
+    // --- MORROW ---
+    {type: "Sort", name: "Wind Cutter", element: ["wind"], weapon: "—", target: ["aoe"], desc: "Sharp blades of air", cat: ["offence"], resource: "1S", style: "Wind Master", dice: "1d12"},
+    {type: "Sort", name: "Wind Tornado", element: ["wind"], weapon: "—", target: ["aoe"], desc: "Vortex that gives disadvantage", cat: ["offence", "status"], resource: "1S", style: "Wind Master", dice: "1d6 (1d2 dis)"},
+    {type: "Technique", name: "End of Three World", element: ["wind"], weapon: "Sanjiegun", target: ["aoe"], desc: "Ultimate devastation using the relic", cat: ["offence", "ultimate"], resource: "—", style: "Relic", dice: "3d20+10"},
+
+    // --- NIGHTMARES & OTHERS ---
+    {type: "Sort", name: "Poison Breath", element: ["poison"], weapon: "—", target: ["cone"], desc: "Toxic breath from the nightmare realm", cat: ["offence", "status"], resource: "1S", style: "Nightmare", dice: "1d12+8 (1d2 poison)"},
+    {type: "Sort", name: "Chain of Damnation Wall", element: ["—"], weapon: "—", target: ["aoe"], desc: "Creates a physical wall of cursed chains", cat: ["block", "cc"], resource: "1S", style: "Nightmare", dice: "3d20hp wall"},
+    {type: "Sort", name: "Shadow Dragon", element: ["shadow"], weapon: "—", target: ["mono"], desc: "Summons a dragon of shadows", cat: ["offence"], resource: "1S", style: "Nightmare", dice: "2d12+1d8+1d6+4"},
+    {type: "Technique", name: "Scream of the Banshee", element: ["psy"], weapon: "—", target: ["cone"], desc: "Terrifying scream that stuns", cat: ["offence", "status"], resource: "1T", style: "Nightmare", dice: "2d12+8 (1d2 stun)"},
+    {type: "Sort", name: "Gravity Down", element: ["—"], weapon: "—", target: ["mono"], desc: "Increases target's weight to give attackers advantage", cat: ["status"], resource: "1S", style: "Gravity", dice: "adv for attacker"},
+    {type: "Sort", name: "Fiesta", element: ["—"], weapon: "—", target: ["aoe"], desc: "Forces targets to dance, stunning them", cat: ["status", "cc"], resource: "1S", style: "Bard", dice: "1d2 dance stun"}
 ];
 
 
@@ -178,7 +292,9 @@ const EFFECTS = [
     { name: "Sure hit", dice: "—", type: "—", notes: "can't be dodge" },
     { name: "Guard breaker", dice: "—", type: "—", notes: "can't be blocked" },
     { name: "ArPen", dice: "—", type: "—", notes: "Ignore armor" },
-    { name: "Fear", dice: "—", type: "psy", notes: "unable to move / act, vulnerabe to psy dam"}
+    { name: "Fear", dice: "—", type: "psy", notes: "unable to move / act, vulnerabe to psy dam"},
+    { name: "Grounded", dice: "—", type: "—", notes: "unable to fly"},
+    
 
 ];
 
