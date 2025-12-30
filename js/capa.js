@@ -45,7 +45,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const element = elementFilter.value;
     const target = targetFilter.value;
     const cat = categoryFilter.value;
-    const maxT = resourceFilter.value === 'all' ? Infinity : Number(resourceFilter.value);
 
     const results = capacitis.filter(c => {
       // Ajout de c.dice dans la chaîne de recherche textuelle
@@ -56,9 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const elementOk = matchesSelect(c.element, element);
       const targetOk = matchesSelect(c.target, target);
       const catOk = matchesSelect(c.cat, cat);
-      const res = parseResourceT(c.resource);
-      const resOk = res == null ? true : res <= maxT;
-      return textOk && typeOk && weaponOk && elementOk && targetOk && catOk && resOk;
+      return textOk && typeOk && weaponOk && elementOk && targetOk && catOk;
     });
 
     renderRows(results);
@@ -86,7 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function resetFilters() {
     q.value = '';
-    for (const sel of [typeFilter, weaponFilter, elementFilter, targetFilter, categoryFilter, resourceFilter]) {
+    for (const sel of [typeFilter, weaponFilter, elementFilter, targetFilter, categoryFilter]) {
       sel.value = sel.querySelector('option').value; 
     }
     applyFilters();
@@ -95,7 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
   applyFilters();
 
   q.addEventListener('input', applyFilters);
-  for (const sel of [typeFilter, weaponFilter, elementFilter, targetFilter, categoryFilter, resourceFilter]) {
+  for (const sel of [typeFilter, weaponFilter, elementFilter, targetFilter, categoryFilter]) {
     sel.addEventListener('change', applyFilters);
   }
   resetBtn.addEventListener('click', resetFilters);
