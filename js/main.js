@@ -128,8 +128,8 @@ const artifacts = [
     {name: "Vasavi Shakti", divinity: "Indra/Karna", power: "Lance of ligth capable of destroying one thing be it an ant or a god", slug: "vasavi-shakti", status: "held by Odin (temp Ninja)", autority: 7},
     {name: "Heart of Wojira", divinity: "Wojira", power: "Grants full control over sea currents and tropical storms.", slug: "heart-of-wujira", status: "held by Island tribe", autority: 2},
     {name: "Yggdrasil's coat", divinity: "Alberon", power: "Passively heals the wearer as long as he is in direct contact with soil or vegetation.", slug: "yggdrasil-s-coat", status: "held by Alberon", autority: 6},
-    {name: "shard of the Aurora", divinity: "????", power: "????", slug: "shard-of-the-aurora", status: "????", autority: 8},
-
+    {name: "Shard of the Aurora", divinity: "????", power: "????", slug: "shard-of-the-aurora", status: "????", autority: 8},
+    {name: "Tambours de Kamowakeikazuchi", divinity: "Raijin", power: "Each strike of the bearer charge the drum, at three stakc next atk make a thunder explosions. The drum can also be activate to summon a storms.", slug: "tambours-de-kamowakeikazuchi", status: "held by Vayl-Soran", autority: 6},
 ];
 
 
@@ -232,7 +232,13 @@ const capacitis = [
     {type: "Sort", name: "Shadow Dragon", element: ["Shadow", "Nightmare"], weapon: "—", target: ["mono"], desc: "Summons a dragon of shadows", cat: ["offence"], resource: "1S", style: "Nightmare", dice: "2d12+1d8+1d6+4"},
     {type: "Technique", name: "Scream of the Banshee", element: ["Psy", "Nightmare"], weapon: "—", target: ["cone"], desc: "Terrifying scream that stuns", cat: ["offence", "status"], resource: "1T", style: "Nightmare", dice: "2d12+8 (1d2 stun)"},
     {type: "Sort", name: "Gravity Down", element: ["Gravity"], weapon: "—", target: ["mono"], desc: "Increases target's weight to give attackers advantage", cat: ["status"], resource: "1S", style: "—", dice: "adv for attacker"},
-    {type: "Sort", name: "Fiesta", element: ["Sound"], weapon: "—", target: ["aoe"], desc: "Forces targets to dance, stunning them", cat: ["status", "cc"], resource: "1S", style: "Bard", dice: "1d2 dance stun"}
+    {type: "Sort", name: "Fiesta", element: ["Sound"], weapon: "—", target: ["aoe"], desc: "Forces targets to dance, stunning them", cat: ["status", "cc"], resource: "1S", style: "Bard", dice: "1d2 dance stun"},
+    {type: "Technique", name: "Fente de Quartz", element: ["—"], weapon: "Two hand sword", target: ["mono"], desc: "Une estoc lourde où la lame s'allonge temporairement par une pointe de cristal.", cat: ["offence", "ArPen"], resource: "2T", style: "Résonance de Cristal", dice: "1d12+8"},
+    {type: "Technique", name: "Résonance Cristalline", element: ["—"], weapon: "Two hand sword", target: ["aoe"], desc: "Le chevalier frappe son épée contre son armure, créant une onde de choc qui repousse les ennemis proches.", cat: ["cc", "deffense"], resource: "3T", style: "Résonance de Cristal", dice: "1d8+4 (Knockback)"},
+    {type: "Technique", name: "Éclat de Rétribution", element: ["—"], weapon: "Two hand sword", target: ["mono"], desc: "Après un blocage réussi, une partie de l'armure se brise en éclats pour infliger des dégâts à l'assaillant.", cat: ["react", "offence"], resource: "2T", style: "Résonance de Cristal", dice: "2d6+4"},
+    {type: "Technique", name: "Garde Prismatique", element: ["—"], weapon: "Two hand sword", target: ["self"], desc: "L'épée est tenue verticalement, créant un prisme de lumière qui réduit les dégâts magiques.", cat: ["block", "status"], resource: "3T", style: "Résonance de Cristal", dice: "-5 flat mag dam (3t)"},
+    {type: "Technique", name: "Tranchant de Vitrail", element: ["—"], weapon: "Two hand sword", target: ["aoe"], desc: "Un large balayage circulaire laissant derrière lui une traînée de poussière de cristal infligeant Saignement.", cat: ["offence", "status"], resource: "3T", style: "Résonance de Cristal", dice: "2d8+2 (Bleed 1d2)"},
+    {type: "Technique", name: "Impact de Géode", element: ["—"], weapon: "Two hand sword", target: ["mono"], desc: "Un saut suivi d'un coup descendant massif capable de briser les défenses.", cat: ["offence", "guard break"], resource: "4T", style: "Résonance de Cristal", dice: "3d10+6"},
 ];
 
 
@@ -890,5 +896,83 @@ const personnageSheet = [
         ],
         attack: "Punch 1d4",
         spellSlots: 6
+    },
+    {
+        name: "Vayl-Soran",
+        hp: 65,
+        ki: 15,
+        kiRegen: 5,
+        passives: [
+            "Heavenly Champion (+2 all rolls)", 
+            "Phoenix Heart (regain 2d20 HP if below half, 1/fight)", 
+            "Divine Body (+5 Ki max)", 
+            "Lightning Reflexes (+5 Init)"
+        ],
+        abilities: [
+            { name: "Lightning Flicker", type: "react", cost: "3 Ki", desc: "Insta dodge mono or half aoe" },
+            { name: "Jade Emperor’s Palm", type: "technique", cost: "4 Ki", dice: "1d12+8", effect: "1d2 para" },
+            { name: "Wukong’s Swift Strike", type: "technique", cooldown: "2T", dice: "5d6" },
+            { name: "Rising Phoenix Kick", type: "technique", cooldown: "3T", dice: "1d20+10", desc: "Guard breaker" }
+        ],
+        spells: [
+            { name: "Nuwa’s Restauration", type: "sustain", cost: "5 Ki", dice: "1d10+10 HP", desc: "Purge debuffs" },
+            { name: "Thunder God’s Roar", type: "aoe", cost: "8 Ki", dice: "3d8+4", effect: "Knockback" }
+        ],
+        relics: [
+            { 
+                name: "Tambours de Kamowakeikazuchi", 
+                authority: 7, 
+                desc: "Passive: 3 charges for lightning explosion. Active: Divine storm.", 
+                dice: "4d12 aoe", 
+                effect: "Silence 1d2 tours" 
+            }
+        ],
+        attack: "Lightning God Martial Arts: 1d12+6 phy + 1d6 lightning (Advantage)"
+    },
+    {
+        name: "Cole Climber",
+        hp: 70,
+        spellSlots: 4,
+        passives: ["Armored (+2 saving throw)", "Heavy Striker (+1d4+1 dam with heavy weapons)"],
+        forms: [
+            {
+                name: "Earth Dragon",
+                hpBonus: 20,
+                effects: ["Fly", "Lose Armored", "1 Dragon Spell slot"],
+                spells: [
+                    { name: "Magma Breath", type: "cone", dice: "2d12+8 fire/earth", effect: "1d2 burn (1d4/t)" }
+                ],
+                attack: "Dragon Claws: 1d12+1d8+4, guard breaker"
+            }
+        ],
+        spells: [
+            { name: "Earth Spike", type: "cone", dice: "1d20+1d6+6" },
+            { name: "Stone Skin", type: "react", desc: "10 flat dam reduction", duration: "3T" },
+            { name: "Quake Wave", type: "aoe", dice: "2d8+5", effect: "1d2 dis" }
+        ],
+        abilities: [
+            { name: "Spinzutsu", type: "technique", cooldown: "1T", dice: "1d8 aoe" },
+            { name: "Dragon Form", type: "transformation", limit: "1/fight", duration: "4T" }
+        ],
+        attack: "Heavy Power Hammer: 1d12+6 (1d2 stun)"
+    },
+    {
+        name: "Oslo",
+        hp: 75,
+        spellSlots: 9,
+        passives: [
+            "Swamp Tribe (Immune to toxic damage)", 
+            "Odin's Blessing (+5 Init & Perception)", 
+            "Bone Armor (+4 saving throw, regrow 2T if lost)"
+        ],
+        spells: [
+            { name: "Bone Prison", type: "mono", dice: "1d10 piercing", effect: "Root 1d2 turns" },
+            { name: "Skeletal Wall", type: "block", dice: "40 HP wall" },
+            { name: "Marrow Spear", type: "projectile", dice: "1d20", desc: "Ignores 50% armor" }
+        ],
+        abilities: [
+            { name: "Bone Shatter", type: "aoe", cooldown: "2T", dice: "2d8+4", desc: "Knockback, loose Bone Armor" }
+        ],
+        attack: "Swamp Serpent Blade: 1d12+4 phy + 1d2 chance to poison (Poison: 1d4 toxic/t)"
     }
 ];
