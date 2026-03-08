@@ -408,6 +408,112 @@ details[close] summary ~ * {
 
     #capa .tag { display: inline-block; padding: .15rem .45rem; margin: 0 .25rem .25rem 0; border-radius: 999px; font-size: .8rem; border: 1px solid var(--border); background: #fff; }
 
+
+/* Container de la grille */
+.domain-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 25px;
+    padding: 30px 0;
+}
+
+/* Carte de Domaine - Style Glassmorphism */
+.domain-card {
+    background: rgba(25, 25, 25, 0.85);
+    backdrop-filter: blur(10px);
+    border-radius: 18px;
+    padding: 25px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.domain-card:hover {
+    transform: translateY(-5px);
+}
+
+/* Couleurs selon le Type avec Glow */
+.domain-card.complet { border-left: 5px solid #f1c40f; box-shadow: 0 0 15px rgba(241, 196, 15, 0.2); }
+.domain-card.ouvert { border-left: 5px solid #e74c3c; box-shadow: 0 0 15px rgba(231, 76, 60, 0.2); }
+.domain-card.incomplet { border-left: 5px solid #95a5a6; border-style: dashed; }
+
+/* Header & Badge */
+.domain-header {
+    margin-bottom: 15px;
+}
+
+.domain-header h3 {
+    margin: 0;
+    font-size: 1.4rem;
+    background: linear-gradient(to right, #fff, #bdc3c7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.domain-type {
+    float: right;
+    font-size: 0.7rem;
+    font-weight: bold;
+    padding: 4px 10px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.complet .domain-type { background: #f1c40f; color: #000; }
+.ouvert .domain-type { background: #e74c3c; color: #fff; }
+.incomplet .domain-type { background: #95a5a6; color: #fff; }
+
+/* Description (Italique et plus clair) */
+.domain-desc {
+    color: #bdc3c7;
+    font-style: italic;
+    font-size: 0.95rem;
+    line-height: 1.4;
+    margin-bottom: 20px;
+}
+
+/* Section Stats (Meilleur contraste) */
+.domain-stats {
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 12px;
+    padding: 15px;
+    border: 1px solid rgba(255,255,255,0.05);
+}
+
+.domain-stats p {
+    margin: 8px 0;
+    font-size: 0.9rem;
+    color: #ecf0f1;
+    display: flex;
+}
+
+.domain-stats p strong {
+    color: #ecf0f1;
+    padding-right: .5rem;
+}
+
+/* Règles */
+.rules-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.rule-card {
+    background: #f9f9f9;
+    padding: 15px;
+    border-left: 4px solid #3498db;
+    border-radius: 5px;
+}
+
+/* Icônes de statistiques */
+.stat-icon { margin-right: 10px; font-size: 1.1rem; }
+    
 .maps {
     display: flex;
     flex-wrap: wrap;

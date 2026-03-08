@@ -62,7 +62,7 @@ const worlds = [
     {name: "Corusant", realm:"Origine's realm", system:"Argon", nbStars:"1", description:"The capital of the galactic federation and a city planet. It also accommodate the Jedi temple.", slug:"corusant"},
     {name: "Earth", realm:"Origine's realm", system:"Sol", nbStars:"1", description:"The cradle of humanity.", slug:"earth"},
     {name: "Mars", realm:"Origine's realm", system:"Sol", nbStars:"1", description:"The red plannet.", slug:"mars"},
-    {name: "Niflheim", realm:"Wyldness", system:"none", nbStars:"0", description:"Now a world of ice and permanent night, it was once a world full of life. The Chi originate from this place, and created antropomarphique animals.", slug:"niflheim"},
+    {name: "Niflheim", realm:"Wyldness", system:"none", nbStars:"0", description:"Now a world of ice and permanent night, it was once a world full of life. The Chi originate from this place, and created antropomorphique animals.", slug:"niflheim"},
     {name: "Asgard", realm:"Asgard", system:"none", nbStars:"1", description:"Only world of it's realm, it's not a planet but a fragment of one that separed it self from the planet during the treachery of Hela.", slug:"asgard"},
     {name: "Helheim", realm:"Helheim", system:"none", nbStars:"0", description:"Only world of it's realm. A planet with a hole the size of a continent, it was once an eden. Now it's only a dead world.", slug:"helheim"},
     {name: "Musphelheim", realm:"Origine's realm", system:"Cf-864", nbStars:"10", description:"A world of fire and lava, no life can survive there.", slug:"musphelheim"},
@@ -76,6 +76,7 @@ const continents = [
     {name: "Midgard", world: "Alfeim", realm:"Origine's realm", description:"forest and plain", slug:"midgard"},
     {name: "Ninjago", world: "Earth", realm:"Origine's realm", description:"The first half of the pangea. It was separated by the first spinzutsu master.", slug:"ninjago"},
     {name: "Dark Island", world: "Earth", realm:"Origine's realm", description:"The second half of the pangea. It was separated by the first spinzutsu master.", slug:"dark-island"},
+    {name: "Chima", world: "Niflheim", realm:"Wyldness", description:"A floating island within the Wyldness with a distinct characteristic: CHI from Mount Cavora.", slug:"chima"},
 ];
 
 const citys = [
@@ -84,13 +85,20 @@ const citys = [
     {name:"Duranmoran", continents: "Midgard", world:"Alfeim", realm: "Origine's realm", description:"Head quarter of the adventurer guild", slug:"duranmoran"},
     {name:"Camelot", continents: "Midgard", world:"Alfeim", realm: "Origine's realm", description:"New capital of the Nexo-Kinght Kingdom", slug:"camelot"},
     {name:"Ninjago City", continents: "Ninjago", world:"Earth", realm: "Origine's realm", description:"Capital of Ninjago", slug:"ninjago-city"},
+    {name:"Jamanakai Village", continents: "Ninjago", world:"Earth", realm: "Origine's realm", description:"a small village located near the Mountains of Impossible Height.", slug:"jamanakai-village"},
+    {name:"Ignacia", continents: "Ninjago", world:"Earth", realm: "Origine's realm", description:"is a small village where the Four Weapons Blacksmith is located", slug:"ignacia"},
     {name:"Stiix", continents: "Ninjago", world:"Earth", realm: "Origine's realm", description:"City of the swamp tribe", slug:"stiix"},
     {name: "Ever lasting city", continents:"none", world:"Niflheim", realm:"Origine's realm", description:"Home to the saber tooth, the vultur's, the polar bear and the frost samourai's. It's made of ever lasting ice.", slug:"ever-lasting-city"},
     {name: "Asgard", continents:"none", world:"Asgard", realm:"Asgard", description:"Last city of a dead world. Made of pure gold, it's home to Odin and his valarjar.", slug:"asgard"},
     {name: "Skyr", continents:"none", world:"Helheim", realm:"Helheim", description:"A bastion made of a black and green rock swelling anti-magic. It's the pallace of Hela.", slug:"skyr"},
     {name: "The living castle", continents:"none", world:"Musphelheim", realm:"Origine's realm", description:"A living castle made by the enchanteress, she can move it anywhere.", slug:"the-living-castle"},
     {name: "Dalaran", continents:"none", world:"none", realm:"Origine's realm", description:"The city of the mages, floating in the infinity of space.", slug:"dalaran"},
-    {name: "Temut"}
+    {name: "Lion Temple", continents:"Chima", world: "Wyldness", realm:"Wyldness", description:"A large temple serving as a base of operations for the Lion Tribe. It includes the Sacred Pool of CHI and the throne of the king of the lions. Most of the formal meetings with other tribes and leaders occur in the temple near to the king's throne. ", slug:"lion-temple"},
+    {name: "Croc Swamp Hideout", continents:"Chima", world: "Wyldness", realm:"Wyldness", description:"Crocodiles' main base of operations can be accessed by a tunnel shaped like a crocodile's head. The inside of the mouth functions as a dock, rising up above the water level and allowing animals to enter.", slug:"croc-swamp-hideout"},
+    {name: "Eagle Spire", continents:"Chima", world: "Wyldness", realm:"Wyldness", description:"City on top of a tall spike jutting into the air. Have the largest library in Chima. Impossible to acces with out flying.", slug:"eagle-spire"},
+    {name: "The Rhino Quarry", continents:"Chima", world: "Wyldness", realm:"Wyldness", description:"There are many mines and caves branching from the Quarry. Rhino spend their days there smashing, mining, and even watering their precious rocks.", slug:"rhino-quarry"},
+    {name: "Raven Town", continents:"Chima", world: "Wyldness", realm:"Wyldness", description:"The town is filled with junk and debris, which the Ravens hoard and plan to sell. It also has many treasures hidden in the rubbish, which are the profits that the Ravens have accumulated from making deals and stealing valuables.", slug:"raven-town"},
+    {name: "Gorilla campement", continents:"Chima", world: "Wyldness", realm:"Wyldness", description:"larges huts in a larges trees.", slug:"gorilla-campement"},
 ];
 
 const artifacts = [
@@ -245,9 +253,11 @@ const capacitis = [
 const EFFECTS = [
     { name: "Burn", dice: "1d4", type: "fire", notes: "fire dam" },
     { name: "Toxic", dice: "1d4", type: "poison", notes: "poison dam" },
+    { name: "Toxic shock", dice: "2d4", type: "poison", notes: "poison dam" },
     { name: "Para", dice: "1d2", type: "—", notes: "unable to move / act" },
     { name: "Gel", dice: "1d2", type: "ice", notes: "unable to move / act" },
     { name: "Bleed", dice: "1d4", type: "physical", notes: "loose hp each move" },
+    { name: "Hemoragie", dice: "2d4", type: "physical", notes: "loose hp each move" },
     { name: "Silence", dice: "—", type: "holy", notes: "can't cast spell" },
     { name: "Root", dice: "—", type: "—", notes: "can't move from position or use movement ability" },
     { name: "Stun", dice: "—", type: "—", notes: "unable to move / act" },
@@ -290,7 +300,7 @@ const titles = {
   "Dragon slayer": { effect: "+1d8+4 dam vs drag", rarity: 5 },
   "Oni slayer": { effect: "+1d8+4 dam vs oni", rarity: 5 },
   "Alchimiste": { effect: "+2 potion related roll", rarity: 2 },
-  "Mechano": { effect: "+1 mechani roll", rarity: 1 },
+  "Mechano": { effect: "+2 mechani roll", rarity: 1 },
   "Warden of the wilds": { effect: "+3 perception & +1d6 dam vs beasts", rarity: 4 },
   "Ironbody": { effect: "+3 physical dam roll & +2 def roll", rarity: 4 },
   "Armor breaker": { effect: "+1d4+2 dam vs armored targets", rarity: 3 },
@@ -345,7 +355,7 @@ const personnageSheet = [
     {
         name: "Susano",
         hp: 70,
-        passives: ["First master (+1d8 dam)"],
+        passives: ["First SPINJITSU master (+1d8 dam)"],
         forms: [
             {
                 name: "Nirvana",
@@ -974,5 +984,258 @@ const personnageSheet = [
             { name: "Bone Shatter", type: "aoe", cooldown: "2T", dice: "2d8+4", desc: "Knockback, loose Bone Armor" }
         ],
         attack: "Swamp Serpent Blade: 1d12+4 phy + 1d2 chance to poison (Poison: 1d4 toxic/t)"
+    },
+    {
+        name: "Heracles",
+        hp: 130,
+        passives: [
+            "Pelt of the Nemean Lion (Reduce phys dam by 15, immun bleed)",
+            "Valor (Immune to fear and stun)",
+            "Heavy Striker (+1d4+1 dam with heavy weapon)",
+            "Nine Lives (9 times per fight: return to life with 1 HP if killed)"
+        ],
+        abilities: [
+            { name: "Blast", type: "mono", dice: "1d8+4+1d12", cooldown: "2T" }
+        ],
+        attack: "Macuahuitl: 1d12+2 physical damage"
+    },
+    {
+        name: "Huītzilōpōchtli",
+        hp: 75,
+        spellSlots: 1,
+        passives: [
+            "Blood Drain (Each attack heals for 1d6+4 HP)",
+            "Beast Intimidator (+2 deception/intimidate vs beasts)"
+        ],
+        spells: [
+            { 
+                name: "Sacrifice", 
+                type: "execute", 
+                desc: "Execute target below 10 HP. Restore 1 spell slot and 50 HP. Guardbreak." 
+            }
+        ],
+        abilities: [
+            { name: "Grand Destruct", type: "aoe", dice: "1d12+6", effect: "1d2 ground 2t", cooldown: "2T" },
+            { name: "Explode Catapult", type: "dash mono", dice: "2d8+12", effect: "1d2 bleed", cooldown: "3T" },
+            { name: "Ultimate Breaker", type: "guard break", dice: "3d8+18", cooldown: "3T" }
+        ],
+        attack: "Halbarde: 1d10+2 physical damage"
+    },
+    {
+        name: "Rig",
+        hp: 65,
+        passives: [
+            "Precise Shot (+1d4+2 damage with ranged weapons)",
+            "Mechano (+2 mechanical rolls)",
+            "Captain (+2 boat related rolls)"
+        ],
+        abilities: [
+            { 
+                name: "Turbo Boot", 
+                type: "react dash", 
+                cooldown: "3t", 
+                desc: "Augmente la mobilité pour esquiver ou se repositionner." 
+            },
+            { 
+                name: "GunRang", 
+                type: "technique", 
+                dice: "1d6+1d4", 
+                cooldown: "3t", 
+                desc: "Attaque boomerang; chance d'infliger 1d4 supplémentaire au tour suivant." 
+            }
+        ],
+        attack: "Swift Blade: 2d4+1 physical damage"
+    },
+    {
+        name: "Glysain",
+        hp: 65,
+        passives: [
+            "Professional Diver (+2 const rolls related to water) [cite: 3]",
+            "Survivalist (+2 const/percep/decep) [cite: 12]"
+        ],
+        abilities: [
+            { 
+                name: "Ice Pillar", 
+                type: "react block", 
+                dice: "40hp", 
+                cooldown: "3t", 
+                desc: "Crée un pilier de glace pour bloquer les attaques." 
+            }
+        ],
+        attack: "Ice Flame: cone 1d8+2 damage, effect 1d2 freeze"
+    },
+    {
+        name: "Zed",
+        hp: 60,
+        ki: 10,
+        kiRegen: 2,
+        passives: [
+            "Assassin (+2 deception rolls) [cite: 16]",
+            "Close Quarters Expert (+1d4+2 damage in melee combat)",
+            "Opportunist (+1d8 damage against stunned or prone enemies)"
+        ],
+        abilities: [
+            { 
+                name: "Shadow Dash", 
+                type: "react", 
+                cost: "3ki", 
+                desc: "Esquive instantanée d'une attaque via les ombres." 
+            },
+            { 
+                name: "Smoke Screen", 
+                type: "aoe", 
+                cost: "1ki", 
+                duration: "4t", 
+                desc: "Inflige un désavantage sur les jets d'attaque et de défense." 
+            },
+            { 
+                name: "Puppeteer", 
+                type: "mind control", 
+                cost: "5ki", 
+                duration: "1t", 
+                desc: "Prend le contrôle d'une autre créature via son ombre." 
+            }
+        ],
+        attack: "Assassination Weapons: 1d6+2+1d4 physical damage"
+    },
+    {
+        name: "Napoléon",
+        hp: 65,
+        spellSlots: 4,
+        passives: [
+            "Sky Pirate Veteran (+2 Pilot/Boat/Agility rolls)",
+            "Dual Wielder (Can attack twice if first hit lands)",
+            "Djinn’s Luck (Reroll a 1 once/turn, excludes Destiny Gamble)"
+        ],
+        spells: [
+            { 
+                name: "Wind's Whim", 
+                type: "instant react", 
+                desc: "+4 def roll against ranged atk for 2 turns" 
+            },
+            { 
+                name: "Wind Cutter", 
+                type: "mono", 
+                dice: "1d8+4" 
+            }
+        ],
+        abilities: [
+            { 
+                name: "Destiny Gamble", 
+                type: "technique", 
+                cooldown: "0t",
+                desc: "Roll d6: 1=Self 10 dmg | 2-5=+2d8 next atk | 6=Sure Hit & Crit (x2)" 
+            }
+        ],
+        attack: "Dual Pirate Swords: 1d6+4 phy + 1d4+2 wind (Can trigger Dual Wielder)"
+    },
+    {
+        name: "Hela, Goddess of Death",
+        hp: 450, 
+        spellSlots: 15,
+        passives: [
+            "True Weapon Goddess (Advantage on ALL attack rolls)",
+            "Anti-Magic (Immune to all magic/status below Authority 8)",
+            "Death Presence (All foes have Disadvantage on their first attack)",
+            "Undying Queen (Resurrection active, Heal 20 HP each turn)"
+        ],
+        abilities: [
+            { 
+                name: "Perfect Reflection", 
+                type: "react", 
+                desc: "Reflects a spell back with 2x damage. Only bypassed by Authority 8." 
+            },
+            { 
+                name: "Weapon Wall", 
+                type: "block", 
+                desc: "Summons a wall of floating blades to block an incoming strike (Absorbs 40 HP)." 
+            },
+            { 
+                name: "Living Blade Armor", 
+                type: "block", 
+                desc: "Reaction: Reduces incoming physical damage by half for the turn." 
+            },
+            { 
+                name: "Resurrection", 
+                type: "passive", 
+                limit: "1/fight", 
+                desc: "When reaching 0 HP, Hela returns with 150 HP and triggers 'Final Reckoning' instantly." 
+            },
+            { 
+                name: "Final Reckoning", 
+                type: "passive", 
+                desc: "Hela enters absolute focus state: she can act twice per turn and gains +2d12 damage." 
+            }
+        ],
+        spells: [
+            { name: "Soul Obliteration", dice: "4d20", effect: "Heals Hela for 100% of damage dealt" },
+            { name: "Death Gaze", effect: "Stun 2 turns + Inflict Fear (Disadvantage on rolls)" },
+            { name: "Infinite Blade Storm", type: "aoe", dice: "6d12", desc: "True damage (ignores armor/shields)" },
+            { name: "Anti-magic slash", type: "cone", dice: "2d12", desc: "True damage + Disables target passives for 1 turn" }
+        ],
+        domain: {
+            name: "Grave of the Thousand Gods",
+            type: "Complet",
+            rafinement: 5,
+            description: "Un cimetière désolé sous un ciel de sang, où des milliers d'armes divines sont plantées dans le sol, vibrant d'anti-magie.",
+            effect: "Authority -1 for foes, Infinite Weapon Wall usage, Sure-hit on Anti-magic slash",
+            cost: "5 spell slots"
+        },
+        relics: [
+            { name: "Balmung (Sealed)", authority: 8, dice: "4d12+20", effect: "Can hit through dimensions" }
+        ],
+        attack: "Abyssal Necro-Blade: 3d12+10 (Advantage) + 2d10 Anti-magic (Disables target passives for 1 turn)"
     }
 ];
+
+
+const domainData = {
+    "Susano": {
+        name: "Sanctuaire du Premier Éclat",
+        type: "Complet",
+        rafinement: 5,
+        description: "L'espace se transforme en un vide doré infini où l'énergie de la création pure sature l'air.",
+        effect: "Heal 1d12/t allies, Sure-hit active, Elemental bonus x2",
+        cost: "6 spell slot"
+    },
+    "Lloyd": {
+        name: "Ombre Naissante de l'Oni",
+        type: "Incomplet",
+        rafinement: "N/A",
+        description: "Une brume noire et violette s'échappe du sol, créant des silhouettes monstrueuses sans toutefois fermer l'espace.",
+        effect: "Grant Oni form, Permanent Adv on Atk, Shadows grant +1d10 dam on foe miss",
+        cost: "5 spell slot"
+    },
+    "Kaelgrym": {
+        name: "Le Brasero des Ames Perdues",
+        type: "Ouvert",
+        rafinement: 3,
+        description: "Un autel apparaît derrière Kaelgrym, émettant une vague constante de flammes sur un large rayon. Toutes les techniques du style Aincrad par Kaelgrym sont augmentées.",
+        effect: "1d10 Burn/turn to foes, No Cooldowns & sure-hit on sword technique, Ignore 100% Damage Reduction",
+        cost: "5 spell slot"
+    },
+    "Hela": {
+        name: "Grave of the Thousand Gods",
+        type: "Complet",
+        rafinement: 7,
+        description: "Un cimetière désolé sous un ciel de sang, où des milliers d'armes divines sont plantées dans le sol, vibrant d'anti-magie.",
+        effect: "Authority -1 for foes, Infinite Weapon Wall, Sure-hit on Anti-magic slash",
+        cost: "7 spell slot"
+    },
+    // "White": {
+    //     name: "Palais Sanglant des Âmes Errantes",
+    //     type: "Ouvert",
+    //     rafinement: 5,
+    //     description: "Une structure titanesque d'os et d'âmes se matérialise. Le sol devient une mer de mains spectrales.",
+    //     effect: "Sure-hit on all Ghost/Spirit attacks, Soul consumption cost reduced by 50%, Foes take 1d12 Fear damage/turn",
+    //     cost: "1000 souls"
+    // },
+    // "Amnesys": {
+    //     name: "Labyrinthe des Neurones Brisés",
+    //     type: "Complet",
+    //     rafinement: 4,
+    //     description: "Les murs de la réalité se transforment en miroirs reflétant les pires souvenirs des victimes.",
+    //     effect: "All psychic damage is doubled, Sure-hit on Rewrite Memory, Foes must roll saving throws with triple disadvantage",
+    //     cost: "6 spell slot"
+    // }
+};
