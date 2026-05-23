@@ -10,7 +10,10 @@
 </head>
 <body>
     <header>
-        <h1>The great Adventure !!!</h1>
+        <div class="brand">
+            <span class="brand-name">The Great Adventure</span>
+            <span class="brand-sub">Worldbuilding compendium — House of Pilou, est. 2020</span>
+        </div>
         <nav>
             <ul>
                 <li class="menu"><a href="index.html">Home</a></li>
@@ -18,13 +21,21 @@
                 <li class="menu"><a href="factions.html">Factions</a></li>
                 <li class="menu"><a href="maps.html">World</a></li>
                 <li class="menu"><a href="artifacts.html">Artifacts</a></li>
-                <li class="active menu"><a href="dnl.html">D&L</a></li>
-                <li class="menu"><a href="timeline.html">Time Line</a></li>
+                <li class="active menu"><a href="dnl.html">D&amp;L</a></li>
+                <li class="menu"><a href="timeline.html">Timeline</a></li>
             </ul>
         </nav>
+        <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+            <span></span><span></span><span></span>
+        </button>
     </header> 
     <main>
-        <h2>D&L capacity</h2>
+        <div class="page-heading">
+            <span class="page-eyebrow">Codex VI · Dice &amp; Lore</span>
+            <h2>Capacities</h2>
+            <p class="page-lede">All techniques, spells and abilities — filterable by type, element, and weapon.</p>
+            <div class="tga-divider"><span>✦</span></div>
+        </div>
         <section id="capa">
             <section class="card" aria-labelledby="table-title">
       <h2 id="table-title" class="sr-only">Capacities table</h2>
@@ -95,8 +106,9 @@
         </section>
     </main>
     <footer>
-        <p>© 2020 The Great Adventure by Pilou</p>
+        <p><em>"All know artifacts crystallize from the death of a god."</em> <strong>✦</strong> © 2020 The Great Adventure by Pilou</p>
     </footer>
+    <script src="js/nav.js"></script>
 </body>
 </html>
 

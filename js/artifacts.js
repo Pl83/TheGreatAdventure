@@ -5,10 +5,10 @@ const container = document.querySelector('#artifacts table tbody');
 artifacts.forEach(artifact => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-        <td>${artifact.name}</td>
-        <td>${artifact.divinity}</td>
+        <td class="art-name">${artifact.name}</td>
+        <td class="art-div">${artifact.divinity}</td>
         <td>${artifact.status}</td>
-        <td>${artifact.authority}</td>
+        <td><span class="art-auth">${artifact.authority}</span></td>
     `;
     tr.addEventListener('click', () => {
         window.location.href = `artifact.html?item=${artifact.slug}`;

@@ -9,7 +9,10 @@
 </head>
 <body>
     <header>
-        <h1>The great Adventure !!!</h1>
+        <div class="brand">
+            <span class="brand-name">The Great Adventure</span>
+            <span class="brand-sub">Worldbuilding compendium — House of Pilou, est. 2020</span>
+        </div>
         <nav>
             <ul>
                 <li class="active menu"><a href="index.html">Home</a></li>
@@ -17,17 +20,23 @@
                 <li class="menu"><a href="factions.html">Factions</a></li>
                 <li class="menu"><a href="maps.html">World</a></li>
                 <li class="menu"><a href="artifacts.html">Artifacts</a></li>
-                <li class="menu"><a href="dnl.html">D&L</a></li>
-                <li class="menu"><a href="timeline.html">Time Line</a></li>
+                <li class="menu"><a href="dnl.html">D&amp;L</a></li>
+                <li class="menu"><a href="timeline.html">Timeline</a></li>
             </ul>
         </nav>
-    </header> 
+        <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+            <span></span><span></span><span></span>
+        </button>
+    </header>
     <main>
-        <section>
-            <h2>About us</h2>
-        </section>
+        <div class="page-heading">
+            <span class="page-eyebrow">Codex I · The Compendium</span>
+            <h2>The Great Adventure</h2>
+            <p class="page-lede">A worldbuilding compendium — factions, artifacts, realms and lore, catalogued for the campaign.</p>
+            <div class="tga-divider"><span>✦</span></div>
+        </div>
+
         <section id="qa">
-            <h2>Q&A</h2>
             <article>
                 <details>
                     <summary>What is The Great Adventure?</summary>
@@ -37,17 +46,7 @@
             <article>
                 <details>
                     <summary>What are my inspirations?</summary>
-                    <p>
-                        A bunch of LEGO series <br>
-                        A bunch of mythology and legends <br>
-                        The Hobbit <br>
-                        The Lord of the Rings <br>
-                        World of Warcraft <br>
-                        Star Wars <br>
-                        Monster Hunter <br>
-                        Marvel <br>
-                        DC <br>
-                    </p>
+                    <p>A bunch of LEGO series. A bunch of mythology and legends. The Hobbit. The Lord of the Rings. World of Warcraft. Star Wars. Monster Hunter. Marvel. DC.</p>
                 </details>
             </article>
             <article>
@@ -59,25 +58,15 @@
             <article>
                 <details>
                     <summary>How does Authority work for Artifacts?</summary>
-                    <p>Authority depends on how old the mythology of the god is and how high their rank is within it. (Maybe biased)</p>
-                    <p>
-                        0: No authority <br>
-                        1: Hero <br>
-                        2: Half-god <br>
-                        3: Lower god <br>
-                        4: God <br>
-                        5: Higher god <br>
-                        6: Chief god <br>
-                        7: Ancient god <br>
-                        8: Primordial god <br>
-                    </p>
+                    <p>Authority depends on how old the mythology of the god is and how high their rank is within it.
+                        0: No authority — 1: Hero — 2: Half-god — 3: Lower god — 4: God — 5: Higher god — 6: Chief god — 7: Ancient god — 8: Primordial god.</p>
                 </details>
             </article>
-        </section>        
+        </section>
     </main>
     <footer>
-        <p>The Great Adventure</p>
+        <p><em>"All know artifacts crystallize from the death of a god."</em> <strong>✦</strong> © 2020 The Great Adventure by Pilou</p>
     </footer>
+    <script src="js/nav.js"></script>
 </body>
 </html>
-

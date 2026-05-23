@@ -1,28 +1,44 @@
 import { factions } from './main.js';
 
+// Map alignment string → CSS custom property for the top edge bar
+const alignColor = {
+  'lawful good':    'var(--tga-align-lg)',
+  'lawful neutral': 'var(--tga-align-ln)',
+  'lawful evil':    'var(--tga-align-le)',
+  'chaotic neutral':'var(--tga-align-cn)',
+  'chaotic evil':   'var(--tga-align-ce)',
+  'neutral neutral':'var(--tga-align-nn)',
+  'true neutral':   'var(--tga-align-nn)',
+  'neutral evil':   'var(--tga-align-ne)',
+  'neutral good':   'var(--tga-align-ng)',
+};
+
 const container = document.querySelector('#factions');
 
 factions.forEach(faction => {
-    const article = document.createElement('article');
-    const div = document.createElement('div');
-    const img = document.createElement('img');
-    const h3 = document.createElement('h3');
-    const details = document.createElement('details');
-    const summary = document.createElement('summary');
-    const p = document.createElement('p');
-    const p2 = document.createElement('p');
+  const alignment = faction.alignment ?? faction.alignement ?? '';
+  const color = alignColor[alignment.toLowerCase()] ?? 'var(--tga-bronze)';
 
-    img.loading = 'lazy';
-    img.src = `img/logo/${faction.slug}.webp`;
-    img.alt = faction.name;
+  const article = document.createElement('article');
+  article.className = 'faction-card';
+  article.style.setProperty('--faction-align-color', color);
 
-    h3.textContent = faction.name;
-    summary.textContent = 'Who are they?';
-    p.textContent = faction.text;
-    p2.textContent = `Alignment: ${faction.alignment ?? faction.alignement ?? '—'}`;
+  article.innerHTML = `
+    <div class="faction-top">
+      <div class="faction-crest">
+        <img src="img/logo/${faction.slug}.webp" alt="${faction.name}" loading="lazy">
+      </div>
+      <div class="faction-title">
+        <span class="faction-eyebrow">${alignment || 'Unknown alignment'}</span>
+        <h3>${faction.name}</h3>
+      </div>
+    </div>
+    <p class="faction-body">${faction.text}</p>
+    <div class="faction-footer">
+      <span>${faction.slug}</span>
+      <span>${alignment || '—'}</span>
+    </div>
+  `;
 
-    div.append(img, h3);
-    details.append(summary, p);
-    article.append(div, details, p2);
-    container.appendChild(article);
+  container.appendChild(article);
 });
