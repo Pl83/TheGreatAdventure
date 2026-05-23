@@ -1,4 +1,4 @@
-const factions = [
+export const factions = [
     {name: "Valarjar", text: "Proud warriors who died in battle and were taken to Asgard by the Valkyries. They now serve Odin for eternity.", alignment: "lawful good", slug: "valarjar"},
     {name: "Helarjar", text: "Unworthy warriors, brought back from the dead and imbued with anti-magic by Hela. They serve her forever.", alignment: "lawful evil", slug: "helarjar"},
     {name: "Elves Kingdom", text: "A noble race that lives in peace in the forest. They prefer to stay away from the chaos of the world.", alignment: "lawful neutral", slug: "elves-kingdom"},
@@ -27,9 +27,9 @@ const factions = [
     {name: "Jedi Temple", text: "The Jedi Temple is an intergalactic institution that tries to keep peace across the galaxy. Jedi usually prefer to resolve conflicts through mediation rather than violence. They follow a code, carry a lightsaber, and harness the Force to aid them.", alignment: "lawful good", slug: "jedi-temple"},
     {name: "Sith Congregation", text: "Sith have no morals or code; they only seek power and destruction. Unlike Jedi, they try to control and dominate the Force. They usually bleed their Kyber crystals to make their lightsabers red.", alignment: "chaotic evil", slug: "sith-congregation"},
     {name: "Phoenix Tribe", text: "An animal tribe that gained consciousness after drinking pure Chi. The oldest Chima tribe and the creator of Fire Chi. They live on top of the sacred mountain and only reveal themselves when the Ice Tribes try to conquer Chima.", alignment: "lawful good", slug: "pheonix-tribe"},
-    {name: "Lion Tribe", text: "An animal tribe that gained conscience after drink pure Chi. The Lion in charge of the sacred pond and give a just amount of Chi to each tribe. They are noble, proud and loyal.", alignment: "lawfull neutral", slug: "lion-tribe"},
-    {name: "Crocodile Tribe", text: "An animal tribe that gained conscience after drink pure Chi. Violent warriors, the crocodiles are also the best know swimmer and the second largest Chima tribe next to the Lion. The relation between the two are always tense due to their difference in value.", alignement: "chaotic neutral", slug: "crocodile-tribe"},
-    {name: "Eagle Tribe", text: "An animal tribe that gained conscience after drink pure Chi. The eagle tribe is mainly composed of erudite and pacifist. They love knowledge and have one of the best library.", alignment: "lawfull neutral", slug: "eagle-tribe"},
+    {name: "Lion Tribe", text: "An animal tribe that gained conscience after drink pure Chi. The Lion in charge of the sacred pond and give a just amount of Chi to each tribe. They are noble, proud and loyal.", alignment: "lawful neutral", slug: "lion-tribe"},
+    {name: "Crocodile Tribe", text: "An animal tribe that gained conscience after drink pure Chi. Violent warriors, the crocodiles are also the best know swimmer and the second largest Chima tribe next to the Lion. The relation between the two are always tense due to their difference in value.", alignment: "chaotic neutral", slug: "crocodile-tribe"},
+    {name: "Eagle Tribe", text: "An animal tribe that gained conscience after drink pure Chi. The eagle tribe is mainly composed of erudite and pacifist. They love knowledge and have one of the best library.", alignment: "lawful neutral", slug: "eagle-tribe"},
     {name: "Wolve Tribe", text: "An animal tribe that gained conscience after drink pure Chi. The wolves are the only Nomad tribe, they share a strong bond between each other.", alignment: "chaotic neutral", slug: "wolve-tribe"},
     {name: "Gorilla Tribe", text: "An animal tribe that gained conscience after drink pure Chi. They like to chill. Gorilla are either eating, exercising or sleeping. They also adopted  the two last members of the Rhino Tribe.", alignment: "chaotic neutral", slug: "gorilla-tribe"},
     {name: "Bear Tribe", text: "An animal tribe that i conscience after drink pure Chi. They send most of their time sleeping. They only get up for important things such as honey, salmon or an invasion from the Ice Tribes.", alignment: "neutral good", slug: "bear-tribe"},
@@ -44,7 +44,7 @@ const factions = [
     {name: "Wolf Clan", text: "The Wolf Clan were a cult formed by the Forbidden Five millennia ago. They were reassembled by Lord Ras to aid him in his quest to conquer the Merged Realms on behalf of his master. They attempted to release the Forbidden Five in the Ritual of the Blood Moon", alignment: "neutral evil", slug: "wolf-clan"}
 ];
 
-const realms = [
+export const realms = [
     {name:"Origine's realm", size:"Major", description:"The first realm and the bigest. It served as the base realm during the Great Merge.", slug:"origine-realm"},
     {name:"Asgard", size:"Minor", description:"Realm created by Odin when he assended to Godhood.", slug:"asgard"},
     {name:"Helheim", size:"Minor", description:"Realm created by Hella when she assended to Godhood.", slug:"helheim"},
@@ -54,7 +54,7 @@ const realms = [
     {name: "Wyldness", size:"Medium", description:"A land free of humanity. It contain one of the rarest resource : the Chi. It was merged to the origine realm during the Great Merge.", slug:"wyldness"},
 ];
 
-const worlds = [
+export const worlds = [
     {name:"Alfeim", realm:"Origine's realm", system:"Bc-586", nbStars:"1", description:"Composed of three continents separated by vast sea it's home to multiple civilisation.", slug:"alfeim"},
     {name:"Ruin's of TeamGuard", realm:"Origine's realm", system:"Bc-586", nbStars:"1", description:"After the betraille of Bellion, the plannet was first vitrified. Then a couple years after an explosion of unkown origine destroid it.", slug:"ruin-of-teamgard"},
     {name: "Mandalore", realm:"Origine's realm", system:"système Mandalore", nbStars:"2", description:"A desertic plannet with multiple tribe of warrior who never remove their helmet.", slug:"mandalore"},
@@ -70,7 +70,7 @@ const worlds = [
     {name: "Mentu", realm:"Origine's realm", system:"Jx-843", nbStars:"2", description:"Planets of origine of the Swarm, they quickly moved away after the death of there system, starting to colonize systeme after system.", slug:"mentu"},
 ];
 
-const continents = [
+export const continents = [
     {name: "Nidavelir", world: "Alfeim", realm:"Origine's realm", description:"Mountaigne chaine", slug:"nidavelir"},
     {name: "Vanaheim", world: "Alfeim", realm:"Origine's realm", description:"Primordial forest", slug:"vanaheim"},
     {name: "Midgard", world: "Alfeim", realm:"Origine's realm", description:"forest and plain", slug:"midgard"},
@@ -79,7 +79,7 @@ const continents = [
     {name: "Chima", world: "Niflheim", realm:"Wyldness", description:"A floating island within the Wyldness with a distinct characteristic: CHI from Mount Cavora.", slug:"chima"},
 ];
 
-const citys = [
+export const citys = [
     {name:"Erebor", continents: "Nidavelir", world:"Alfeim", realm: "Origine's realm", description:"Capital of the Dwarf Kingdom", slug:"erebor"},
     {name:"Tendrasyl", continents: "Vanaheim", world:"Alfeim", realm: "Origine's realm", description:"Capital of the Elven Kingdom", slug:"tendrasyl"},
     {name:"Duranmoran", continents: "Midgard", world:"Alfeim", realm: "Origine's realm", description:"Head quarter of the adventurer guild", slug:"duranmoran"},
@@ -101,47 +101,47 @@ const citys = [
     {name: "Gorilla campement", continents:"Chima", world: "Wyldness", realm:"Wyldness", description:"larges huts in a larges trees.", slug:"gorilla-campement"},
 ];
 
-const artifacts = [
-    {name: "Shield of Nyx", divinity: "Nyx", power: "Indestrutible shield, that can absorb any attack.", slug: "shield-of-nyx", status: "Held by La Créatrice", autority: 7},
-    {name: "On/Off Staff", divinity: "La Créatrice", power: "Allow to turn any reliques on or off.", slug: "on-off-staff", status: "Held by Héla", autority: 5},
-    {name: "The Hammer of Creation", divinity: "La Créatrice", power: "Allow to create anything.", slug: "the-hammer-of-creation", status: "Held by La Créatrice", autority: 6},
-    {name: "Tridents of Poseidon", divinity: "Poseidon", power: "Allow to controlle sea creature and manipulate water.", slug: "tridents-of-poseidon", status: "Held by Nia", autority: 5},
-    {name: "Gaya's apple", divinity: "Gaya", power: "Create a circle (20m radius). Inside the cicle every wound is instantly heal and it's impossible to died.", slug: "gayas-apple", status: "Held by Odin", autority: 5},
-    {name: "Gungnir", divinity: "Odin", power: "The spear never miss it's target and always return to it's bearer.", slug: "gungnir", status: "Held by Odin", autority: 6},
-    {name: "Balmung", divinity: "Siegfried", power: "The sword can cut through and destroy anything.", slug: "balmung", status: "Held by Odin", autority: 6},
-    {name: "Key of the primordial sea", divinity: "Tiamat", power: "Create an impenetrable temple of water. Only the bearer can decide who can enter. It heal the bearer and his allies.", slug: "key-of-the-primordial-sea", status: "Held by Odin", autority: 7},
-    {name: "Enuma Elish", divinity: "Marduk", power: "A spear capable to fire a beam of pure destruction capable of tearing space and time.", slug: "enuma-elish", status: "Held by Odin", autority: 7},
-    {name: "The Eye of Horus", divinity: "Horus", power: "Allow to see find anything.", slug: "the-eye-of-horus", status: "Held by Odin", autority: 6},
-    {name: "The Gem of Hermes", divinity: "Hermes", power: "Allow to travel anywhere.", slug: "the-gem-of-hermes", status: "Held by Odin", autority: 3},
-    {name: "The sword of Amaterasu", divinity: "Amaterasu", power: "The sword can cut through anything and can create a blinding light. It allow it's user to becaume ligth and use powerfull ligth based attack.", slug: "the-sword-of-amaterasu", status: "Held by Odin", autority: 5},
-    {name: "The cristal of Tartarus", divinity: "hades", power: "Allow to create a portal to Tartarus.", slug: "the-cristal-of-tartarus", status: "Held by Odin", autority: 5},
-    {name: "Zeus's thunder", divinity: "Zeus", power: "Allow to control thunder and lightning.", slug: "zeus-thunder", status: "Held by Odin", autority: 6},
-    {name: "Isis's wings", divinity: "Isis", power: "Allow to fly, manipulate wind and heal.", slug: "isis-wings", status: "Held by the dwarves king", autority: 5},
-    {name: "The Behemoth's horn", divinity: "Behemoth", power: "A spear forged with the horn of the Behemoth. It can create a shockwave capable of destroying anything, the user can manipulate earth and magma.", slug: "the-behemoths-horn", status: "Held by Cole", autority: 3},
-    {name: "Divine Axe Rita", divinity: "Rita", power: "An axe capable of absorbing heat. I great it's bearer immense power that increase as the sun rise. The user can also create small sun.", slug: "divine-axe-rita", status: "Held by Escanor", autority: 3},
-    {name: "The eye of Horus", divinity: "Horus", power: "Allow to see the future.", slug: "the-eye-of-horus", status: "Held by Odin", autority: 6},
-    {name: "The sword of Mars", divinity: "Mars", power: "Inflict wound that can never be heal.", slug: "the-sword-of-mars", status: "Held by Gengis", autority: 4},
-    {name: "The armor of Baldr", divinity: "Baldr", power: "Once put, only the bearer can remove it. Make it's bearer invulnerable to everything expete one thing.", slug: "the-armor-of-baldr", status: "Held by Bjorn", autority: 5},
-    {name: "Susanoo's sword", divinity: "Susanoo", power: "The sword allow it's owner to use thunder based attack, create a thunder shield to protect himself and to fly.", slug: "susanoo-sword", status: "Held by first spinjitzu master", autority: 5},
-    {name: "The Staff of Anubis", divinity: "Anubis", power: "Allow to control the dead, travel to anywhere, communicate with the dead and guide the soul of the dead.", slug: "the-staff-of-anubis", status: "Held by Anubis", autority: 6},
-    {name: "Atlas masse", divinity: "Atlas", power: "Indestrutible masse that grant it's user incredible strenght.", slug: "atlas-masse", status: "Held by Jay", autority: 3},
-    {name: "Souls blade", divinity: "Unknown", power: "The sword can absorb the soul of it's victim. The user can use the soul to increase his power.", slug: "souls-blade", status: "Held by White", autority: 8},
-    {name: "Appolo's bow", divinity: "Appolo", power: "The bow can create arrow of light that can pierce anything.", slug: "appolos-bow", status: "Held by Tormak", autority: 4},
-    {name: "The Sanjiegun of Shiva", divinity: "Shiva", power: "A three part nunchaku granting it's user small power of creation and detruction.", slug: "sanjiegun", status: "Held by Morrow", autority: 6},
-    {name: "Ifrit's bane", divinity: "Ifrit", power: "Absord and convert fire into mana. Ignite and cut throughmost things", slug: "ifrit-s-bane", status: "held by Kaelgrym", autority: 4},
-    {name: "Chain's of Apophis", divinity: "Apophis", power: "Absord damage, bind and drain hp/power from people", slug: "chain-s-of-apophis", status: "destroid", autority: 6},
-    {name: "Masse of Hephaistos", divinity: "Hephaistos", power: "Dense masse of fire that smash ennemi like nail on an enclume", slug: "masse-of-hephaistos", status: "held by Alicia", autority: 5},
-    {name: "Sun wukong's Staff", divinity: "Ifrit", power: "Divine staff capable of changing size at the user’s will", slug: "sun-wukong-s-staff", status: "held by Sun wukong", autority: 6},
-    {name: "Celestial tower", divinity: "????", power: "Dimensional prison", slug: "celestial-tower", status: "held by Susano", autority: 4},
-    {name: "Vasavi Shakti", divinity: "Indra/Karna", power: "Lance of ligth capable of destroying one thing be it an ant or a god", slug: "vasavi-shakti", status: "held by Odin (temp Ninja)", autority: 7},
-    {name: "Heart of Wojira", divinity: "Wojira", power: "Grants full control over sea currents and tropical storms.", slug: "heart-of-wujira", status: "held by Island tribe", autority: 2},
-    {name: "Yggdrasil's coat", divinity: "Alberon", power: "Passively heals the wearer as long as he is in direct contact with soil or vegetation.", slug: "yggdrasil-s-coat", status: "held by Alberon", autority: 6},
-    {name: "Shard of the Aurora", divinity: "????", power: "????", slug: "shard-of-the-aurora", status: "????", autority: 8},
-    {name: "Tambours de Kamowakeikazuchi", divinity: "Raijin", power: "Each strike of the bearer charge the drum, at three stakc next atk make a thunder explosions. The drum can also be activate to summon a storms.", slug: "tambours-de-kamowakeikazuchi", status: "held by Vayl-Soran", autority: 6},
+export const artifacts = [
+    {name: "Shield of Nyx", divinity: "Nyx", power: "Indestrutible shield, that can absorb any attack.", slug: "shield-of-nyx", status: "Held by La Créatrice", authority: 7},
+    {name: "On/Off Staff", divinity: "La Créatrice", power: "Allow to turn any reliques on or off.", slug: "on-off-staff", status: "Held by Héla", authority: 5},
+    {name: "The Hammer of Creation", divinity: "La Créatrice", power: "Allow to create anything.", slug: "the-hammer-of-creation", status: "Held by La Créatrice", authority: 6},
+    {name: "Tridents of Poseidon", divinity: "Poseidon", power: "Allow to controlle sea creature and manipulate water.", slug: "tridents-of-poseidon", status: "Held by Nia", authority: 5},
+    {name: "Gaya's apple", divinity: "Gaya", power: "Create a circle (20m radius). Inside the cicle every wound is instantly heal and it's impossible to died.", slug: "gayas-apple", status: "Held by Odin", authority: 5},
+    {name: "Gungnir", divinity: "Odin", power: "The spear never miss it's target and always return to it's bearer.", slug: "gungnir", status: "Held by Odin", authority: 6},
+    {name: "Balmung", divinity: "Siegfried", power: "The sword can cut through and destroy anything.", slug: "balmung", status: "Held by Odin", authority: 6},
+    {name: "Key of the primordial sea", divinity: "Tiamat", power: "Create an impenetrable temple of water. Only the bearer can decide who can enter. It heal the bearer and his allies.", slug: "key-of-the-primordial-sea", status: "Held by Odin", authority: 7},
+    {name: "Enuma Elish", divinity: "Marduk", power: "A spear capable to fire a beam of pure destruction capable of tearing space and time.", slug: "enuma-elish", status: "Held by Odin", authority: 7},
+    {name: "The Eye of Horus", divinity: "Horus", power: "Allow to see find anything.", slug: "the-eye-of-horus", status: "Held by Odin", authority: 6},
+    {name: "The Gem of Hermes", divinity: "Hermes", power: "Allow to travel anywhere.", slug: "the-gem-of-hermes", status: "Held by Odin", authority: 3},
+    {name: "The sword of Amaterasu", divinity: "Amaterasu", power: "The sword can cut through anything and can create a blinding light. It allow it's user to becaume ligth and use powerfull ligth based attack.", slug: "the-sword-of-amaterasu", status: "Held by Odin", authority: 5},
+    {name: "The cristal of Tartarus", divinity: "hades", power: "Allow to create a portal to Tartarus.", slug: "the-cristal-of-tartarus", status: "Held by Odin", authority: 5},
+    {name: "Zeus's thunder", divinity: "Zeus", power: "Allow to control thunder and lightning.", slug: "zeus-thunder", status: "Held by Odin", authority: 6},
+    {name: "Isis's wings", divinity: "Isis", power: "Allow to fly, manipulate wind and heal.", slug: "isis-wings", status: "Held by the dwarves king", authority: 5},
+    {name: "The Behemoth's horn", divinity: "Behemoth", power: "A spear forged with the horn of the Behemoth. It can create a shockwave capable of destroying anything, the user can manipulate earth and magma.", slug: "the-behemoths-horn", status: "Held by Cole", authority: 3},
+    {name: "Divine Axe Rita", divinity: "Rita", power: "An axe capable of absorbing heat. I great it's bearer immense power that increase as the sun rise. The user can also create small sun.", slug: "divine-axe-rita", status: "Held by Escanor", authority: 3},
+    {name: "The eye of Horus", divinity: "Horus", power: "Allow to see the future.", slug: "the-eye-of-horus", status: "Held by Odin", authority: 6},
+    {name: "The sword of Mars", divinity: "Mars", power: "Inflict wound that can never be heal.", slug: "the-sword-of-mars", status: "Held by Gengis", authority: 4},
+    {name: "The armor of Baldr", divinity: "Baldr", power: "Once put, only the bearer can remove it. Make it's bearer invulnerable to everything expete one thing.", slug: "the-armor-of-baldr", status: "Held by Bjorn", authority: 5},
+    {name: "Susanoo's sword", divinity: "Susanoo", power: "The sword allow it's owner to use thunder based attack, create a thunder shield to protect himself and to fly.", slug: "susanoo-sword", status: "Held by first spinjitzu master", authority: 5},
+    {name: "The Staff of Anubis", divinity: "Anubis", power: "Allow to control the dead, travel to anywhere, communicate with the dead and guide the soul of the dead.", slug: "the-staff-of-anubis", status: "Held by Anubis", authority: 6},
+    {name: "Atlas masse", divinity: "Atlas", power: "Indestrutible masse that grant it's user incredible strenght.", slug: "atlas-masse", status: "Held by Jay", authority: 3},
+    {name: "Souls blade", divinity: "Unknown", power: "The sword can absorb the soul of it's victim. The user can use the soul to increase his power.", slug: "souls-blade", status: "Held by White", authority: 8},
+    {name: "Appolo's bow", divinity: "Appolo", power: "The bow can create arrow of light that can pierce anything.", slug: "appolos-bow", status: "Held by Tormak", authority: 4},
+    {name: "The Sanjiegun of Shiva", divinity: "Shiva", power: "A three part nunchaku granting it's user small power of creation and detruction.", slug: "sanjiegun", status: "Held by Morrow", authority: 6},
+    {name: "Ifrit's bane", divinity: "Ifrit", power: "Absord and convert fire into mana. Ignite and cut throughmost things", slug: "ifrit-s-bane", status: "held by Kaelgrym", authority: 4},
+    {name: "Chain's of Apophis", divinity: "Apophis", power: "Absord damage, bind and drain hp/power from people", slug: "chain-s-of-apophis", status: "destroid", authority: 6},
+    {name: "Masse of Hephaistos", divinity: "Hephaistos", power: "Dense masse of fire that smash ennemi like nail on an enclume", slug: "masse-of-hephaistos", status: "held by Alicia", authority: 5},
+    {name: "Sun wukong's Staff", divinity: "Ifrit", power: "Divine staff capable of changing size at the user’s will", slug: "sun-wukong-s-staff", status: "held by Sun wukong", authority: 6},
+    {name: "Celestial tower", divinity: "????", power: "Dimensional prison", slug: "celestial-tower", status: "held by Susano", authority: 4},
+    {name: "Vasavi Shakti", divinity: "Indra/Karna", power: "Lance of ligth capable of destroying one thing be it an ant or a god", slug: "vasavi-shakti", status: "held by Odin (temp Ninja)", authority: 7},
+    {name: "Heart of Wojira", divinity: "Wojira", power: "Grants full control over sea currents and tropical storms.", slug: "heart-of-wujira", status: "held by Island tribe", authority: 2},
+    {name: "Yggdrasil's coat", divinity: "Alberon", power: "Passively heals the wearer as long as he is in direct contact with soil or vegetation.", slug: "yggdrasil-s-coat", status: "held by Alberon", authority: 6},
+    {name: "Shard of the Aurora", divinity: "????", power: "????", slug: "shard-of-the-aurora", status: "????", authority: 8},
+    {name: "Tambours de Kamowakeikazuchi", divinity: "Raijin", power: "Each strike of the bearer charge the drum, at three stakc next atk make a thunder explosions. The drum can also be activate to summon a storms.", slug: "tambours-de-kamowakeikazuchi", status: "held by Vayl-Soran", authority: 6},
 ];
 
 
-const capacitis = [
+export const capacitis = [
     {type: "Technique", name: "Vorpal slash", element: ["—"], weapon: "Sword", target: ["mono"], desc: "Powerfull estoc with the sword healing it's user.", cat: ["offence", "sustain"], resource: "4T", style: "Aincrad style", dice: "1d12+12, 100%heal"},
     {type: "Technique", name: "Reaver", element: ["—"], weapon: "Cleaver", target: ["aoe"], desc: "Small dash into close range, cleave atk with chance to inflict bleed.", cat: ["offence", "mouvement", "status"], resource: "3T", style: "Aincrad style", dice: "1d8+4, 1d2 bleed"},
     {type: "Technique", name: "Farant fullmoon", element: ["—"], weapon: "Cleaver", target: ["aoe"], desc: "Four qwick slash with the weapon", cat: ["offence"], resource: "3T", style: "Aincrad style", dice: "4d6+8"},
@@ -250,7 +250,7 @@ const capacitis = [
 ];
 
 
-const EFFECTS = [
+export const EFFECTS = [
     { name: "Burn", dice: "1d4", type: "fire", notes: "fire dam" },
     { name: "Toxic", dice: "1d4", type: "poison", notes: "poison dam" },
     { name: "Toxic shock", dice: "2d4", type: "poison", notes: "poison dam" },
@@ -272,7 +272,7 @@ const EFFECTS = [
 
 ];
 
-const titles = {
+export const titles = {
   "Titan slayer": { effect: "+1d12 vs max hp>self", rarity: 4 },
   "Professional diver": { effect: "+2 const roll", rarity: 1 },
   "Relentless warrior": { effect: "+/-1d10+2 dam/resis roll per ally k.o.", rarity: 4 },
@@ -349,9 +349,9 @@ const titles = {
   "Heart of the beast" : {effect : "Immunity to fear and toxic, +1 decep", rarity: 3}
 };
 
-const weights = { 1: 50, 2: 30, 3: 15, 4: 4, 5: 1 };
+export const weights = { 1: 50, 2: 30, 3: 15, 4: 4, 5: 1 };
 
-const personnageSheet = [
+export const personnageSheet = [
     {
         name: "Susano",
         hp: 70,
@@ -1189,7 +1189,7 @@ const personnageSheet = [
 ];
 
 
-const domainData = {
+export const domainData = {
     "Susano": {
         name: "Sanctuaire du Premier Éclat",
         type: "Complet",
@@ -1222,20 +1222,4 @@ const domainData = {
         effect: "Authority -1 for foes, Infinite Weapon Wall, Sure-hit on Anti-magic slash",
         cost: "7 spell slot"
     },
-    // "White": {
-    //     name: "Palais Sanglant des Âmes Errantes",
-    //     type: "Ouvert",
-    //     rafinement: 5,
-    //     description: "Une structure titanesque d'os et d'âmes se matérialise. Le sol devient une mer de mains spectrales.",
-    //     effect: "Sure-hit on all Ghost/Spirit attacks, Soul consumption cost reduced by 50%, Foes take 1d12 Fear damage/turn",
-    //     cost: "1000 souls"
-    // },
-    // "Amnesys": {
-    //     name: "Labyrinthe des Neurones Brisés",
-    //     type: "Complet",
-    //     rafinement: 4,
-    //     description: "Les murs de la réalité se transforment en miroirs reflétant les pires souvenirs des victimes.",
-    //     effect: "All psychic damage is doubled, Sure-hit on Rewrite Memory, Foes must roll saving throws with triple disadvantage",
-    //     cost: "6 spell slot"
-    // }
 };

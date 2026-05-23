@@ -1,50 +1,28 @@
-const container = document.querySelector('#factions');
-let logoUrl = null;
+import { factions } from './main.js';
 
-if ( window.location.href.includes('github') ) {
-    logoUrl = 'https://raw.githubusercontent.com/Pl83/TheGreatAdventure/main/img/logo/'
-} else {
-    logoUrl = 'img/logo/';
-}
-//const showPersoUrl = 'personages.html?filter=';
-const showPersoUrl = 'personages.html';
+const container = document.querySelector('#factions');
 
 factions.forEach(faction => {
-    let article = document.createElement('article');
-    let div = document.createElement('div');
-    let img = document.createElement('img');
-    let h3 = document.createElement('h3');
-    let details = document.createElement('details');
-    let summary = document.createElement('summary');
-    let p = document.createElement('p');
-    let p2 = document.createElement('p');
-    let a = document.createElement('a');
+    const article = document.createElement('article');
+    const div = document.createElement('div');
+    const img = document.createElement('img');
+    const h3 = document.createElement('h3');
+    const details = document.createElement('details');
+    const summary = document.createElement('summary');
+    const p = document.createElement('p');
+    const p2 = document.createElement('p');
 
     img.loading = 'lazy';
-    img.src = logoUrl + faction.slug + '.webp';
+    img.src = `img/logo/${faction.slug}.webp`;
     img.alt = faction.name;
-    
-    h3.innerText = faction.name;
 
-    summary.innerText = "Who are they ?";
+    h3.textContent = faction.name;
+    summary.textContent = 'Who are they?';
+    p.textContent = faction.text;
+    p2.textContent = `Alignment: ${faction.alignment ?? faction.alignement ?? '—'}`;
 
-    p.innerText = faction.text;
-    p2.innerText = "Alignement : " + faction.alignment;
-
-    //a.href = showPersoUrl + faction.slug;
-    a.href = showPersoUrl;
-    a.innerText = "See Caracters affiliated to this factions";
-
-    div.appendChild(img);
-    div.appendChild(h3);
-
-    details.appendChild(summary);
-    details.appendChild(p);
-
-    article.appendChild(div);
-    article.appendChild(details);
-    article.appendChild(p2);
-    article.appendChild(a);
-
+    div.append(img, h3);
+    details.append(summary, p);
+    article.append(div, details, p2);
     container.appendChild(article);
 });

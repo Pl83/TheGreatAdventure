@@ -1,32 +1,20 @@
+import { artifacts } from './main.js';
+
 const container = document.querySelector('#artifact');
-
-const urlVars = new URLSearchParams(window.location.search);
-
-console.log(urlVars.get('item'));
-
-const artifact = artifacts.find(artifact => artifact.slug === urlVars.get('item'));
+const slug = new URLSearchParams(window.location.search).get('item');
+const artifact = artifacts.find(a => a.slug === slug);
 
 if (artifact) {
-    let name = document.querySelector('h2');
-    let divinity = document.createElement('li');
-    let status = document.createElement('li');
-    let autority = document.createElement('li');
-    let power = document.createElement('li');
-    let img = document.createElement('img');
-    let div = document.createElement('ul');
+    document.querySelector('h2').textContent = artifact.name;
 
-    name.innerText = artifact.name;
-    divinity.innerText = "Divinity : " + artifact.divinity;
-    status.innerText = "Status : " + artifact.status;
-    autority.innerText = "Autority : " + artifact.autority+"/8";
-    power.innerText = "Power : " + artifact.power;
-    //img.src = 'img/artifacts/' + artifact.slug + '.webp';
-    img.alt = artifact.name;
-
-    container.appendChild(img);
-    div.appendChild(divinity);
-    div.appendChild(status);
-    div.appendChild(autority);
-    div.appendChild(power);
-    container.appendChild(div);
+    const ul = document.createElement('ul');
+    ul.innerHTML = `
+        <li>Divinity: ${artifact.divinity}</li>
+        <li>Status: ${artifact.status}</li>
+        <li>Authority: ${artifact.authority}/8</li>
+        <li>Power: ${artifact.power}</li>
+    `;
+    container.appendChild(ul);
+} else {
+    container.textContent = slug ? 'Artifact not found.' : 'No artifact specified.';
 }

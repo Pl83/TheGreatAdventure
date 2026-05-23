@@ -1,158 +1,99 @@
-/*Load faction*/
+const JSON_URL = 'js/fig.json';
+const IMG_BASE = 'https://raw.githubusercontent.com/Pl83/legoBDD/refs/heads/main/';
 
-// let factionsHolder = document.getElementById('facts');
+const figSection = document.getElementById('fig');
 
-// factions.forEach(e => {
-//     let li = document.createElement('li');
-//     let label = document.createElement('label');
-//     label.classList.add('faction');
-//     label.innerHTML =`${e.name}  <input type="checkbox" name="${e.name}" value="${e.name}">`;
-//     li.append(label);
-//     factionsHolder.append(li);
-// })
+fetch(JSON_URL)
+    .then(res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+    })
+    .then(data => populateCharacters(data))
+    .catch(() => {
+        figSection.innerHTML = '<p>Failed to load character data.</p>';
+    });
 
+function populateCharacters(data) {
+    Object.entries(data).forEach(([faction, characters]) => {
+        if (!Object.keys(characters).length) return;
 
+        const categoryDiv = document.createElement('div');
+        categoryDiv.className = 'categories';
 
-/*=========================================================================================*/
-/*====================================Load characters======================================*/
-/*=========================================================================================*/
+        const img = document.createElement('img');
+        img.src = `img/logo/${faction.toLowerCase().replace(/\s+/g, '-')}.webp`;
+        img.alt = `${faction} logo`;
+        img.className = 'logos';
+        img.loading = 'lazy';
 
-document.addEventListener("DOMContentLoaded", function () {
-    const jsonDataUrl = "js/fig.json"; // Update with the correct path if needed
+        const title = document.createElement('h3');
+        title.textContent = faction;
 
-    // Fetch the JSON data
-    fetch(jsonDataUrl)
-        .then(response => response.json())
-        .then(data => populateCharacters(data))
-        .catch(error => console.error("Error loading JSON:", error));
+        categoryDiv.append(img, title);
+        figSection.appendChild(categoryDiv);
 
-    function populateCharacters(data) {
-        const figSection = document.getElementById("fig");
+        const factionContainer = document.createElement('div');
+        factionContainer.id = faction;
+        factionContainer.className = 'cards-wrapper';
 
-        Object.keys(data).forEach(faction => {
-            const characters = data[faction];
+        Object.entries(characters).forEach(([characterName, character]) => {
+            const cardDiv = document.createElement('div');
+            cardDiv.className = character.unique ? 'card unique' : 'card';
 
-            // Create the faction category header
-            const categoryDiv = document.createElement("div");
-            categoryDiv.classList.add("categories");
+            const topDiv = document.createElement('div');
+            topDiv.className = 'top';
 
-            const img = document.createElement("img");
-            img.src = `img/logo/${faction.toLowerCase().replace(/\s+/g, '-')}.webp`;
-            img.alt = `${faction} logo`;
-            img.classList.add('logos');
-            img.loading = 'lazy';
+            const nameEl = document.createElement('h4');
+            nameEl.textContent = characterName;
+            topDiv.appendChild(nameEl);
 
-            const title = document.createElement("h3");
-            title.textContent = faction;
+            if (character.title) {
+                const titleEl = document.createElement('p');
+                titleEl.textContent = character.title.join(', ');
+                topDiv.appendChild(titleEl);
+            }
 
-            categoryDiv.appendChild(img);
-            categoryDiv.appendChild(title);
-            figSection.appendChild(categoryDiv);
+            const middleDiv = document.createElement('div');
+            middleDiv.className = 'middle';
 
-            // Create faction container
-            const factionContainer = document.createElement("div");
-            factionContainer.id = faction;
-            factionContainer.classList.add("cards-wrapper");
+            if (character.url?.length) {
+                const imgEl = document.createElement('img');
+                imgEl.className = 'left';
+                imgEl.src = IMG_BASE + character.url[0];
+                imgEl.alt = `Image of ${characterName}`;
+                imgEl.dataset.index = 0;
+                imgEl.dataset.images = JSON.stringify(character.url);
 
-            Object.keys(characters).forEach(characterName => {
-                const character = characters[characterName];
-
-                // Create the character card
-                const cardDiv = document.createElement("div");
-                cardDiv.classList.add("card");
-                if (character.unique) {
-                    cardDiv.classList.add("unique");
-                }
-
-                // Top section (name & title)
-                const topDiv = document.createElement("div");
-                topDiv.classList.add("top");
-
-                const nameElement = document.createElement("h4");
-                nameElement.textContent = characterName;
-                topDiv.appendChild(nameElement);
-
-                if (character.title) {
-                    const titleElement = document.createElement("p");
-                    titleElement.textContent = character.title.join(", ");
-                    topDiv.appendChild(titleElement);
-                }
-
-                // Middle section (image & details)
-                const middleDiv = document.createElement("div");
-                middleDiv.classList.add("middle");
-
-                let imgElement = document.createElement("img");
-                imgElement.classList.add("left");
-
-                if (character.url && character.url.length > 0) {
-                    imgElement.src = `https://raw.githubusercontent.com/Pl83/legoBDD/refs/heads/main/${character.url[0]}`;
-                    imgElement.alt = `Image of ${characterName}`;
-                    imgElement.dataset.index = 0; // Track current image index
-                    imgElement.dataset.images = JSON.stringify(character.url); // Store image array
-
-                    // Add hover event to change cursor to pointer if multiple images
-                    if (character.url.length > 1) {
-                        imgElement.style.cursor = "pointer";
-                    }
-
-                    // Add click event to cycle images
-                    imgElement.addEventListener("click", function () {
-                        let images = JSON.parse(this.dataset.images);
-                        let index = parseInt(this.dataset.index, 10);
-
-                        index = (index + 1) % images.length; // Cycle through images
-
-                        this.src = `https://raw.githubusercontent.com/Pl83/legoBDD/refs/heads/main/Gost/${images[index]}`;
-                        this.dataset.index = index;
+                if (character.url.length > 1) {
+                    imgEl.style.cursor = 'pointer';
+                    imgEl.addEventListener('click', function () {
+                        const images = JSON.parse(this.dataset.images);
+                        const next = (parseInt(this.dataset.index, 10) + 1) % images.length;
+                        this.src = IMG_BASE + images[next];
+                        this.dataset.index = next;
                     });
-
-                    middleDiv.appendChild(imgElement);
                 }
+                middleDiv.appendChild(imgEl);
+            }
 
-                const detailsList = document.createElement("ul");
-                detailsList.classList.add("right");
+            const detailsList = document.createElement('ul');
+            detailsList.className = 'right';
+            detailsList.innerHTML = `
+                <li>Species: ${character.species ?? '—'}</li>
+                ${character.weapon ? `<li>Weapon: ${character.weapon}</li>` : ''}
+                ${character.power?.length ? `<li>Powers: ${character.power.join(', ')}</li>` : ''}
+                ${character.weakness?.length ? `<li>Weakness: ${character.weakness.join(', ')}</li>` : ''}
+            `;
+            middleDiv.appendChild(detailsList);
 
-                const speciesItem = document.createElement("li");
-                speciesItem.textContent = `Species: ${character.species}`;
-                detailsList.appendChild(speciesItem);
+            const bottomDiv = document.createElement('p');
+            bottomDiv.className = 'bottom';
+            bottomDiv.textContent = character.description ?? '';
 
-                if (character.weapon) {
-                    const weaponItem = document.createElement("li");
-                    weaponItem.textContent = `Weapon: ${character.weapon}`;
-                    detailsList.appendChild(weaponItem);
-                }
-
-                if (character.power) {
-                    const powerItem = document.createElement("li");
-                    powerItem.textContent = `Powers: ${character.power.join(", ")}`;
-                    detailsList.appendChild(powerItem);
-                }
-
-                if (character.weakness) {
-                    const weaknessItem = document.createElement("li");
-                    weaknessItem.textContent = `Weakness: ${character.weakness.join(", ")}`;
-                    detailsList.appendChild(weaknessItem);
-                }
-
-                middleDiv.appendChild(detailsList);
-
-                // Bottom section (description)
-                const bottomDiv = document.createElement("p");
-                bottomDiv.classList.add("bottom");
-                bottomDiv.textContent = character.description;
-
-                // Append sections to card
-                cardDiv.appendChild(topDiv);
-                cardDiv.appendChild(middleDiv);
-                cardDiv.appendChild(bottomDiv);
-
-                // Append card to faction container
-                factionContainer.appendChild(cardDiv);
-            });
-
-            // Append faction container to the section
-            figSection.appendChild(factionContainer);
+            cardDiv.append(topDiv, middleDiv, bottomDiv);
+            factionContainer.appendChild(cardDiv);
         });
-    }
-});
+
+        figSection.appendChild(factionContainer);
+    });
+}

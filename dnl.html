@@ -5,8 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="shortcut icon" href="img/logo/lego.webp" type="image/x-icon">
     <link rel="stylesheet" href="css/main.css">
-    <script src="js/main.js" defer></script>
-    <script src="js/dnl.js" defer></script>
+    <script type="module" src="js/dnl.js"></script>
     <title>The Great Adventure</title>
 </head>
 <body>
@@ -28,23 +27,23 @@
         <h2>D&L</h2>
         <section id="dnl">
                 <h2>Sheets</h2>
-                <section id="tech">
+                <section>
                     <p>See all <a href="sheet.html">sheets</a></p>
                 </section>
                 <h2>Capacities</h2>
-                <section id="tech">
+                <section>
                     <p>See all <a href="capacity.html">capacities</a></p>
                 </section>
                 <br>
-                <h2>Domaines</h2>
-                <section id="tech">
-                    <p>See all <a href="domain.html">Domaines</a></p>
+                <h2>Domains</h2>
+                <section>
+                    <p>See all <a href="domain.html">domains</a></p>
                 </section>
                 <br>
                 <section id="gatcha">
                     <h2>Titles Gatcha</h2>
 
-                    <button onclick="rollGacha()">Pull 5 Titles</button>
+                    <button id="gachaBtn">Pull 5 Titles</button>
 
                     <div id="results" class="results"></div>
                 </section>
@@ -72,10 +71,7 @@
                     <div class="table-wrap">
                         <table aria-describedby="table-caption">
                         <colgroup>
-                            <col style="width: 16rem;" />
-                            <col style="width: 10rem;" />
-                            <col style="width: 12rem;" />
-                            <col />
+                            <col /><col /><col /><col />
                         </colgroup>
                         <thead>
                             <tr>

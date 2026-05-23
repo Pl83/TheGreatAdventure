@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\pierr\\\\dev\\\\Lego\\\\siteRepo\" -Recurse -Force)",
+      "Bash(Select-Object FullName, PSIsContainer)",
+      "Bash(Sort-Object FullName)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\pierr\\\\dev\\\\Lego\\\\siteRepo\" -Force | Where-Object {$_.Name -ne '.git'} | Select-Object Name, PSIsContainer | Format-Table -AutoSize)"
+    ]
+  }
+}
