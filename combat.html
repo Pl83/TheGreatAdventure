@@ -1,12 +1,12 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="shortcut icon" href="img/logo/lego.webp" type="image/x-icon">
     <link rel="stylesheet" href="css/main.css">
-    <script type="module" src="js/sheet.js"></script>
-    <title>The Great Adventure</title>
+    <script type="module" src="js/combat.js"></script>
+    <title>Combat Simulator — The Great Adventure</title>
 </head>
 <body>
     <header>
@@ -21,35 +21,29 @@
                 <li class="menu"><a href="factions.html">Factions</a></li>
                 <li class="menu"><a href="maps.html">World</a></li>
                 <li class="menu"><a href="artifacts.html">Artifacts</a></li>
-                <li class="active menu"><a href="dnl.html">D&amp;L</a></li>
-                <li class="menu"><a href="combat.html">⚔ Combat</a></li>
+                <li class="menu"><a href="dnl.html">D&amp;L</a></li>
+                <li class="active menu"><a href="combat.html">⚔ Combat</a></li>
                 <li class="menu"><a href="timeline.html">Timeline</a></li>
             </ul>
         </nav>
         <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
             <span></span><span></span><span></span>
         </button>
-    </header> 
-<main>
-    <div class="page-heading">
-        <span class="page-eyebrow">Codex VI · Dice &amp; Lore</span>
-        <h2>D&amp;L Sheets</h2>
-        <p class="page-lede">Fiches personnage — héros et vilains de la campagne. <a href="https://docs.google.com/document/d/19VKFi6IF46_10NoL72J1CCjbk7RWifAbD2RVnKj14eA/edit?usp=sharing">Fiche complète sur Google Doc</a></p>
-        <div class="tga-divider"><span>✦</span></div>
-    </div>
-    <div class="header-flex">
-        <div class="search-box">
-            <input type="text" id="charSearch" placeholder="Rechercher un héros ou un vilain…">
+    </header>
+    <main>
+        <div class="page-heading">
+            <span class="page-eyebrow">Codex VI · Dice &amp; Lore</span>
+            <h2>Combat Simulator</h2>
+            <p class="page-lede">Pick your fighters, roll for initiative, and let fate decide the outcome.</p>
+            <div class="tga-divider"><span>✦</span></div>
         </div>
-    </div>
-    
-    <section id="sheet" class="sheet-container">
+        <section>
+            <div id="combat-root"></div>
         </section>
-</main>
+    </main>
     <footer>
-        <p><em>"All know artifacts crystallize from the death of a god."</em> <strong>✦</strong> © 2020 The Great Adventure by Pilou</p>
+        <p>The Great Adventure &copy; House of Pilou</p>
     </footer>
     <script src="js/nav.js"></script>
 </body>
 </html>
-

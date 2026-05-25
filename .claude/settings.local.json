@@ -15,7 +15,11 @@
       "Bash(npx serve *)",
       "Bash(echo \"Server PID: $!\")",
       "Bash(cat)",
-      "Bash(node verify3.mjs)"
+      "Bash(node verify3.mjs)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\pierr\\\\dev\\\\Lego\\\\siteRepo\" -Recurse -ErrorAction SilentlyContinue)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\pierr\\\\dev\\\\Lego\\\\siteRepo\" -Recurse -File)",
+      "Bash(Select-Object FullName)"
     ]
   }
 }
