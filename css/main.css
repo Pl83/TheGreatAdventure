@@ -1367,7 +1367,11 @@ footer p .glyph {
   font-size: 15px;
   letter-spacing: 0.04em;
   margin: 0;
+  margin-right: 8px;
   color: var(--tga-ink-2);
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
 }
 
 .char-hp {
