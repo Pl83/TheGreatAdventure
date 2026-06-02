@@ -4,6 +4,7 @@
 
 // ── §1  Imports ────────────────────────────────────────────────────────────
 import { personnageSheet, EFFECTS } from './main.js';
+import { loadManifest, loadMap, cellPxOf, isWalkableG } from './dungeon-loader.js';
 
 // ── §2  State ──────────────────────────────────────────────────────────────
 const S = {
@@ -18,7 +19,19 @@ const S = {
   reactOptions: [],     // [{ combatantId, ability }]
   log: [],              // [{ text, flavor }]
   winnerTeam: null,
+  // ── Map system ──────────────────────────────────────────────────────────
+  currentMap:     null,       // chosen DUNGEONS[i] object
+  mapViewFilter:  'both',     // 'both' | 'team0' | 'team1'
+  hasMoved:       false,      // active combatant moved this turn
+  moveMode:       false,      // player is selecting a movement destination
+  reachableCells: new Map(),  // "x,y" → steps (BFS result)
 };
+
+// ── Map constants ──────────────────────────────────────────────────────────
+const MAX_MOVE    = 4;    // cells per turn
+const MELEE_RANGE = 1;    // Chebyshev distance for basic attack
+const SPELL_RANGE = 6;    // Chebyshev distance for non-ranged abilities
+// Cell pixel size and grid dimensions are now dynamic (per-map via cellPxOf)
 
 const root = document.getElementById('combat-root');
 
@@ -183,6 +196,8 @@ function buildCombatant(char, teamIndex, id) {
     usedThisFight: [],   // ability names used for 1/fight
     statusEffects: [],   // { name, turnsLeft, dice, damType, notes }
     hasCounterAttack: false,
+    x: 0,               // grid position
+    y: 0,
   };
 }
 
@@ -219,7 +234,234 @@ function hasControlEffect(c) {
   return c.statusEffects.find(e => controls.includes(e.name.toLowerCase())) ?? null;
 }
 
-// ── §6  Log ────────────────────────────────────────────────────────────────
+// ── §6  Map & Movement ────────────────────────────────────────────────────
+
+/** Chebyshev (king-move) distance between two {x,y} points. */
+function chebyshev(a, b) {
+  return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
+}
+
+/**
+ * 8-directional BFS from (sx,sy) up to maxDist steps.
+ * Returns a Map of "x,y" → steps for all reachable walkable cells.
+ * The starting cell is excluded from the result.
+ */
+function bfsReachable(sx, sy, maxDist) {
+  const visited = new Map();
+  const queue   = [{ x: sx, y: sy, dist: 0 }];
+  visited.set(`${sx},${sy}`, 0);
+  const dirs = [
+    { dx: -1, dy: -1 }, { dx: 0, dy: -1 }, { dx: 1, dy: -1 },
+    { dx: -1, dy: 0  },                     { dx: 1, dy: 0  },
+    { dx: -1, dy: 1  }, { dx: 0, dy: 1  }, { dx: 1, dy: 1  },
+  ];
+  while (queue.length) {
+    const { x, y, dist } = queue.shift();
+    if (dist >= maxDist) continue;
+    for (const { dx, dy } of dirs) {
+      const nx = x + dx, ny = y + dy;
+      const key = `${nx},${ny}`;
+      if (!visited.has(key) && isWalkableG(S.currentMap, nx, ny)) {
+        visited.set(key, dist + 1);
+        queue.push({ x: nx, y: ny, dist: dist + 1 });
+      }
+    }
+  }
+  visited.delete(`${sx},${sy}`);
+  return visited;
+}
+
+/** Returns a living combatant at (x,y), excluding the one with excludeId. */
+function isOccupied(x, y, excludeId = -1) {
+  return S.combatants.find(c => c.x === x && c.y === y && c.id !== excludeId && !c.isKO) ?? null;
+}
+
+/** Place all combatants at their starting positions from the chosen map. */
+function placeCharacters(map) {
+  for (const teamIdx of [0, 1]) {
+    const spots = map.starts[teamIdx];
+    const team  = S.combatants.filter(c => c.teamIndex === teamIdx);
+    team.forEach((c, i) => {
+      const pos = spots[Math.min(i, spots.length - 1)];
+      c.x = pos.x;
+      c.y = pos.y;
+    });
+  }
+}
+
+/**
+ * Check whether actor can reach target with the given ability.
+ * ability = null  → basic attack (melee range).
+ * Returns { inRange: boolean, reason: string }.
+ */
+function targetInRange(actor, target, ability) {
+  const dist = chebyshev(actor, target);
+  if (!ability) {
+    return { inRange: dist <= MELEE_RANGE, reason: dist > MELEE_RANGE ? 'Must be adjacent to attack' : '' };
+  }
+  if (ability.isAoe) return { inRange: true, reason: '' };
+  const isRanged = ability.desc && ability.desc.toLowerCase().includes('ranged');
+  if (isRanged) return { inRange: true, reason: '' };
+  return { inRange: dist <= SPELL_RANGE, reason: dist > SPELL_RANGE ? `Out of range (max ${SPELL_RANGE})` : '' };
+}
+
+/** Enter movement-selection mode: highlight reachable cells on the canvas. */
+function enterMoveMode() {
+  const c = activeCombatant();
+  if (!c || S.hasMoved || !S.currentMap) return;
+  S.moveMode = true;
+  S.reachableCells = bfsReachable(c.x, c.y, MAX_MOVE);
+  // Toggle cursor class on canvas
+  const canvas = document.getElementById('dungeon-canvas');
+  if (canvas) canvas.classList.add('move-mode');
+  drawMap();
+}
+
+/** Exit movement-selection mode. */
+function exitMoveMode() {
+  S.moveMode = false;
+  S.reachableCells = new Map();
+  const canvas = document.getElementById('dungeon-canvas');
+  if (canvas) canvas.classList.remove('move-mode');
+  drawMap();
+}
+
+/** Handle a click on the dungeon canvas at grid cell (gx, gy). */
+function handleMoveClick(gx, gy) {
+  if (!S.moveMode) return;
+  const c = activeCombatant();
+  if (!c) return;
+  const key = `${gx},${gy}`;
+  if (!S.reachableCells.has(key)) return;
+  if (isOccupied(gx, gy, c.id)) {
+    addLog('That cell is occupied.', 'info');
+    return;
+  }
+  addLog(`${c.name} moves to (${gx}, ${gy}).`, 'info');
+  c.x = gx;
+  c.y = gy;
+  S.hasMoved = true;
+  exitMoveMode();
+  renderCombatScreen();
+}
+
+/** Attach (or re-attach) the click listener on the dungeon canvas. */
+function setupCanvasClickHandler() {
+  const canvas = document.getElementById('dungeon-canvas');
+  if (!canvas) return;
+  // Always remove previous listener before attaching a fresh one
+  if (canvas._clickHandler) canvas.removeEventListener('click', canvas._clickHandler);
+  canvas._clickHandler = (e) => {
+    if (!S.moveMode) return;
+    const rect = canvas.getBoundingClientRect();
+    const cp   = cellPxOf(S.currentMap);
+    const gx   = Math.floor((e.clientX - rect.left) * (canvas.width  / rect.width)  / cp);
+    const gy   = Math.floor((e.clientY - rect.top)  * (canvas.height / rect.height) / cp);
+    handleMoveClick(gx, gy);
+  };
+  canvas.addEventListener('click', canvas._clickHandler);
+}
+
+/** Draw the dungeon map: PNG background → movement overlay → character tokens. */
+function drawMap() {
+  const canvas = document.getElementById('dungeon-canvas');
+  if (!canvas || !S.currentMap) return;
+  const { image } = S.currentMap;
+
+  // Set canvas resolution to match the PNG (portrait maps need this each call)
+  canvas.width  = image.naturalWidth;
+  canvas.height = image.naturalHeight;
+
+  const ctx    = canvas.getContext('2d');
+  const cp     = cellPxOf(S.currentMap);   // px per grid cell (e.g. 70)
+  const active = activeCombatant();
+
+  // ── 1. PNG background ─────────────────────────────────────────────────
+  ctx.drawImage(image, 0, 0);
+
+  // ── 2. Reachable-cell highlight (movement mode) ───────────────────────
+  if (S.moveMode && S.reachableCells.size > 0) {
+    ctx.fillStyle = 'rgba(74,144,217,0.35)';
+    for (const [key] of S.reachableCells) {
+      const [gx, gy] = key.split(',').map(Number);
+      if (!isOccupied(gx, gy, active?.id ?? -1)) {
+        ctx.fillRect(gx * cp + 1, gy * cp + 1, cp - 2, cp - 2);
+      }
+    }
+    // Blue border on the active combatant's current cell
+    if (active) {
+      ctx.strokeStyle = 'rgba(74,144,217,0.9)';
+      ctx.lineWidth   = 2;
+      ctx.strokeRect(active.x * cp + 1, active.y * cp + 1, cp - 2, cp - 2);
+    }
+  }
+
+  // ── 3. Character tokens ───────────────────────────────────────────────
+  const TEAM_COL = ['#4A90D9', '#D94A4A'];
+  const filter   = S.mapViewFilter;
+
+  const showTeam = (teamIdx) => {
+    if (filter === 'both')  return true;
+    if (filter === 'team0') return teamIdx === 0;
+    if (filter === 'team1') return teamIdx === 1;
+    return true;
+  };
+
+  ctx.shadowColor = 'rgba(0,0,0,0.55)';
+  ctx.shadowBlur  = 3;
+
+  for (const c of S.combatants) {
+    if (c.isKO || !showTeam(c.teamIndex)) continue;
+    const cx     = c.x * cp + cp / 2;
+    const cy     = c.y * cp + cp / 2;
+    const isAct  = active?.id === c.id;
+    const radius = cp * (isAct ? 0.42 : 0.34);
+    const col    = TEAM_COL[c.teamIndex];
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+    ctx.fillStyle = col;
+    ctx.fill();
+
+    ctx.shadowBlur = 0;
+    if (isAct) {
+      ctx.strokeStyle = '#E4B14A';
+      ctx.lineWidth   = 2.5;
+    } else {
+      ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+      ctx.lineWidth   = 1;
+    }
+    ctx.stroke();
+    ctx.shadowColor = 'rgba(0,0,0,0.55)';
+    ctx.shadowBlur  = 3;
+
+    // Initial letter
+    ctx.fillStyle    = '#fff';
+    ctx.font         = `bold ${Math.round(cp * 0.4)}px monospace`;
+    ctx.textAlign    = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.shadowBlur   = 0;
+    ctx.fillText(c.name[0].toUpperCase(), cx, cy);
+  }
+
+  ctx.shadowBlur = 0;
+}
+
+/** Returns HTML for the map view toggle buttons. */
+function renderMapToggleHTML() {
+  const opts = [
+    { val: 'both',  label: 'Both' },
+    { val: 'team0', label: 'Team 1' },
+    { val: 'team1', label: 'Team 2' },
+  ];
+  const btns = opts.map(o =>
+    `<button class="map-toggle-btn${S.mapViewFilter === o.val ? ' active' : ''}" data-filter="${o.val}">${o.label}</button>`
+  ).join('');
+  const mapName = S.currentMap ? `<span class="map-name-badge">📍 ${S.currentMap.name}</span>` : '';
+  return `<div class="map-toggle-row">${btns}${mapName}</div>`;
+}
+
+// ── §7  Log ────────────────────────────────────────────────────────────────
 
 function addLog(text, flavor = 'info') {
   S.log.push({ text, flavor });
@@ -387,6 +629,15 @@ function handleAttack(attackerId, defenderId) {
   const def = getCombatant(defenderId);
   if (!atk || !def || def.isKO) return;
 
+  // Range check — does not consume the turn on failure
+  if (S.currentMap) {
+    const range = targetInRange(atk, def, null);
+    if (!range.inRange) {
+      addLog(`⚠ ${atk.name} can't reach ${def.name}! (${range.reason})`, 'info');
+      return;
+    }
+  }
+
   const result = resolveAttack(atk, def, null);
   S.pendingAction = { type: 'attack', attackerId, defenderId, result };
 
@@ -405,14 +656,23 @@ function handleCastAbility(casterId, abilityName, targetIds) {
   const ability = caster?.abilities.find(a => a.name === abilityName);
   if (!ability || !abilityAvailable(caster, ability)) return;
 
-  // Spend resources immediately
+  const targets = targetIds.map(id => getCombatant(id)).filter(t => t && !t.isKO);
+
+  // Range check BEFORE spending resources (non-AoE only)
+  if (S.currentMap && !ability.isAoe && targets.length > 0) {
+    const range = targetInRange(caster, targets[0], ability);
+    if (!range.inRange) {
+      addLog(`⚠ ${ability.name} can't reach ${targets[0].name}! (${range.reason})`, 'info');
+      return;
+    }
+  }
+
+  // Spend resources after range is confirmed
   spendResource(caster, ability);
   if (ability.cooldownTurns > 0) caster.cooldowns[ability.name] = ability.cooldownTurns;
   if (ability.isOncePerFight) caster.usedThisFight.push(ability.name);
 
   addLog(`${caster.name} uses ${ability.name}!`, ability.source === 'spell' ? 'spell' : 'tech');
-
-  const targets = targetIds.map(id => getCombatant(id)).filter(t => t && !t.isKO);
 
   // AoE: apply to all targets without attack roll (hits automatically)
   if (ability.isAoe) {
@@ -584,7 +844,7 @@ function endCombat(winner) {
   setTimeout(() => renderVictoryScreen(), 1200);
 }
 
-function startInitiative() {
+async function startInitiative() {
   S.combatants = [];
   let id = 0;
   for (const teamIdx of [0, 1]) {
@@ -597,6 +857,16 @@ function startInitiative() {
   S.initiativeOrder = [...S.combatants]
     .sort((a, b) => b.initiativeRoll - a.initiativeRoll)
     .map(c => c.id);
+
+  // Load a random map from the file manifest
+  const manifest    = await loadManifest();
+  const slug        = manifest[Math.floor(Math.random() * manifest.length)];
+  S.currentMap      = await loadMap(slug);
+  S.mapViewFilter   = 'both';
+  S.hasMoved        = false;
+  S.moveMode        = false;
+  S.reachableCells  = new Map();
+
   S.phase = 'initiative';
   render();
 }
@@ -606,6 +876,8 @@ function startCombat() {
   S.currentTurnIndex = 0;
   S.roundNumber = 1;
   S.log = [];
+  if (S.currentMap) placeCharacters(S.currentMap);
+  S.hasMoved = false;
   addRoundDivider();
   render();
   beginTurn(activeCombatant());
@@ -625,6 +897,9 @@ function advanceTurn() {
   } while (getCombatant(S.initiativeOrder[curr])?.isKO);
 
   S.currentTurnIndex = curr;
+  S.hasMoved         = false;
+  S.moveMode         = false;
+  S.reachableCells   = new Map();
   if (passedZero) {
     S.roundNumber++;
     addRoundDivider();
@@ -805,13 +1080,40 @@ function actionPanelHTML(c) {
   const enemyTeam  = c.teamIndex === 0 ? 1 : 0;
   const enemyAlive = livingCombatants(enemyTeam);
   const silence    = hasSilence(c);
+  const hasMap     = !!S.currentMap;
 
-  const targetOpts = enemyAlive.map(t =>
-    `<option value="${t.id}">${t.name} (${t.currentHp}/${t.maxHp} HP)</option>`
-  ).join('');
-  const noTargets = enemyAlive.length === 0;
+  // Distance-aware target options
+  const targetOptsForAbility = (ability) => {
+    if (enemyAlive.length === 0) return '<option>No targets</option>';
+    return enemyAlive.map(t => {
+      const dist  = hasMap ? chebyshev(c, t) : 0;
+      const range = hasMap ? targetInRange(c, t, ability) : { inRange: true };
+      const distTxt  = hasMap ? ` ${dist}sq` : '';
+      const warnTxt  = (hasMap && !range.inRange) ? ' ⚠' : '';
+      const disabled = (hasMap && !range.inRange && !ability?.isAoe) ? ' disabled' : '';
+      return `<option value="${t.id}"${disabled}>${t.name} (${t.currentHp}HP${distTxt}${warnTxt})</option>`;
+    }).join('');
+  };
 
-  // Spells: spells array
+  // Basic attack target options
+  const atkTargetOpts    = targetOptsForAbility(null);
+  const hasAtkTarget     = !hasMap || enemyAlive.some(t => chebyshev(c, t) <= MELEE_RANGE);
+  const noTargets        = enemyAlive.length === 0;
+
+  // Move section (shown only if not yet moved)
+  const moveSection = !S.hasMoved ? `
+    <div class="action-section move-section">
+      ${S.moveMode
+        ? `<button class="action-btn map-cancel-move-btn" id="btn-cancel-move">✕ Cancel Move</button>
+           <span class="move-hint">Click a highlighted cell on the map</span>`
+        : `<button class="action-btn map-move-btn" id="btn-move">🚶 Move (${MAX_MOVE} cells)</button>`
+      }
+    </div>` : `
+    <div class="action-section move-section">
+      <span class="move-done-badge">✓ Moved</span>
+    </div>`;
+
+  // Spells
   const spellList = c.abilities.filter(ab =>
     ab.source === 'spell' &&
     !ab.isTransform &&
@@ -827,9 +1129,9 @@ function actionPanelHTML(c) {
   );
 
   const abOpt = (ab) => {
-    const cdLeft = c.cooldowns[ab.name] ?? 0;
-    const cdTxt  = cdLeft > 0 ? ` [${cdLeft}T CD]` : ab.cooldownTurns > 0 ? ` [${ab.cooldownTurns}T CD]` : '';
-    const costTxt = ab.cost ? ` (${ab.cost.amount} ${ab.cost.type})` : '';
+    const cdLeft  = c.cooldowns[ab.name] ?? 0;
+    const cdTxt   = cdLeft > 0 ? ` [${cdLeft}T CD]` : ab.cooldownTurns > 0 ? ` [${ab.cooldownTurns}T CD]` : '';
+    const costTxt = ab.cost  ? ` (${ab.cost.amount} ${ab.cost.type})` : '';
     const aoeTxt  = ab.isAoe ? ' — AoE' : '';
     const healTxt = ab.isHeal ? ' — Heal' : '';
     return `<option value="${ab.name}">${ab.name}${costTxt}${cdTxt}${aoeTxt}${healTxt}</option>`;
@@ -841,7 +1143,7 @@ function actionPanelHTML(c) {
       <select id="spell-select" class="target-select">${spellList.map(abOpt).join('')}</select>
       <div id="spell-preview" class="ability-preview-wrap"></div>
       <select id="spell-target" class="target-select"${noTargets ? ' disabled' : ''}>
-        ${noTargets ? '<option>No targets</option>' : targetOpts}
+        ${noTargets ? '<option>No targets</option>' : '<!-- updated by JS -->'}
       </select>
       <button class="action-btn confirm-action-btn" id="btn-spell" data-caster="${c.id}"${noTargets ? ' disabled' : ''}>
         ✨ Cast Spell
@@ -854,23 +1156,27 @@ function actionPanelHTML(c) {
       <select id="tech-select" class="target-select">${techList.map(abOpt).join('')}</select>
       <div id="tech-preview" class="ability-preview-wrap"></div>
       <select id="tech-target" class="target-select"${noTargets ? ' disabled' : ''}>
-        ${noTargets ? '<option>No targets</option>' : targetOpts}
+        ${noTargets ? '<option>No targets</option>' : '<!-- updated by JS -->'}
       </select>
       <button class="action-btn confirm-action-btn" id="btn-tech" data-caster="${c.id}"${noTargets ? ' disabled' : ''}>
         🔥 Use Technique
       </button>
     </div>` : '';
 
+  const atkNote = hasMap && !hasAtkTarget && !noTargets
+    ? '<span class="range-warn">Move closer to attack</span>' : '';
+
   return `
     <div class="action-panel">
       <div class="action-panel-title">⚔ ${c.name}'s Turn</div>
+      ${moveSection}
       <div class="action-section">
         <button class="action-btn" id="btn-pass">⏭ Pass</button>
       </div>
       <div class="action-section">
-        <label class="action-label">Basic Attack</label>
+        <label class="action-label">Basic Attack ${atkNote}</label>
         <select id="atk-target" class="target-select"${noTargets ? ' disabled' : ''}>
-          ${noTargets ? '<option>No targets</option>' : targetOpts}
+          ${noTargets ? '<option>No targets</option>' : atkTargetOpts}
         </select>
         <button class="action-btn confirm-action-btn" id="btn-attack" data-attacker="${c.id}"${noTargets ? ' disabled' : ''}>
           ⚔ Attack <span class="atk-dice">(${c.sourceChar.attack || '1d6'})</span>
@@ -1020,29 +1326,35 @@ function renderInitiativeScreen() {
 function renderCombatScreen() {
   const active = activeCombatant();
 
-  const teamColHTML = (teamIdx) =>
-    S.combatants
-      .filter(c => c.teamIndex === teamIdx)
-      .map(c => combatantCardHTML(c, active?.id === c.id))
-      .join('');
+  const allCardsHTML = [0, 1].map(teamIdx => `
+    <div class="team-cards-group">
+      <div class="team-label ${teamIdx === 0 ? 'team-a-header' : 'team-b-header'}">⚔ Team ${teamIdx + 1}</div>
+      ${S.combatants
+          .filter(c => c.teamIndex === teamIdx)
+          .map(c => combatantCardHTML(c, active?.id === c.id))
+          .join('')}
+    </div>`).join('');
 
   root.innerHTML = `
-    <div class="combat-layout">
-      <div class="team-column" id="team-col-0">
-        <div class="team-label team-a-header">⚔ Team 1</div>
-        ${teamColHTML(0)}
+    <div class="combat-layout-2col">
+      <div class="combat-map-pane">
+        ${renderMapToggleHTML()}
+        <div class="dungeon-canvas-wrap">
+          <canvas id="dungeon-canvas"
+                  width="${S.currentMap?.image?.naturalWidth  ?? 672}"
+                  height="${S.currentMap?.image?.naturalHeight ?? 504}"></canvas>
+        </div>
       </div>
-      <div class="combat-center">
+      <div class="combat-right-pane">
         <div class="combat-header">
           <span class="round-badge">Round ${S.roundNumber}</span>
           ${initiativeStripHTML()}
         </div>
-        ${active && S.phase === 'combat' ? actionPanelHTML(active) : '<div class="action-panel"><p style="color:var(--tga-gold-bright)">Combat ended.</p></div>'}
+        <div class="combat-cards-scroll">${allCardsHTML}</div>
+        ${active && S.phase === 'combat'
+          ? actionPanelHTML(active)
+          : '<div class="action-panel"><p style="color:var(--tga-gold-bright)">Combat ended.</p></div>'}
         ${logPanelHTML()}
-      </div>
-      <div class="team-column" id="team-col-1">
-        <div class="team-label team-b-header">⚔ Team 2</div>
-        ${teamColHTML(1)}
       </div>
     </div>
     ${S.awaitingReact ? reactPromptHTML() : ''}`;
@@ -1052,6 +1364,16 @@ function renderCombatScreen() {
   if (log) log.scrollTop = log.scrollHeight;
 
   bindCombatEvents();
+
+  // Draw map and attach canvas click handler AFTER DOM is ready
+  const canvas = document.getElementById('dungeon-canvas');
+  if (canvas && S.moveMode) canvas.classList.add('move-mode');
+  drawMap();
+  setupCanvasClickHandler();
+
+  // Update dynamic spell/tech target dropdowns based on currently selected ability
+  updateAbilityTargetDropdown('spell-select', 'spell-target', active);
+  updateAbilityTargetDropdown('tech-select',  'tech-target',  active);
 }
 
 function renderReactOverlay() {
@@ -1086,16 +1408,23 @@ function renderVictoryScreen() {
       </div>
     </div>`;
 
-  document.getElementById('btn-rematch')?.addEventListener('click', () => {
+  document.getElementById('btn-rematch')?.addEventListener('click', async () => {
     // Reset and re-use same teams
-    S.combatants = [];
+    S.combatants      = [];
     S.initiativeOrder = [];
-    S.log = [];
-    S.winnerTeam = null;
-    S.awaitingReact = false;
-    S.pendingAction = null;
-    S.reactOptions = [];
-    startInitiative();
+    S.log             = [];
+    S.winnerTeam      = null;
+    S.awaitingReact   = false;
+    S.pendingAction   = null;
+    S.reactOptions    = [];
+    S.currentMap      = null;
+    S.mapViewFilter   = 'both';
+    S.hasMoved        = false;
+    S.moveMode        = false;
+    S.reachableCells  = new Map();
+    const btn = document.getElementById('btn-rematch');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Loading map…'; }
+    await startInitiative();
   });
 
   document.getElementById('btn-new-teams')?.addEventListener('click', () => {
@@ -1103,9 +1432,39 @@ function renderVictoryScreen() {
       phase: 'selection', teamNames: [[], []], combatants: [],
       initiativeOrder: [], log: [], winnerTeam: null,
       awaitingReact: false, pendingAction: null, reactOptions: [],
+      currentMap: null, mapViewFilter: 'both', hasMoved: false,
+      moveMode: false, reachableCells: new Map(),
     });
     render();
   });
+}
+
+/**
+ * Repopulate a spell/tech target dropdown based on the selected ability.
+ * This handles range filtering dynamically as ability selection changes.
+ */
+function updateAbilityTargetDropdown(selectId, targetId, actor) {
+  const sel = document.getElementById(selectId);
+  const tgt = document.getElementById(targetId);
+  if (!sel || !tgt || !actor) return;
+  const ability = actor.abilities.find(a => a.name === sel.value);
+  if (!ability) return;
+  const enemyTeam  = actor.teamIndex === 0 ? 1 : 0;
+  const enemyAlive = livingCombatants(enemyTeam);
+  if (enemyAlive.length === 0) return;
+  tgt.innerHTML = targetOptsForAbilityDynamic(actor, ability, enemyAlive);
+}
+
+function targetOptsForAbilityDynamic(actor, ability, enemyAlive) {
+  const hasMap = !!S.currentMap;
+  return enemyAlive.map(t => {
+    const dist     = hasMap ? chebyshev(actor, t) : 0;
+    const range    = hasMap ? targetInRange(actor, t, ability) : { inRange: true };
+    const distTxt  = hasMap ? ` ${dist}sq` : '';
+    const warnTxt  = (hasMap && !range.inRange) ? ' ⚠' : '';
+    const disabled = (hasMap && !range.inRange && !ability?.isAoe) ? ' disabled' : '';
+    return `<option value="${t.id}"${disabled}>${t.name} (${t.currentHp}HP${distTxt}${warnTxt})</option>`;
+  }).join('');
 }
 
 // ── §11  Event Binding ─────────────────────────────────────────────────────
@@ -1131,7 +1490,11 @@ function bindSelectionEvents() {
     });
   });
 
-  document.getElementById('btn-start')?.addEventListener('click', startInitiative);
+  document.getElementById('btn-start')?.addEventListener('click', async () => {
+    const btn = document.getElementById('btn-start');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Loading map…'; }
+    await startInitiative();
+  });
 }
 
 function bindCombatEvents() {
@@ -1165,6 +1528,27 @@ function bindCombatEvents() {
     handleCastAbility(active.id, abilityName, targetIds);
   });
 
+  // ── Move / Cancel-move ────────────────────────────────────────────────
+  document.getElementById('btn-move')?.addEventListener('click', () => {
+    enterMoveMode();
+    renderCombatScreen();
+  });
+  document.getElementById('btn-cancel-move')?.addEventListener('click', () => {
+    exitMoveMode();
+    renderCombatScreen();
+  });
+
+  // ── Map view toggle ───────────────────────────────────────────────────
+  document.querySelectorAll('.map-toggle-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      S.mapViewFilter = btn.dataset.filter;
+      document.querySelectorAll('.map-toggle-btn').forEach(b =>
+        b.classList.toggle('active', b === btn)
+      );
+      drawMap();
+    });
+  });
+
   // ── Ability preview on select ──────────────────────────────────────────
   function updatePreview(selectId, previewId) {
     const sel = document.getElementById(selectId);
@@ -1176,8 +1560,14 @@ function bindCombatEvents() {
 
   updatePreview('spell-select', 'spell-preview');
   updatePreview('tech-select',  'tech-preview');
-  document.getElementById('spell-select')?.addEventListener('change', () => updatePreview('spell-select', 'spell-preview'));
-  document.getElementById('tech-select')?.addEventListener('change',  () => updatePreview('tech-select',  'tech-preview'));
+  document.getElementById('spell-select')?.addEventListener('change', () => {
+    updatePreview('spell-select', 'spell-preview');
+    updateAbilityTargetDropdown('spell-select', 'spell-target', active);
+  });
+  document.getElementById('tech-select')?.addEventListener('change', () => {
+    updatePreview('tech-select', 'tech-preview');
+    updateAbilityTargetDropdown('tech-select', 'tech-target', active);
+  });
 }
 
 function bindReactEvents() {

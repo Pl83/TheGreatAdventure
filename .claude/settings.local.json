@@ -19,7 +19,10 @@
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\pierr\\\\dev\\\\Lego\\\\siteRepo\" -Recurse -ErrorAction SilentlyContinue)",
       "Bash(Select-Object -ExpandProperty FullName)",
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\pierr\\\\dev\\\\Lego\\\\siteRepo\" -Recurse -File)",
-      "Bash(Select-Object FullName)"
+      "Bash(Select-Object FullName)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\pierr\\\\dev\\\\Lego\\\\siteRepo\\\\maps\" -Force)",
+      "Bash(Select-Object Name, Extension)",
+      "Bash(Format-Table -AutoSize)"
     ]
   }
 }

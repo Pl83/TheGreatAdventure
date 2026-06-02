@@ -2254,3 +2254,181 @@ header.nav-open .nav-toggle span:nth-child(3) { transform: translateY(-9px) rota
   text-transform: uppercase;
   letter-spacing: .06em;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   DUNGEON MAP COMBAT LAYOUT
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── 2-column combat layout ── */
+.combat-layout-2col {
+  display: grid;
+  grid-template-columns: 58% 42%;
+  gap: var(--tga-s-4);
+  align-items: start;
+}
+
+/* ── Left pane: map ── */
+.combat-map-pane {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tga-s-2);
+  position: sticky;
+  top: 80px;
+}
+
+.dungeon-canvas-wrap {
+  border: 2px solid var(--tga-rule-ink);
+  border-radius: var(--tga-r-md);
+  overflow-y: auto;
+  background: #1a1520;
+  line-height: 0;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+  max-height: 72vh;
+}
+
+#dungeon-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  cursor: default;
+}
+
+#dungeon-canvas.move-mode {
+  cursor: crosshair;
+}
+
+/* ── Map name + toggle row ── */
+.map-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: var(--tga-s-2);
+  flex-wrap: wrap;
+}
+
+.map-name-badge {
+  font-family: var(--tga-font-mono);
+  font-size: var(--tga-fs-xs);
+  color: var(--tga-gold-soft, #c9a84c);
+  opacity: 0.85;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.map-toggle-btn {
+  padding: var(--tga-s-1) var(--tga-s-3);
+  border: 1px solid var(--tga-rule-ink);
+  border-radius: var(--tga-r-sm);
+  background: var(--tga-ink-2);
+  color: var(--tga-text-invert-soft);
+  font-family: var(--tga-font-mono);
+  font-size: var(--tga-fs-xs);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.map-toggle-btn:hover {
+  background: var(--tga-ink-3);
+  color: var(--tga-text-invert);
+}
+
+.map-toggle-btn.active {
+  background: var(--tga-gold, #a07830);
+  color: var(--tga-ink);
+  border-color: var(--tga-gold-bright, #c9a84c);
+  font-weight: 700;
+}
+
+/* ── Right pane ── */
+.combat-right-pane {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tga-s-3);
+}
+
+/* ── Combatant card groups (stacked, both teams) ── */
+.team-cards-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tga-s-2);
+}
+
+.combat-cards-scroll {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tga-s-3);
+  max-height: 280px;
+  overflow-y: auto;
+  padding-right: var(--tga-s-1);
+}
+
+/* Slightly more compact cards in the 2-col layout */
+.combat-layout-2col .combat-char-card {
+  padding: var(--tga-s-2) var(--tga-s-3);
+}
+
+/* ── Move section in action panel ── */
+.move-section {
+  border-bottom: 1px solid var(--tga-rule-ink);
+  padding-bottom: var(--tga-s-2) !important;
+  display: flex;
+  align-items: center;
+  gap: var(--tga-s-2);
+}
+
+.map-move-btn {
+  background: rgba(74,144,217,0.12);
+  border-color: #4A90D9 !important;
+  color: #7ab9f0 !important;
+}
+
+.map-move-btn:hover:not(:disabled) {
+  background: #4A90D9 !important;
+  color: #fff !important;
+}
+
+.map-cancel-move-btn {
+  background: rgba(217,74,74,0.12);
+  border-color: #D94A4A !important;
+  color: #f09090 !important;
+}
+
+.map-cancel-move-btn:hover {
+  background: #D94A4A !important;
+  color: #fff !important;
+}
+
+.move-hint {
+  font-family: var(--tga-font-mono);
+  font-size: var(--tga-fs-xs);
+  color: #7ab9f0;
+  opacity: 0.8;
+  font-style: italic;
+}
+
+.move-done-badge {
+  font-family: var(--tga-font-mono);
+  font-size: var(--tga-fs-xs);
+  color: #6dbf7a;
+  opacity: 0.85;
+}
+
+/* ── Range warning in target dropdown ── */
+.range-warn {
+  font-family: var(--tga-font-mono);
+  font-size: var(--tga-fs-xs);
+  color: #e0a050;
+  font-style: italic;
+}
+
+/* ── Responsive: stack at narrow width ── */
+@media (max-width: 900px) {
+  .combat-layout-2col {
+    grid-template-columns: 1fr;
+  }
+  .combat-map-pane {
+    position: static;
+  }
+  .combat-cards-scroll {
+    max-height: 180px;
+  }
+}

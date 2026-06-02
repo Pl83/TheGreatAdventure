@@ -1,0 +1,138 @@
+{
+    "nom": "Kay Climber",
+    "hp": 65,
+    "spellSlot": 7,
+    "ki": 0,
+    "speed": 6,
+    "autority": 0,
+    "baseAtk": {
+      "nom": "Power Sword",
+      "dices": "1d10+4",
+      "tags": [
+        "physical"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Armored",
+        "dices": "+2",
+        "tags": [
+          "buff"
+        ]
+      },
+      {
+        "nom": "Professional Diver",
+        "tags": [
+          "buff"
+        ],
+        "description": "+2 constitution rolls related to air/water"
+      },
+      {
+        "nom": "Relentless Warrior",
+        "tags": [
+          "buff"
+        ],
+        "description": "Reduce incoming damage by 1d10+2 for each KO'd ally"
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Spinzutsu",
+          "dices": "1d8",
+          "tags": [
+            "physical"
+          ]
+        },
+        "target": "aoe",
+        "range": 2,
+        "radius": 2,
+        "cooldown": 1
+      },
+      {
+        "category": "transformation",
+        "base": {
+          "nom": "Dragon Form",
+          "tags": [
+            "buff"
+          ]
+        },
+        "target": "self",
+        "range": 0,
+        "description": "Transform into Dragon Form. 1 use per fight, lasts 4 turns.",
+        "cooldown": 99
+      },
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Fire Ball",
+          "dices": "1d12+6",
+          "tags": [
+            "fire",
+            "magic"
+          ]
+        },
+        "target": "aoe",
+        "range": 8,
+        "radius": 3,
+        "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Fire Shield",
+          "tags": [
+            "magic",
+            "block",
+            "instant",
+            "react",
+            "fire"
+          ]
+        },
+        "target": "self",
+        "range": 0,
+        "description": "Instantly block one incoming attack.",
+        "spellCost": 1
+      }
+    ],
+    "transformation": {
+      "base": {
+        "nom": "Dragon Form",
+        "tags": [
+          "buff",
+          "fire"
+        ]
+      },
+      "hp": 15,
+      "spellSlot": 0,
+      "ki": 0,
+      "kiRegen": 0,
+      "speed": 8,
+      "autority": 0,
+      "baseAtk": {
+        "nom": "Fire Cleaver",
+        "dices": "1d12+1d6+4",
+        "tags": [
+          "physical",
+          "fire"
+        ]
+      },
+      "moveSet": [
+        {
+          "category": "spell",
+          "base": {
+            "nom": "Fire Breath",
+            "dices": "2d12+6",
+            "tags": [
+              "fire",
+              "magic"
+            ]
+          },
+          "target": "cone",
+          "range": 4,
+          "spellCost": 1
+        }
+      ]
+    }
+  }
