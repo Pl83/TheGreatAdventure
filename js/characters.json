@@ -746,7 +746,7 @@
     "immunities": ["fire", "lightning", "ice", "radiant", "status"],
     "baseAtk": { "nom": "Mace of Vulkan", "dices": "1d12+8", "tags": ["physical", "fire"] },
     "passif": [
-      { "nom": "Fly", "dices": "18", "tags": ["buff"], "applyOn": ["speed"] },
+      { "nom": "Fly", "dices": "18", "tags": ["buff", "fly"], "applyOn": ["speed"] },
       {
         "nom": "Flame of Life",
         "dices": "1d6",
@@ -1091,7 +1091,7 @@
     "moveSet": [
       {
         "category": "Art",
-        "base": { "nom": "Bunshin", "tags": ["dodge", "react"] },
+        "base": { "nom": "Bunshin", "tags": ["block", "dodge", "react"] },
         "target": "self", "range": 0,
         "description": "Instant dodge mono, halve aoe damage.",
         "kiCost": 3
@@ -2289,5 +2289,597 @@
         }
       ]
     }
+  },
+  {
+    "nom": "Jeagen, White Tiger",
+    "hp": 110,
+    "spellSlot": 0,
+    "ki": 20,
+    "kiRegen": 6,
+    "speed": 9,
+    "autority": 4,
+    "immunities": [
+      "bleed",
+      "fear"
+    ],
+    "baseAtk": {
+      "nom": "White Tiger Claws",
+      "dices": "2d10+1d6+8",
+      "tags": [
+        "physical",
+        "wind"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Divine Predator",
+        "dices": "+5",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "initRoll"
+        ]
+      },
+      {
+        "nom": "Iron Pelt",
+        "dices": "-1d6+2",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "incomingDam"
+        ],
+        "condition": {
+          "incomingHasTag": "physical"
+        }
+      },
+      {
+        "nom": "Apex Hunter",
+        "dices": "+1d10",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ],
+        "condition": {
+          "targetMoreHp": true
+        },
+        "description": "Bonus damage against targets with more HP."
+      },
+      {
+        "nom": "Wind Step",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "defRoll"
+        ],
+        "description": "Advantage on all defense rolls. Can dodge through walls of wind."
+      }
+    ],
+    "divineSync": {
+      "description": "White Tiger — West. Activates when at least one other Divine Beast is present.",
+      "effects": [
+        {
+          "nom": "Tiger's Decree",
+          "dices": "+1d12",
+          "tags": [
+            "buff",
+            "physical"
+          ],
+          "applyOn": [
+            "atkRoll"
+          ],
+          "target": "self"
+        },
+        {
+          "nom": "Western Gale",
+          "tags": [
+            "buff",
+            "wind"
+          ],
+          "applyOn": [
+            "speed"
+          ],
+          "dices": "+3",
+          "target": "allies"
+        }
+      ]
+    },
+    "moveSet": [
+      {
+        "category": "Art",
+        "base": {
+          "nom": "Rending Gale",
+          "dices": "2d12+8",
+          "tags": [
+            "wind",
+            "physical"
+          ]
+        },
+        "target": "mono",
+        "range": 4,
+        "kiCost": 5
+      },
+      {
+        "category": "Art",
+        "base": {
+          "nom": "Steel Fang Barrage",
+          "dices": "4d8+6",
+          "tags": [
+            "physical"
+          ]
+        },
+        "target": "mono",
+        "range": 3,
+        "description": "Rapid claw combo. Hits 4 times.",
+        "kiCost": 6
+      },
+      {
+        "category": "Art",
+        "base": {
+          "nom": "White Wind Slash",
+          "dices": "1d20+10",
+          "tags": [
+            "wind",
+            "physical",
+            "unblockabled"
+          ]
+        },
+        "target": "cone",
+        "range": 6,
+        "kiCost": 7
+      },
+      {
+        "category": "Art",
+        "base": {
+          "nom": "Tiger's Leap",
+          "dices": "2d10+10",
+          "tags": [
+            "physical",
+            "dash"
+          ]
+        },
+        "target": "mono",
+        "range": 12,
+        "description": "Dash to target at divine speed, guardbreak.",
+        "kiCost": 5
+      },
+      {
+        "category": "Art",
+        "base": {
+          "nom": "Iron Tempest",
+          "dices": "3d12+12",
+          "tags": [
+            "wind",
+            "physical",
+            "adv"
+          ]
+        },
+        "target": "mono",
+        "range": 5,
+        "kiCost": 10,
+        "cooldown": 3
+      },
+      {
+        "category": "Art",
+        "base": {
+          "nom": "Sovereign Roar",
+          "tags": [
+            "fear",
+            "stun",
+            "debuff"
+          ]
+        },
+        "target": "aoe",
+        "range": 8,
+        "radius": 8,
+        "description": "The divine roar of the White Tiger. 1d2 fear + 1d2 stun on all foes.",
+        "kiCost": 8,
+        "cooldown": 4
+      }
+    ]
+  },
+    {
+    "nom": "Jay, Azure Dragon",
+    "hp": 90,
+    "spellSlot": 6,
+    "ki": 8,
+    "kiRegen": 3,
+    "speed": 7,
+    "autority": 3,
+    "immunities": [
+      "wet",
+      "lightning"
+    ],
+    "baseAtk": {
+      "nom": "Dragon Claw Strike",
+      "dices": "1d12+1d6+6",
+      "tags": [
+        "physical",
+        "lightning",
+        "water"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Azure Dragon's Remnant",
+        "tags": [
+          "buff",
+          "water",
+          "lightning"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ],
+        "description": "Jay is fused with the soul of the Azure Dragon. His body is partially draconic — tail and forearms."
+      },
+      {
+        "nom": "Soul of the Fallen Dragon",
+        "dices": "+1d8",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "atkRoll",
+          "defRoll"
+        ],
+        "condition": {
+          "selfBelow50pct": true
+        },
+        "description": "Dragon power surges when near death."
+      },
+      {
+        "nom": "Storm Body",
+        "dices": "-1d6",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "incomingDam"
+        ],
+        "condition": {
+          "incomingHasTag": "lightning"
+        },
+        "description": "Absorbs part of lightning damage."
+      }
+    ],
+    "divineSync": {
+      "description": "Azure Dragon — East. Activates when at least one other Divine Beast is present.",
+      "effects": [
+        {
+          "nom": "Eastern Tide",
+          "dices": "+1d8",
+          "tags": [
+            "buff",
+            "water"
+          ],
+          "applyOn": [
+            "atkRoll"
+          ],
+          "target": "self"
+        },
+        {
+          "nom": "Dragon Blessing",
+          "dices": "1d6",
+          "tags": [
+            "regen"
+          ],
+          "applyOn": [
+            "hpPerTurn"
+          ],
+          "target": "allies"
+        }
+      ]
+    },
+    "moveSet": [
+      {
+        "category": "Art",
+        "base": {
+          "nom": "Thunder Fang",
+          "dices": "1d12+1d8+4",
+          "tags": [
+            "lightning",
+            "physical"
+          ]
+        },
+        "target": "mono",
+        "range": 3,
+        "kiCost": 4
+      },
+      {
+        "category": "Art",
+        "base": {
+          "nom": "Azure Torrent",
+          "dices": "2d10+4",
+          "tags": [
+            "water",
+            "wet"
+          ]
+        },
+        "target": "cone",
+        "range": 5,
+        "kiCost": 5
+      },
+      {
+        "category": "Art",
+        "base": {
+          "nom": "Dragon Scale Guard",
+          "tags": [
+            "block",
+            "react",
+            "half_phys"
+          ]
+        },
+        "target": "self",
+        "range": 0,
+        "description": "Harden scales to block incoming attack. Reduces physical damage by half.",
+        "kiCost": 3
+      },
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Raging Current",
+          "dices": "1d20+6",
+          "tags": [
+            "water",
+            "magic",
+            "wet"
+          ]
+        },
+        "target": "mono",
+        "range": 12,
+        "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Storm Breath",
+          "dices": "2d12+1d8+4",
+          "tags": [
+            "lightning",
+            "water",
+            "magic"
+          ]
+        },
+        "target": "cone",
+        "range": 6,
+        "spellCost": 2
+      },
+      {
+        "category": "technoSpell",
+        "base": {
+          "nom": "Azure Dragon Roar",
+          "dices": "3d10+8",
+          "tags": [
+            "lightning",
+            "water",
+            "magic",
+            "unblockabled"
+          ]
+        },
+        "target": "aoe",
+        "range": 10,
+        "radius": 4,
+        "effect": "stun",
+        "description": "The cry of the Azure Dragon. Disadvange on foe rolls for 1 turn.",
+        "spellCost": 2,
+        "kiCost": 4,
+        "cooldown": 4
+      }
+    ]
+  },
+  {
+    "nom": "Zhuqiao, Vermillion Bird",
+    "hp": 85,
+    "spellSlot": 0,
+    "ki": 16,
+    "kiRegen": 5,
+    "speed": 18,
+    "autority": 3,
+    "immunities": [
+      "fire",
+      "burn",
+      "radiant"
+    ],
+    "baseAtk": {
+      "nom": "Phoenix Talon",
+      "dices": "1d10+1d8+6",
+      "tags": [
+        "physical",
+        "fire",
+        "radiant"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Fly",
+        "dices": "18",
+        "tags": [
+          "buff",
+          "fly"
+        ],
+        "applyOn": [
+          "speed"
+        ]
+      },
+      {
+        "nom": "Undying Flame",
+        "dices": "2d10",
+        "tags": [
+          "heal",
+          "regen",
+          "fire"
+        ],
+        "applyOn": [
+          "hpPerTurn"
+        ],
+        "condition": {
+          "selfBelow50pct": true
+        },
+        "description": "Phoenix flame regenerates the body when near death."
+      },
+      {
+        "nom": "Solar Feathers",
+        "dices": "-1d8",
+        "tags": [
+          "buff",
+          "radiant"
+        ],
+        "applyOn": [
+          "incomingDam"
+        ],
+        "condition": {
+          "incomingHasTag": "dark"
+        },
+        "description": "Radiant energy reduces dark damage."
+      },
+      {
+        "nom": "Embers of Life",
+        "dices": "1d6",
+        "tags": [
+          "regen",
+          "buff"
+        ],
+        "applyOn": [
+          "hpPerTurn"
+        ],
+        "target": "allies",
+        "description": "Passive warmth of the Vermillion Bird heals nearby allies each turn."
+      }
+    ],
+    "divineSync": {
+      "description": "Vermillion Bird — South. Activates when at least one other Divine Beast is present.",
+      "effects": [
+        {
+          "nom": "Southern Blaze",
+          "dices": "+1d10",
+          "tags": [
+            "buff",
+            "fire"
+          ],
+          "applyOn": [
+            "atkRoll"
+          ],
+          "target": "self"
+        },
+        {
+          "nom": "Phoenix Grace",
+          "dices": "1d8",
+          "tags": [
+            "heal",
+            "cleans"
+          ],
+          "applyOn": [
+            "hpPerTurn"
+          ],
+          "target": "allies",
+          "description": "Remove 1 debuff from each ally per turn."
+        }
+      ]
+    },
+    "moveSet": [
+      {
+        "category": "Art",
+        "base": {
+          "nom": "Blazing Wing Slash",
+          "dices": "2d8+1d6+6",
+          "tags": [
+            "fire",
+            "physical"
+          ]
+        },
+        "target": "mono",
+        "range": 5,
+        "kiCost": 4
+      },
+      {
+        "category": "Art",
+        "base": {
+          "nom": "Solar Flare",
+          "dices": "2d10+6",
+          "tags": [
+            "fire",
+            "radiant",
+            "blind"
+          ]
+        },
+        "target": "aoe",
+        "range": 10,
+        "radius": 4,
+        "description": "1d2 blind on all targets hit.",
+        "kiCost": 6
+      },
+      {
+        "category": "Art",
+        "base": {
+          "nom": "Feather Storm",
+          "dices": "1d8+4",
+          "tags": [
+            "fire",
+            "radiant",
+            "physical"
+          ]
+        },
+        "target": "bounce",
+        "range": 10,
+        "maxBounce": 5,
+        "description": "Burning feathers bounce between enemies.",
+        "kiCost": 5
+      },
+      {
+        "category": "Art",
+        "base": {
+          "nom": "Phoenix Shroud",
+          "dices": "1d10+6",
+          "tags": [
+            "block",
+            "react",
+            "fire",
+            "regen"
+          ]
+        },
+        "target": "mono",
+        "range": 8,
+        "description": "Wrap an ally in phoenix fire. Block one attack + regen 1d10+6 HP.",
+        "kiCost": 5
+      },
+      {
+        "category": "Art",
+        "base": {
+          "nom": "Resurrection Ember",
+          "tags": [
+            "heal",
+            "buff",
+            "revive"
+          ]
+        },
+        "target": "mono",
+        "range": 6,
+        "description": "Revive a KO'd ally with 50% HP. 1 use per fight.",
+        "kiCost": 12,
+        "cooldown": 99
+      },
+      {
+        "category": "Art",
+        "base": {
+          "nom": "Vermillion Judgement",
+          "dices": "4d10+10",
+          "tags": [
+            "fire",
+            "radiant",
+            "undodgeable",
+            "unblockabled"
+          ]
+        },
+        "target": "mono",
+        "range": 15,
+        "description": "Divine fire of the South. True damage.",
+        "kiCost": 14,
+        "cooldown": 5
+      }
+    ]
   }
 ]

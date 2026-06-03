@@ -1,4 +1,4 @@
-/* ═══════════════════════════════════════════════════════════════════════════
+﻿/* ═══════════════════════════════════════════════════════════════════════════
    js/combat.js — Turn-Based DnD Combat Simulator
    ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -84,8 +84,18 @@ function parseDice(expr) {
   );
   const parts = [];
   let total = 0;
-  const diceRe = /(\d+)d(\d+)/gi;
   let m;
+  // Negative dice: -NdS → subtract the roll (e.g. "-1d6+2" reduces damage)
+  const negDiceRe = /-(\d+)d(\d+)/gi;
+  while ((m = negDiceRe.exec(s)) !== null) {
+    const count = parseInt(m[1]), sides = parseInt(m[2]);
+    let sub = 0;
+    for (let i = 0; i < count; i++) sub += rollDie(sides);
+    total -= sub;
+    parts.push(`-${count}d${sides}[${sub}]=-${sub}`);
+  }
+  s = s.replace(/-\d+d\d+/gi, '');  // strip negatives before positive pass
+  const diceRe = /(\d+)d(\d+)/gi;
   while ((m = diceRe.exec(s)) !== null) {
     const count = parseInt(m[1]), sides = parseInt(m[2]);
     const rolls = [];
@@ -104,7 +114,7 @@ function parseDice(expr) {
     const numM = s.match(/^(\d+)/);
     if (numM) { total = parseInt(numM[1]); parts.push(String(total)); }
   }
-  return { total: Math.max(0, total), breakdown: parts.join(' ') || '0' };
+  return { total, breakdown: parts.join(' ') || '0' };
 }
 
 function findEffect(name) {
@@ -169,6 +179,7 @@ function resolveAbilitiesFromList(moveList) {
       isCone:     move.target === 'cone',
       isSplash:   move.target === 'splash',
       isHeal:     tags.includes('heal') || tags.includes('regen'),
+      isRevive:   tags.includes('revive'),
       isTransform: move.category === 'transformation',
     });
   }
@@ -220,6 +231,9 @@ function buildCombatant(char, teamIndex, id) {
 function getCombatant(id) { return S.combatants.find(c => c.id === id); }
 function livingCombatants(teamIndex) {
   return S.combatants.filter(c => c.teamIndex === teamIndex && !c.isKO);
+}
+function koAllies(teamIndex) {
+  return S.combatants.filter(c => c.teamIndex === teamIndex && c.isKO);
 }
 function activeCombatant() {
   return getCombatant(S.initiativeOrder[S.currentTurnIndex]);
@@ -403,7 +417,7 @@ function hasValidTarget(actor, ability) {
   }
   if (ability.isAoe || ability.isCone || ability.isSplash) return true;
   if (ability.targetKind === 'self')  return true;
-  if (ability.targetKind === 'ally')  return livingCombatants(actor.teamIndex).length > 0;
+  if (ability.targetKind === 'ally')  return livingCombatants(actor.teamIndex).length > 0 || (ability.isRevive && koAllies(actor.teamIndex).length > 0);
   if (ability.targetKind === 'any')
     return S.combatants.some(t => !t.isKO && t.id !== actor.id && targetInRange(actor, t, ability).inRange);
   return livingCombatants(actor.teamIndex === 0 ? 1 : 0)
@@ -757,8 +771,9 @@ function addRoundDivider() {
 function applyHeal(combatant, diceExpr) {
   if (!diceExpr) return;
   const r      = parseDice(diceExpr);
-  const healed = Math.min(r.total, combatant.maxHp - combatant.currentHp);
-  combatant.currentHp = Math.min(combatant.maxHp, combatant.currentHp + r.total);
+  const amount = Math.max(0, r.total);
+  const healed = Math.min(amount, combatant.maxHp - combatant.currentHp);
+  combatant.currentHp = Math.min(combatant.maxHp, combatant.currentHp + amount);
   addLog(`💚 ${combatant.name} recovers ${healed} HP! (${combatant.currentHp}/${combatant.maxHp}) [${r.breakdown}]`, 'heal');
   updateCombatantCardDOM(combatant);
 }
@@ -964,8 +979,8 @@ function resolveAttack(attacker, defender, diceExpr) {
   for (const p of defender.sourceChar.passif ?? []) {
     if (!p.applyOn?.includes('defRoll') || !p.dices) continue;
     let applies = !p.condition;
-    if (p.condition?.allyKO)
-      applies = S.combatants.some(c => c.teamIndex === defender.teamIndex && c.isKO);
+    if (p.condition?.allyKO)          applies = S.combatants.some(c => c.teamIndex === defender.teamIndex && c.isKO);
+    else if (p.condition?.selfBelow50pct) applies = defender.currentHp <= defender.maxHp * 0.5;
     if (applies) defBonus += parseDice(p.dices).total;
   }
   const effectiveDefRoll = defRoll.value + defBonus;
@@ -986,9 +1001,9 @@ function resolveAttack(attacker, defender, diceExpr) {
     for (const p of attacker.sourceChar.passif ?? []) {
       if (!p.applyOn?.includes('atkRoll') || !p.dices) continue;
       let applies = !p.condition;
-      if (p.condition?.targetMoreHp) applies = defender.currentHp > attacker.currentHp;
-      else if (p.condition?.allyKO)  applies = S.combatants.some(c => c.teamIndex === attacker.teamIndex && c.isKO);
-      // Other conditions ignored (too system-specific)
+      if (p.condition?.targetMoreHp)      applies = defender.currentHp > attacker.currentHp;
+      else if (p.condition?.allyKO)       applies = S.combatants.some(c => c.teamIndex === attacker.teamIndex && c.isKO);
+      else if (p.condition?.selfBelow50pct) applies = attacker.currentHp <= attacker.maxHp * 0.5;
       if (applies) {
         const pr = parseDice(p.dices);
         passiveBonus += pr.total;
@@ -1110,7 +1125,7 @@ function handleCastAbility(casterId, abilityName, targetIds) {
   if (!ability || !abilityAvailable(caster, ability)) return;
   if (S.hasActed && !ability.isInstant) { addLog('You have already acted this turn!', 'info'); return; }
 
-  const targets = targetIds.map(id => getCombatant(id)).filter(t => t && !t.isKO);
+  const targets = targetIds.map(id => getCombatant(id)).filter(t => t && (ability.isRevive || !t.isKO));
 
   // Range check for single-target (not AoE/cone/splash, not self, enemy)
   const needsRangeCheck = !ability.isAoe && !ability.isCone && ability.targetKind === 'enemy';
@@ -1408,7 +1423,7 @@ function resumePendingAction(reactAbility) {
           // blocked stays false — attack damage is absorbed by chains in applyDamage
         } else if (reactAbility.dice && !reactAbility.tags?.includes('regen') && !reactAbility.tags?.includes('heal')) {
           // Dice-block: create absorb shield, let attack through
-          const shieldHp = parseDice(reactAbility.dice).total;
+          const shieldHp = Math.max(0, parseDice(reactAbility.dice).total);
           reactor.statusEffects.push({ name: 'damage_shield', turnsLeft: 999, shieldHp, dice: null, damType: null, notes: '', source: reactAbility.source });
           addLog(`🛡 ${reactor.name} raises ${reactAbility.name} — ${shieldHp} HP absorb shield!`, 'spell');
           updateCombatantCardDOM(reactor);
@@ -1659,7 +1674,7 @@ function resumePendingAction(reactAbility) {
           if (ability.isBlock) {
             if (ability.dice) {
               // Damage-absorption shield (Oslo Skeletal Wall, Eragon Shield, etc.)
-              const shieldHp = parseDice(ability.dice).total;
+              const shieldHp = Math.max(0, parseDice(ability.dice).total);
               target.statusEffects.push({ name: 'damage_shield', turnsLeft: 999, shieldHp, dice: null, damType: null, notes: '', source: ability.source });
               addLog(`🛡 ${target.name} gains a ${shieldHp} HP damage shield!`, 'spell');
             } else {
@@ -1670,8 +1685,14 @@ function resumePendingAction(reactAbility) {
           }
           // Cleanse debuffs
           if (ability.tags?.includes('cleans')) applyCleanse(target);
+          // Revival: bring a KO'd ally back at 50% HP (consumes the ability; skip normal heal)
+          if (ability.isRevive && target.isKO) {
+            target.isKO = false;
+            target.currentHp = Math.floor(target.maxHp * 0.5);
+            addLog(`${caster.name} revives ${target.name} with ${target.currentHp}/${target.maxHp} HP!`, 'heal');
+            updateCombatantCardDOM(target);
           // Heal or regen (skip if block with dice — the dice was the shield HP)
-          if (ability.dice && !ability.isBlock) {
+          } else if (ability.dice && !ability.isBlock) {
             if (ability.tags?.includes('regen')) {
               applyStatus(target, 'regen');
               const re = target.statusEffects.find(e => e.name.toLowerCase() === 'regen');
@@ -1761,7 +1782,11 @@ async function startInitiative() {
   // Initiative = d20 + speed modifier (speed 6 = 0, higher = bonus)
   for (const c of S.combatants) {
     const speedMod = Math.floor(((c.sourceChar.speed ?? 6) - 6) / 2);
-    c.initiativeRoll = Math.max(1, rollDie(20) + speedMod);
+    let initBonus = 0;
+    for (const p of c.sourceChar.passif ?? []) {
+      if (p.applyOn?.includes('initRoll') && p.dices) initBonus += parseDice(p.dices).total;
+    }
+    c.initiativeRoll = Math.max(1, rollDie(20) + speedMod + initBonus);
   }
   S.initiativeOrder = [...S.combatants]
     .sort((a, b) => b.initiativeRoll - a.initiativeRoll)
@@ -1829,7 +1854,13 @@ function beginTurn(c) {
 
   // hpPerTurn passifs (e.g. Undying Queen, Yokai Blood, Flame of Life)
   for (const p of c.sourceChar.passif ?? []) {
-    if (p.applyOn?.includes('hpPerTurn') && p.dices) applyHeal(c, p.dices);
+    if (!p.applyOn?.includes('hpPerTurn') || !p.dices) continue;
+    if (p.condition?.selfBelow50pct && c.currentHp > c.maxHp * 0.5) continue;
+    if (p.target === 'allies') {
+      for (const ally of livingCombatants(c.teamIndex)) applyHeal(ally, p.dices);
+    } else {
+      applyHeal(c, p.dices);
+    }
   }
 
   addLog(`— ${c.name}'s turn —`, 'info');
@@ -1926,9 +1957,7 @@ function statusBadgesHTML(c) {
     const durTxt = e.name === 'damage_shield'
       ? `${e.shieldHp} HP`
       : (e.turnsLeft === 999 ? '∞' : e.turnsLeft + 't');
-    return `<span class="status-badge ${statusCssClass(e.damType)}" title="${e.notes}">
-       ${statusEmoji(e.name)} ${e.name} (${durTxt})
-     </span>`;
+    return `<span class="status-badge ${statusCssClass(e.damType)}" title="${e.notes}">${e.name} (${durTxt})</span>`;
   }).join('');
   return `<div class="status-badge-row">${badges}</div>`;
 }
@@ -1938,10 +1967,10 @@ function combatantCardHTML(c, isActive) {
   const activeClass  = isActive      ? ' active-turn' : '';
   const teamClass    = c.teamIndex === 0 ? ' team-a' : ' team-b';
   const tfBadge      = c.isTransformed
-    ? `<span class="transform-active-badge">✨ ${c.sourceChar.transformation?.base.nom ?? 'Transformed'}</span>`
+    ? `<span class="transform-active-badge">${c.sourceChar.transformation?.base.nom ?? 'Transformed'}</span>`
     : '';
   const domainBadge  = c.domainActive
-    ? `<span class="domain-active-badge">🌐 ${c.sourceChar.domain?.name ?? 'Domain'}</span>`
+    ? `<span class="domain-active-badge">${c.sourceChar.domain?.name ?? 'Domain'}</span>`
     : '';
   const passivesHTML = c.sourceChar.passif?.length
     ? `<div class="char-passives-mini">${c.sourceChar.passif.slice(0, 2).map(p =>
@@ -1950,7 +1979,7 @@ function combatantCardHTML(c, isActive) {
     : '';
   return `
     <div class="combat-char-card${koClass}${activeClass}${teamClass}" data-id="${c.id}">
-      <div class="combat-char-name">${isActive ? '★ ' : ''}${c.name}${c.isKO ? ' [KO]' : ''}</div>
+      <div class="combat-char-name">${c.name}</div>
       ${hpBarHTML(c)}
       ${resourceHTML(c)}
       ${statusBadgesHTML(c)}
@@ -2005,8 +2034,11 @@ function actionPanelHTML(c) {
   const targetOptsForAbility = (ability) => {
     if (ability?.targetKind === 'self') return `<option value="${c.id}">Self</option>`;
     if (ability?.targetKind === 'ally') {
-      return allyAlive.map(t =>
-        `<option value="${t.id}">${t.name} (${t.currentHp}/${t.maxHp}HP)</option>`
+      const allyPool = ability.isRevive
+        ? [...allyAlive, ...koAllies(c.teamIndex)]
+        : allyAlive;
+      return allyPool.map(t =>
+        `<option value="${t.id}">${t.name} (${t.currentHp}/${t.maxHp}HP)${t.isKO ? ' [KO]' : ''}</option>`
       ).join('');
     }
     // Enemy targeting
@@ -2016,7 +2048,7 @@ function actionPanelHTML(c) {
       const range   = hasMap ? targetInRange(c, t, ability) : { inRange: true, reason: '' };
       const distTxt = hasMap ? ` ${dist}sq` : '';
       const warnTxt = (hasMap && !range.inRange)
-        ? (range.reason.includes('sight') ? ' 🚫' : ' ⚠') : '';
+        ? (range.reason.includes('sight') ? ' ✗' : ' !') : '';
       const disabled = (hasMap && !range.inRange && !ability?.isAoe) ? ' disabled' : '';
       return `<option value="${t.id}"${disabled}>${t.name} (${t.currentHp}HP${distTxt}${warnTxt})</option>`;
     }).join('');
@@ -2031,15 +2063,15 @@ function actionPanelHTML(c) {
   const moveSection = !S.hasMoved ? `
     <div class="action-section move-section">
       ${isRooted
-        ? `<span class="move-done-badge">🌿 Rooted — cannot move</span>`
+        ? `<span class="move-done-badge">Rooted — cannot move</span>`
         : S.moveMode
-          ? `<button class="action-btn map-cancel-move-btn" id="btn-cancel-move">✕ Cancel Move</button>
+          ? `<button class="action-btn map-cancel-move-btn" id="btn-cancel-move">Cancel Move</button>
              <span class="move-hint">Click a highlighted cell on the map</span>`
-          : `<button class="action-btn map-move-btn" id="btn-move">🚶 Move (${c.speed} cells)</button>`
+          : `<button class="action-btn map-move-btn" id="btn-move">Move (${c.speed} cells)</button>`
       }
     </div>` : `
     <div class="action-section move-section">
-      <span class="move-done-badge">✓ Moved</span>
+      <span class="move-done-badge">Moved</span>
     </div>`;
 
   // Unified ability list
@@ -2056,7 +2088,7 @@ function actionPanelHTML(c) {
     const cdTxt     = cdLeft > 0 ? ` [${cdLeft}T]` : ab.cooldownTurns > 0 ? ` [${ab.cooldownTurns}T CD]` : '';
     const costTxt   = ab.cost   ? ` · ${ab.cost.amount}${ab.cost.type === 'slots' ? 'S' : ab.cost.type === 'ki' ? 'Ki' : '♦'}` : '';
     const srcTxt    = SOURCE_LABEL[ab.source] ? `[${SOURCE_LABEL[ab.source]}] ` : '';
-    const reactTxt  = (ab.isBlock || ab.isReact) ? ' ⚡' : '';
+    const reactTxt  = (ab.isBlock || ab.isReact) ? ' [R]' : '';
     const chargeTxt = ab.maxCharges > 0 ? ` [${c.remainingCharges[ab.name] ?? ab.maxCharges}/${ab.maxCharges}♦]` : '';
     return `<option value="${ab.name}">${srcTxt}${ab.name}${reactTxt}${costTxt}${cdTxt}${chargeTxt}</option>`;
   };
@@ -2066,12 +2098,12 @@ function actionPanelHTML(c) {
   const abNoTarget   = !hasValidTarget(c, firstAbility);
 
   const fireLabel = (ab) => {
-    if (!ab) return '🎯 Aim';
+    if (!ab) return 'Aim';
     if (ab.tags?.includes('teleportation')) return '✦ Teleport';
-    if (ab.isAoe) return '🎯 Aim AoE';
-    if (ab.targetKind === 'self') return '→ Use';
-    if (ab.isCone) return '🔺 Aim Cone';
-    return '🎯 Aim';
+    if (ab.isAoe) return 'Aim AoE';
+    if (ab.targetKind === 'self') return 'Use';
+    if (ab.isCone) return 'Aim Cone';
+    return 'Aim';
   };
 
   // No-map fallback target dropdown (hidden when map is loaded)
@@ -2084,7 +2116,7 @@ function actionPanelHTML(c) {
 
   const abilitySection = abilityList.length > 0 ? `
     <div class="action-section ability-section">
-      <label class="action-label">Abilities${silence ? ' <span class="range-warn">⚠ Silenced</span>' : ` (${c.spellSlots}S · ${c.ki}Ki)`}</label>
+      <label class="action-label">Abilities${silence ? ' <span class="range-warn">Silenced</span>' : ` (${c.spellSlots}S · ${c.ki}Ki)`}</label>
       <select id="ability-select" class="target-select">${abilityList.map(abOpt).join('')}</select>
       <div class="aim-row">
         <button class="action-btn aim-btn" id="btn-ability-fire" ${abNoTarget || (acted && !firstAbility?.isInstant) ? 'disabled' : ''}>
@@ -2104,20 +2136,20 @@ function actionPanelHTML(c) {
       <label class="action-label">Transformation</label>
       <button class="action-btn transform-btn" id="btn-transform" data-caster="${c.id}"
               ${(acted || c.usedThisFight.includes(tf.base.nom)) ? 'disabled' : ''}>
-        ✨ ${tf.base.nom} ${tfAbility.cost ? `(${tfAbility.cost.amount} ${tfAbility.cost.type})` : '(free)'}
+        ${tf.base.nom} ${tfAbility.cost ? `(${tfAbility.cost.amount} ${tfAbility.cost.type})` : '(free)'}
       </button>
     </div>` : '';
 
   // Domain section
   const domain = c.sourceChar.domain;
   const domainSection = domain ? (c.domainActive
-    ? `<div class="action-section"><span class="domain-active-badge">🌐 ${domain.name} — Active</span></div>`
+    ? `<div class="action-section"><span class="domain-active-badge">${domain.name} — Active</span></div>`
     : `<div class="action-section">
         <label class="action-label">Domain Expansion</label>
         <span class="domain-cost-label">${domain.name} · ${domain.type} · ${domain.spellCost} slots</span>
         <button class="action-btn domain-btn" id="btn-domain" data-caster="${c.id}"
                 ${(c.spellSlots < domain.spellCost || acted) ? 'disabled' : ''}>
-          🌐 Activate Domain
+          Activate Domain
         </button>
       </div>`) : '';
 
@@ -2126,9 +2158,9 @@ function actionPanelHTML(c) {
 
   return `
     <div class="action-panel">
-      <div class="action-panel-title">⚔ ${c.name}'s Turn${acted ? ' <span class="acted-badge">⚔ Action Used</span>' : ''}</div>
+      <div class="action-panel-title">${c.name}'s Turn${acted ? ' <span class="acted-badge">Action Used</span>' : ''}</div>
       <div class="action-section finish-turn-section">
-        <button class="action-btn finish-turn-btn" id="btn-pass">✓ Finish Turn</button>
+        <button class="action-btn finish-turn-btn" id="btn-pass">Finish Turn</button>
       </div>
       ${moveSection}
       <div class="action-section">
@@ -2138,7 +2170,7 @@ function actionPanelHTML(c) {
         </select>
         <button class="action-btn confirm-action-btn" id="btn-attack" data-attacker="${c.id}"
                 ${atkNoTarget || noEnemies || acted ? 'disabled' : ''}>
-          ⚔ Attack <span class="atk-dice">(${c.transformedBaseAtk?.dices ?? c.sourceChar.baseAtk?.dices ?? '1d6'})</span>
+          Attack <span class="atk-dice">(${c.transformedBaseAtk?.dices ?? c.sourceChar.baseAtk?.dices ?? '1d6'})</span>
         </button>
       </div>
       ${abilitySection}
@@ -2160,13 +2192,13 @@ function reactPromptHTML() {
   return `
     <div id="react-overlay" class="react-overlay">
       <div class="react-dialog">
-        <div class="react-title">⚡ React Opportunity</div>
+        <div class="react-title">React Opportunity</div>
         <p class="react-desc-text">${attacker ? attacker.name : 'Enemy'} targets ${reactor.name}!</p>
         <p class="react-sub">${reactor.name} can react with:</p>
         <div class="react-ability-list">${abilityOpts}</div>
         <div class="react-buttons">
-          <button class="react-yes-btn" id="btn-react-yes">✓ React</button>
-          <button class="react-no-btn"  id="btn-react-no">✗ Take the hit</button>
+          <button class="react-yes-btn" id="btn-react-yes">React</button>
+          <button class="react-no-btn"  id="btn-react-no">Take the Hit</button>
         </div>
       </div>
     </div>`;
@@ -2191,6 +2223,7 @@ function renderSelectionScreen() {
     const abilCount = c.moveSet?.length ?? 0;
     return `
       <div class="char-select-card${inThis ? ' is-selected' : ''}${locked ? ' is-disabled' : ''}">
+        <span class="crest-initial">${(c.nom[0] ?? '?').toUpperCase()}</span>
         <div class="select-card-name">${c.nom}</div>
         <div class="select-card-stats">${c.hp} HP · ${c.spellSlot ?? 0} slots · ${c.ki ?? 0} ki · spd ${c.speed ?? 6}</div>
         <div class="select-card-count">${abilCount} moves</div>
@@ -2215,24 +2248,25 @@ function renderSelectionScreen() {
   root.innerHTML = `
     <div class="selection-layout">
       <div class="selection-header">
-        <h3 class="selection-title">⚔ Choose Your Fighters</h3>
+        <span class="cx-eyebrow">War Council</span>
+        <h3 class="selection-title">Choose Your Champions</h3>
         <p class="selection-sub">Pick 1–4 characters per team, then roll for initiative.</p>
       </div>
       <div class="selection-teams">
         <div class="selection-team">
-          <div class="team-header team-a-header">⚔ Team 1</div>
+          <div class="team-header team-a-header">Team I</div>
           <div class="selected-roster">${roster(0)}</div>
           <div class="char-select-grid">${charGrid(0)}</div>
         </div>
         <div class="selection-team">
-          <div class="team-header team-b-header">⚔ Team 2</div>
+          <div class="team-header team-b-header">Team II</div>
           <div class="selected-roster">${roster(1)}</div>
           <div class="char-select-grid">${charGrid(1)}</div>
         </div>
       </div>
       <div class="selection-footer">
         <button class="combat-start-btn" id="btn-start" ${canStart ? '' : 'disabled'}>
-          ⚔ Roll for Initiative
+          Roll for Initiative
         </button>
       </div>
     </div>`;
@@ -2257,10 +2291,11 @@ function renderInitiativeScreen() {
   const order = S.initiativeOrder.map(id => getCombatant(id).name).join(' → ');
   root.innerHTML = `
     <div class="initiative-screen">
-      <h3 class="init-screen-title">⚔ Initiative Rolls</h3>
+      <span class="cx-eyebrow">The Dice Decide</span>
+      <h3 class="init-screen-title">Initiative Rolls</h3>
       <div class="init-rows">${rows}</div>
       <p class="init-order-display">Turn order: <strong>${order}</strong></p>
-      <button class="combat-start-btn" id="btn-begin">▶ Begin Combat</button>
+      <button class="combat-start-btn" id="btn-begin">Begin Combat</button>
     </div>`;
   requestAnimationFrame(() => {
     setTimeout(() => {
@@ -2277,7 +2312,7 @@ function renderCombatScreen() {
   const active = activeCombatant();
   const allCardsHTML = [0, 1].map(teamIdx => `
     <div class="team-cards-group">
-      <div class="team-label ${teamIdx === 0 ? 'team-a-header' : 'team-b-header'}">⚔ Team ${teamIdx + 1}</div>
+      <div class="team-label ${teamIdx === 0 ? 'team-a-header' : 'team-b-header'}">Team ${teamIdx + 1}</div>
       ${S.combatants.filter(c => c.teamIndex === teamIdx).map(c => combatantCardHTML(c, active?.id === c.id)).join('')}
     </div>`).join('');
 
@@ -2340,12 +2375,13 @@ function renderVictoryScreen() {
 
   root.innerHTML = `
     <div class="victory-screen">
-      <div class="victory-title">⚔ Victory!</div>
+      <span class="cx-eyebrow">Battle Concluded</span>
+      <div class="victory-title">Victory</div>
       <div class="victory-subtitle">Team ${winner + 1} wins the battle!</div>
       <div class="survivor-label">Survivors</div>
       <div class="survivor-list">${survivorCards || '<p>No survivors.</p>'}</div>
       <div class="rematch-actions">
-        <button class="combat-start-btn" id="btn-rematch">⚔ Rematch</button>
+        <button class="combat-start-btn" id="btn-rematch">Rematch</button>
         <button class="combat-start-btn secondary-btn" id="btn-new-teams">↩ New Teams</button>
       </div>
     </div>`;
@@ -2383,7 +2419,7 @@ function targetOptsForAbilityDynamic(actor, ability, enemyAlive) {
     const range    = hasMap ? targetInRange(actor, t, ability) : { inRange: true, reason: '' };
     const distTxt  = hasMap ? ` ${dist}sq` : '';
     const warnTxt  = (hasMap && !range.inRange)
-      ? (range.reason.includes('sight') ? ' 🚫' : ' ⚠') : '';
+      ? (range.reason.includes('sight') ? ' ✗' : ' !') : '';
     const disabled = (hasMap && !range.inRange && !ability?.isAoe) ? ' disabled' : '';
     return `<option value="${t.id}"${disabled}>${t.name} (${t.currentHp}HP${distTxt}${warnTxt})</option>`;
   }).join('');
@@ -2512,10 +2548,10 @@ function bindCombatEvents() {
     if (!ab || !btn) return;
     const isImmediate = ab.targetKind === 'self' && !ab.tags?.includes('teleportation');
     btn.textContent = ab.tags?.includes('teleportation') ? '✦ Teleport'
-      : ab.isAoe ? '🎯 Aim AoE'
-      : ab.targetKind === 'self' ? '→ Use'
-      : ab.isCone ? '🔺 Aim Cone'
-      : '🎯 Aim';
+      : ab.isAoe ? 'Aim AoE'
+      : ab.targetKind === 'self' ? 'Use'
+      : ab.isCone ? 'Aim Cone'
+      : 'Aim';
     btn.disabled = !hasValidTarget(active, ab) || (S.hasActed && !ab.isInstant);
 
     // Update no-map fallback dropdown
