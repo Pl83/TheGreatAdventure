@@ -509,9 +509,11 @@ function setupCanvasClickHandler() {
     const cp    = cellPxOf(S.currentMap);
     const scaleX = canvas.width  / rect.width;
     const scaleY = canvas.height / rect.height;
+    const mx = (e.clientX - rect.left) * scaleX;
+    const my = (e.clientY - rect.top)  * scaleY;
     return {
-      gx: Math.floor((e.clientX - rect.left) * scaleX / cp),
-      gy: Math.floor((e.clientY - rect.top)  * scaleY / cp),
+      gx: Math.floor((canvas.height - my) / cp),
+      gy: Math.floor(mx / cp),
     };
   };
 
@@ -596,9 +598,11 @@ function drawMap() {
   const canvas = document.getElementById('dungeon-canvas');
   if (!canvas || !S.currentMap) return;
   const { image } = S.currentMap;
-  canvas.width  = image.naturalWidth;
-  canvas.height = image.naturalHeight;
+  canvas.width  = image.naturalHeight;
+  canvas.height = image.naturalWidth;
   const ctx    = canvas.getContext('2d');
+  ctx.translate(0, canvas.height);
+  ctx.rotate(-Math.PI / 2);
   const cp     = cellPxOf(S.currentMap);
   const active = activeCombatant();
   ctx.drawImage(image, 0, 0);
@@ -2310,32 +2314,46 @@ function renderInitiativeScreen() {
 
 function renderCombatScreen() {
   const active = activeCombatant();
-  const allCardsHTML = [0, 1].map(teamIdx => `
-    <div class="team-cards-group">
-      <div class="team-label ${teamIdx === 0 ? 'team-a-header' : 'team-b-header'}">Team ${teamIdx + 1}</div>
-      ${S.combatants.filter(c => c.teamIndex === teamIdx).map(c => combatantCardHTML(c, active?.id === c.id)).join('')}
-    </div>`).join('');
+
+  const teamColHTML = (teamIdx) => {
+    const isActiveTeam = active?.teamIndex === teamIdx;
+    const inactiveClass = isActiveTeam ? '' : ' team-inactive';
+    const labelClass = teamIdx === 0 ? 'team-a-header' : 'team-b-header';
+    const cards = S.combatants
+      .filter(c => c.teamIndex === teamIdx)
+      .map(c => combatantCardHTML(c, active?.id === c.id))
+      .join('');
+    const panel = (active && isActiveTeam && S.phase === 'combat')
+      ? actionPanelHTML(active)
+      : '';
+    return `
+      <div class="combat-team-col combat-team-col--${teamIdx}${inactiveClass}">
+        <div class="team-label ${labelClass}">Team ${teamIdx + 1}</div>
+        ${cards}
+        ${panel}
+      </div>`;
+  };
 
   root.innerHTML = `
-    <div class="combat-layout-2col">
-      <div class="combat-map-pane">
-        ${renderMapToggleHTML()}
-        <div class="dungeon-canvas-wrap">
-          <canvas id="dungeon-canvas"
-                  width="${S.currentMap?.image?.naturalWidth  ?? 672}"
-                  height="${S.currentMap?.image?.naturalHeight ?? 504}"></canvas>
-        </div>
+    <div class="combat-layout-3col">
+      <div class="combat-turn-track">
+        <span class="round-badge">Round ${S.roundNumber}</span>
+        ${initiativeStripHTML()}
       </div>
-      <div class="combat-right-pane">
-        <div class="combat-header">
-          <span class="round-badge">Round ${S.roundNumber}</span>
-          ${initiativeStripHTML()}
+      <div class="combat-arena">
+        ${teamColHTML(0)}
+        <div class="combat-center-col">
+          <div class="combat-map-pane">
+            ${renderMapToggleHTML()}
+            <div class="dungeon-canvas-wrap">
+              <canvas id="dungeon-canvas"
+                      width="${S.currentMap?.image?.naturalHeight ?? 504}"
+                      height="${S.currentMap?.image?.naturalWidth  ?? 672}"></canvas>
+            </div>
+          </div>
+          ${logPanelHTML()}
         </div>
-        <div class="combat-cards-scroll">${allCardsHTML}</div>
-        ${active && S.phase === 'combat'
-          ? actionPanelHTML(active)
-          : '<div class="action-panel"><p style="color:var(--tga-gold-bright)">Combat ended.</p></div>'}
-        ${logPanelHTML()}
+        ${teamColHTML(1)}
       </div>
     </div>
     ${S.awaitingReact ? reactPromptHTML() : ''}`;
@@ -2350,7 +2368,6 @@ function renderCombatScreen() {
   drawMap();
   setupCanvasClickHandler();
 
-  // Ability preview initialized after bind
   const ab0 = active?.abilities.find(a => a.name === document.getElementById('ability-select')?.value);
   const prevEl = document.getElementById('ability-preview');
   if (prevEl) prevEl.innerHTML = abilityPreviewHTML(ab0);

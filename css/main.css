@@ -2362,6 +2362,49 @@ header.nav-open .nav-toggle span:nth-child(3) { transform: translateY(-9px) rota
   align-items: start;
 }
 
+/* ── 3-column battlefield layout ── */
+.combat-layout-3col {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: var(--tga-s-4);
+}
+.combat-turn-track {
+  display: flex;
+  align-items: center;
+  gap: var(--tga-s-3);
+  background: var(--tga-ink);
+  border: 1px solid var(--tga-bronze);
+  border-radius: var(--tga-r-md);
+  padding: 10px var(--tga-s-4);
+  box-shadow: var(--tga-shadow-deep);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.combat-arena {
+  display: grid;
+  grid-template-columns: minmax(200px, 1fr) minmax(0, 2fr) minmax(200px, 1fr);
+  gap: var(--tga-s-4);
+  align-items: start;
+}
+.combat-team-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tga-s-3);
+  max-height: calc(100vh - 160px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+.combat-team-col.team-inactive .action-panel { display: none; }
+.combat-center-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tga-s-3);
+  position: sticky;
+  top: 88px;
+}
+.combat-center-col .combat-map-pane { position: static; }
+.combat-center-col .combat-log { max-height: 180px; }
+
 /* ── Map plate (left) ── */
 .combat-map-pane {
   display: flex;
@@ -2419,8 +2462,6 @@ header.nav-open .nav-toggle span:nth-child(3) { transform: translateY(-9px) rota
   background: var(--tga-cosmic);
   line-height: 0;
   box-shadow: var(--tga-shadow-deep);
-  max-height: 74vh;
-  overflow-y: auto;
   padding: 10px;
 }
 .dungeon-canvas-wrap::after {
@@ -3101,6 +3142,11 @@ header.nav-open .nav-toggle span:nth-child(3) { transform: translateY(-9px) rota
   .combat-map-pane { position: static; }
   .combat-layout-2col[data-mood="sanctum"] .combat-right-pane { grid-template-columns: 1fr; grid-template-areas: "header" "cards" "command" "log"; }
   .combat-layout-2col[data-mood="sanctum"] .combat-cards-scroll { grid-template-columns: 1fr; }
+  .combat-arena { grid-template-columns: 1fr; }
+  .combat-center-col { position: static; }
+  .combat-team-col--0 { order: 1; }
+  .combat-center-col  { order: 2; }
+  .combat-team-col--1 { order: 3; }
 }
 @media (max-width: 720px) {
   .selection-teams { grid-template-columns: 1fr; }
