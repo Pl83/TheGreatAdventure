@@ -53,6 +53,57 @@ const TAG_COLOR = {
     wet: '#29b6f6',
 };
 
+// ── Combat team bridge ─────────────────────────────────────────────────────
+
+function getStoredTeams() {
+    try { return JSON.parse(localStorage.getItem('combatTeams') ?? '[[],[]]'); }
+    catch { return [[], []]; }
+}
+
+function saveTeams(teams) {
+    localStorage.setItem('combatTeams', JSON.stringify(teams));
+}
+
+// ── Tag filter state ───────────────────────────────────────────────────────
+
+let activeTagFilter = null;
+
+function getAllTags() {
+    const tags = new Set();
+    allChars.forEach(c => {
+        c.moveSet?.forEach(m => m.base.tags?.forEach(t => tags.add(t)));
+        c.passif?.forEach(p => p.tags?.forEach(t => tags.add(t)));
+    });
+    return [...tags].sort();
+}
+
+function charMatchesTag(c, tag) {
+    if (!tag) return true;
+    return c.moveSet?.some(m => m.base.tags?.includes(tag)) ||
+           c.passif?.some(p => p.tags?.includes(tag));
+}
+
+function renderTagFilter() {
+    const container = document.getElementById('tagFilter');
+    if (!container) return;
+    const tags = getAllTags();
+    container.innerHTML = `
+        <button class="tag-filter-btn${!activeTagFilter ? ' active' : ''}" data-tag="">All</button>
+        ${tags.map(t =>
+            `<button class="tag-filter-btn${activeTagFilter === t ? ' active' : ''}"
+                     data-tag="${t}" style="background:${TAG_COLOR[t] ?? '#555'}">${t}</button>`
+        ).join('')}`;
+    container.querySelectorAll('.tag-filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            activeTagFilter = btn.dataset.tag || null;
+            renderTagFilter();
+            renderSheets(searchInput.value);
+        });
+    });
+}
+
+// ── Render helpers ─────────────────────────────────────────────────────────
+
 function tag(label, color) {
     return `<span class="tag" style="background:${color ?? '#555'}">${label}</span>`;
 }
@@ -65,8 +116,8 @@ function resourceBadge(move) {
     const parts = [];
     if (move.spellCost) parts.push(`${move.spellCost}S`);
     if (move.kiCost) parts.push(`${move.kiCost}Ki`);
-    if (move.soulCost) parts.push(`${move.soulCost}Â`);
-    if (move.cooldown != null && move.cooldown > 0) parts.push(`${move.cooldown}T cd`);
+    if (move.soulCost) parts.push(`${move.soulCost}♦`);
+    if (move.cooldown != null && move.cooldown > 0 && move.cooldown !== 99) parts.push(`${move.cooldown}T cd`);
     if (move.cooldown === 99) parts.push('1×/fight');
     return parts.length ? `<span class="resource-badge">${parts.join(' · ')}</span>` : '';
 }
@@ -148,6 +199,24 @@ function renderDomain(d) {
         </div>`;
 }
 
+function renderCombatButtons(char) {
+    const teams = getStoredTeams();
+    const inTeam0 = teams[0].includes(char.nom);
+    const inTeam1 = teams[1].includes(char.nom);
+    const goBtn = (inTeam0 || inTeam1)
+        ? `<a href="combat.html" class="combat-go-link">▶ Go to Combat</a>` : '';
+    return `
+        <div class="combat-add-row">
+            <button class="combat-add-btn${inTeam0 ? ' in-team' : ''}" data-nom="${char.nom}" data-team="0">
+                ${inTeam0 ? '✓ Team 1' : '+ Team 1'}
+            </button>
+            <button class="combat-add-btn${inTeam1 ? ' in-team' : ''}" data-nom="${char.nom}" data-team="1">
+                ${inTeam1 ? '✓ Team 2' : '+ Team 2'}
+            </button>
+            ${goBtn}
+        </div>`;
+}
+
 function renderCard(char) {
     const card = document.createElement('article');
     card.className = 'char-card';
@@ -202,7 +271,25 @@ function renderCard(char) {
         ${moveSection}
         ${tfSection}
         ${domainSection}
+        ${renderCombatButtons(char)}
     `;
+
+    // Bind combat add buttons
+    card.querySelectorAll('.combat-add-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const nom  = btn.dataset.nom;
+            const team = parseInt(btn.dataset.team);
+            const teams = getStoredTeams();
+            if (teams[team].includes(nom)) {
+                teams[team] = teams[team].filter(n => n !== nom);
+            } else if (teams[team].length < 4) {
+                teams[team].push(nom);
+            }
+            saveTeams(teams);
+            renderSheets(searchInput.value);
+        });
+    });
+
     return card;
 }
 
@@ -211,6 +298,7 @@ let allChars = [];
 async function init() {
     const res = await fetch('js/characters.json');
     allChars = await res.json();
+    renderTagFilter();
     renderSheets();
 }
 
@@ -218,7 +306,7 @@ function renderSheets(filter = '') {
     sheetContainer.innerHTML = '';
     const q = filter.toLowerCase();
     allChars
-        .filter(c => c.nom.toLowerCase().includes(q))
+        .filter(c => c.nom.toLowerCase().includes(q) && charMatchesTag(c, activeTagFilter))
         .forEach(c => sheetContainer.appendChild(renderCard(c)));
 }
 

@@ -22,7 +22,9 @@
       "Bash(Select-Object FullName)",
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\pierr\\\\dev\\\\Lego\\\\siteRepo\\\\maps\" -Force)",
       "Bash(Select-Object Name, Extension)",
-      "Bash(Format-Table -AutoSize)"
+      "Bash(Format-Table -AutoSize)",
+      "Bash(node --input-type=module)",
+      "PowerShell(head *)"
     ]
   }
 }

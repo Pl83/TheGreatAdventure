@@ -189,9 +189,9 @@
       },
       {
         "category": "spell",
-        "base": { "nom": "Blink", "tags": ["magic", "dash", "instant"] },
+        "base": { "nom": "Blink", "tags": ["magic", "dash", "instant", "teleportation"] },
         "target": "self",
-        "range": 0,
+        "range": 10,
         "description": "Teleportation.",
         "spellCost": 1
       },
@@ -201,6 +201,7 @@
         "target": "mono",
         "range": 20,
         "description": "3 charges.",
+        "charges": 3,
         "cooldown": 0
       }
     ]
@@ -501,7 +502,7 @@
       },
       {
         "category": "spell",
-        "base": { "nom": "Sea Bubble", "tags": ["magic", "water", "block", "regen", "react"] },
+        "base": { "nom": "Sea Bubble", "dices": "1d6+6", "tags": ["magic", "water", "block", "regen", "react"] },
         "target": "mono",
         "range": 8,
         "description": "Instant block + regen 1d6+6.",
@@ -569,7 +570,7 @@
     "speed": 6,
     "autority": 0,
     "immunities": [],
-    "baseAtk": { "nom": "Sword", "dices": "1d6+2", "tags": ["physical"] },
+    "baseAtk": { "nom": "Gun", "dices": "1d6+2", "tags": ["physical", "ice"] },
     "passif": [],
     "moveSet": [
       {
@@ -696,7 +697,7 @@
       },
       {
         "category": "spell",
-        "base": { "nom": "Fly", "tags": ["buff"] },
+        "base": { "nom": "Fly", "tags": ["buff", "fly"] },
         "target": "self", "range": 0, "duration": -1, "spellCost": 1, "cooldown": 99
       },
       {
@@ -704,6 +705,7 @@
         "base": { "nom": "Runique Precast", "tags": ["runik", "buff"] },
         "target": "self", "range": 0,
         "description": "+2d12 to next spell cast.",
+        "precastDice": "2d12",
         "spellCost": 1
       },
       {
@@ -728,7 +730,8 @@
         "base": { "nom": "Arcane Canal", "tags": ["magic", "buff", "regen"] },
         "target": "aoe", "range": 6, "radius": 6,
         "description": "Regen 4 spell slots to all allies.",
-        "spellCost": 2
+        "spellCost": 2,
+        "slotRegen": 4
       }
     ]
   },
@@ -738,7 +741,7 @@
     "spellSlot": 14,
     "ki": 0,
     "kiRegen": 0,
-    "speed": 6,
+    "speed": 18,
     "autority": 0,
     "immunities": ["fire", "lightning", "ice", "radiant", "status"],
     "baseAtk": { "nom": "Mace of Vulkan", "dices": "1d12+8", "tags": ["physical", "fire"] },
@@ -801,9 +804,10 @@
       },
       {
         "category": "relic",
-        "base": { "nom": "Odin's Wrath", "dices": "1d10+10", "tags": ["radiant", "magic", "stun"] },
+        "base": { "nom": "Odin's Wrath", "dices": "1d10+10", "tags": ["radiant", "magic", "silence"] },
         "target": "aoe", "range": 10, "radius": 4,
         "description": "Inflicts silence for 1d2 turns.",
+        "effect": "1d2 silence",
         "cooldown": 3
       },
       {
@@ -1049,7 +1053,7 @@
     "moveSet": [
       {
         "category": "spell",
-        "base": { "nom": "Runik Water Shield", "tags": ["runik", "magic", "water", "block", "heal", "cleans", "react"] },
+        "base": { "nom": "Runik Water Shield", "dices": "1d20", "tags": ["runik", "magic", "water", "block", "heal", "cleans", "react"] },
         "target": "self", "range": 0,
         "description": "Instant block + 1d20 heal + purge.",
         "spellCost": 1
@@ -1104,7 +1108,7 @@
     "nom": "Meï",
     "hp": 60,
     "spellSlot": 0,
-    "ki": 5,
+    "ki": 10,
     "kiRegen": 3,
     "speed": 6,
     "autority": 0,
@@ -1121,7 +1125,7 @@
       },
       {
         "category": "Art",
-        "base": { "nom": "Field of Flower", "tags": ["cleans", "heal", "regen"] },
+        "base": { "nom": "Field of Flower", "dices": "10", "tags": ["cleans", "heal", "regen"] },
         "target": "aoe", "range": 6, "radius": 4,
         "description": "Remove debuffs + heal 10hp/t.",
         "kiCost": 5
@@ -1400,7 +1404,7 @@
       },
       {
         "category": "relic",
-        "base": { "nom": "Chain's of Apophis", "tags": ["buff", "block"] },
+        "base": { "nom": "Chain's of Apophis", "tags": ["buff", "block", "chains"] },
         "target": "mono", "range": 20,
         "description": "Authority 8. Absorb damage directed toward master.",
         "cooldown": 0
@@ -1432,7 +1436,7 @@
       {
         "category": "spell",
         "base": { "nom": "Wind Cutter", "dices": "1d12", "tags": ["magic"] },
-        "target": "aoe", "range": 8, "radius": 4, "spellCost": 1
+        "target": "cone", "range": 8, "spellCost": 1
       },
       {
         "category": "spell",
@@ -1442,7 +1446,7 @@
       {
         "category": "relic",
         "base": { "nom": "End of Three World", "dices": "3d20+10", "tags": ["magic"] },
-        "target": "aoe", "range": 20, "radius": 10, "cooldown": 0
+        "target": "cone", "range": 15, "cooldown": 0
       }
     ]
   },
@@ -2185,7 +2189,7 @@
     "moveSet": [
       {
         "category": "technique",
-        "base": { "nom": "Perfect Reflection", "tags": ["react", "antiMagic"] },
+        "base": { "nom": "Perfect Reflection", "tags": ["react", "antiMagic", "reflect"] },
         "target": "mono", "range": 20,
         "description": "Reflects a spell back at 2x damage. Only bypassed by Authority 8.",
         "cooldown": 0
@@ -2199,7 +2203,7 @@
       },
       {
         "category": "technique",
-        "base": { "nom": "Living Blade Armor", "tags": ["block", "react"] },
+        "base": { "nom": "Living Blade Armor", "tags": ["block", "react", "half_phys"] },
         "target": "self", "range": 0,
         "description": "Reduces incoming physical damage by half for the turn.",
         "cooldown": 0
@@ -2251,6 +2255,7 @@
         "base": { "nom": "Balmung (Sealed)", "dices": "4d12+20", "tags": ["physical", "magic"] },
         "target": "mono", "range": 20,
         "description": "Authority 8. Can hit through dimensions.",
+        "charges": 4,
         "cooldown": 0
       }
     ],

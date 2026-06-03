@@ -3,35 +3,62 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 // ── §1  Imports ────────────────────────────────────────────────────────────
-import { personnageSheet, EFFECTS } from './main.js';
+import { EFFECTS } from './main.js';
 import { loadManifest, loadMap, cellPxOf, isWalkableG } from './dungeon-loader.js';
 
 // ── §2  State ──────────────────────────────────────────────────────────────
+let allChars = [];
+
+async function loadChars() {
+  const res = await fetch('js/characters.json');
+  allChars = await res.json();
+  // Pre-populate teams from character sheet selections
+  try {
+    const stored = localStorage.getItem('combatTeams');
+    if (stored) {
+      const teams = JSON.parse(stored);
+      const t0 = (teams[0] ?? []).filter(n => allChars.some(c => c.nom === n));
+      const t1 = (teams[1] ?? []).filter(n => allChars.some(c => c.nom === n));
+      if (t0.length || t1.length) S.teamNames = [t0, t1];
+    }
+  } catch {}
+}
+
 const S = {
   phase: 'selection',   // 'selection' | 'initiative' | 'combat' | 'victory'
   teamNames: [[], []],  // up to 4 character names per team
   combatants: [],
-  initiativeOrder: [],  // ordered list of combatant ids (desc initiative)
+  initiativeOrder: [],
   currentTurnIndex: 0,
   roundNumber: 1,
-  pendingAction: null,  // { type, attackerId?, defenderId?, casterId?, targetIds?, result, ability? }
+  pendingAction: null,
   awaitingReact: false,
-  reactOptions: [],     // [{ combatantId, ability }]
-  log: [],              // [{ text, flavor }]
+  reactOptions: [],
+  log: [],
   winnerTeam: null,
+  hasActed:    false,   // active combatant used their action this turn
   // ── Map system ──────────────────────────────────────────────────────────
-  currentMap:     null,       // chosen DUNGEONS[i] object
-  mapViewFilter:  'both',     // 'both' | 'team0' | 'team1'
-  hasMoved:       false,      // active combatant moved this turn
-  moveMode:       false,      // player is selecting a movement destination
-  reachableCells: new Map(),  // "x,y" → steps (BFS result)
+  currentMap:     null,
+  mapViewFilter:  'both',
+  hasMoved:       false,
+  moveMode:       false,
+  reachableCells: new Map(),
+  // ── Aim / targeting ───────────────────────────────────────────────────────
+  aimMode:     false,
+  aimAbility:  null,
+  aimSection:  null,   // 'spell' | 'tech' | 'attack'
+  aimHover:    null,   // { x, y } grid cell under mouse
+  // ── Teleport ──────────────────────────────────────────────────────────────
+  teleportMode:         false,
+  teleportActorId:      null,
+  teleportRange:        0,
+  pendingTeleportReact: null,
 };
 
 // ── Map constants ──────────────────────────────────────────────────────────
-const MAX_MOVE    = 4;    // cells per turn
-const MELEE_RANGE = 1;    // Chebyshev distance for basic attack
-const SPELL_RANGE = 6;    // Chebyshev distance for non-ranged abilities
-// Cell pixel size and grid dimensions are now dynamic (per-map via cellPxOf)
+const MAX_MOVE    = 6;    // fallback cells per turn when speed is missing
+const MELEE_RANGE = 1;
+const SPELL_RANGE = 6;
 
 const root = document.getElementById('combat-root');
 
@@ -46,56 +73,37 @@ function rollD20() {
   return { value: v, isNat20: v === 20, isNat1: v === 1 };
 }
 
-/**
- * Roll a dice expression like "2d8+4", "1d12+1d6+2", "6*1d6 fire", "1d8 aoe".
- * Returns { total, breakdown }.
- */
 function parseDice(expr) {
   if (!expr || expr === '—' || expr === '-') return { total: 0, breakdown: '—' };
   let s = String(expr);
-
-  // Normalise N*MdY → (N*M)dY  e.g. "6*1d6" → "6d6"
   s = s.replace(/(\d+)\s*\*\s*(\d+)d(\d+)/gi, (_, mult, cnt, sides) =>
     `${parseInt(mult) * parseInt(cnt)}d${sides}`
   );
-
+  s = s.replace(/(\d+)d(\d+)\s*\*\s*(\d+)/gi, (_, cnt, sides, mult) =>
+    `${parseInt(cnt) * parseInt(mult)}d${sides}`
+  );
   const parts = [];
   let total = 0;
-
-  // Roll all XdY dice terms
   const diceRe = /(\d+)d(\d+)/gi;
   let m;
   while ((m = diceRe.exec(s)) !== null) {
-    const count = parseInt(m[1]);
-    const sides = parseInt(m[2]);
+    const count = parseInt(m[1]), sides = parseInt(m[2]);
     const rolls = [];
     let sub = 0;
-    for (let i = 0; i < count; i++) {
-      const r = rollDie(sides);
-      rolls.push(r);
-      sub += r;
-    }
+    for (let i = 0; i < count; i++) { const r = rollDie(sides); rolls.push(r); sub += r; }
     total += sub;
     parts.push(`${count}d${sides}[${rolls.join('+')}]=${sub}`);
   }
-
-  // Extract +N / -N bonuses that are NOT followed by % (to skip "50% missing hp")
   const stripped = s.replace(/\d+d\d+/gi, '');
   const bonusRe = /([+-]\s*\d+)(?!\s*%)/g;
   while ((m = bonusRe.exec(stripped)) !== null) {
     const val = parseInt(m[1].replace(/\s/g, ''));
-    if (!isNaN(val) && val !== 0) {
-      total += val;
-      parts.push(val > 0 ? `+${val}` : `${val}`);
-    }
+    if (!isNaN(val) && val !== 0) { total += val; parts.push(val > 0 ? `+${val}` : `${val}`); }
   }
-
-  // Fallback: plain number
   if (parts.length === 0) {
     const numM = s.match(/^(\d+)/);
     if (numM) { total = parseInt(numM[1]); parts.push(String(total)); }
   }
-
   return { total: Math.max(0, total), breakdown: parts.join(' ') || '0' };
 }
 
@@ -105,103 +113,109 @@ function findEffect(name) {
   return EFFECTS.find(e => e.name.toLowerCase() === n) ?? null;
 }
 
-function parseResourceCost(costStr) {
-  if (!costStr) return null;
-  const s = String(costStr).toLowerCase().replace(/\s/g, '');
-  // Ki first (avoid clash with "s" in "souls")
-  const kiM = s.match(/(\d+)ki/);
-  if (kiM) return { type: 'ki', amount: parseInt(kiM[1]) };
-  // Spell slots: digits followed by 's' NOT 'souls'
-  const slotM = s.match(/^(\d+)s$/);
-  if (slotM) return { type: 'slots', amount: parseInt(slotM[1]) };
-  // Souls: "10s", "100s", "1000s" (already caught by slotM if pure "Xs")
-  // Try "Xs" broadly where s is the whole suffix
-  const soulM = s.match(/(\d+)s/);
-  if (soulM) return { type: 'souls', amount: parseInt(soulM[1]) };
-  return null;
+const TAG_TO_STATUS = { freeze: 'gel', poison: 'toxic' };
+const STATUS_EFFECT_TAGS = ['para','gel','freeze','burn','bleed','stun','root','fear','silence','blind','toxic','poison'];
+
+// Determine whether an ability targets allies, self, enemies, or both teams
+function getTargetKind(move) {
+  if (move.target === 'self') return 'self';
+  const tags = move.base.tags ?? [];
+  const hasHeal = tags.includes('heal') || tags.includes('regen') || tags.includes('cleans') || tags.includes('buff');
+  const hasDmg  = tags.some(t => ['physical','fire','ice','lightning','magic','earth','water','necro','psy','runik','radiant'].includes(t));
+  // Hybrid bounce: heals allies, damages enemies
+  if (hasHeal && hasDmg && move.target === 'bounce') return 'any';
+  const isAlly = hasHeal && !tags.some(t => ['physical', 'necro'].includes(t));
+  return isAlly ? 'ally' : 'enemy';
 }
 
-function parseCooldown(cdStr) {
-  if (!cdStr) return 0;
-  const m = String(cdStr).match(/(\d+)/);
-  return m ? parseInt(m[1]) : 0;
-}
+// ── §4  Ability Resolution ─────────────────────────────────────────────────
 
-function parseTypes(typeStr) {
-  if (!typeStr) return {};
-  const t = String(typeStr).toLowerCase();
-  return {
-    isReact:    t.includes('react'),
-    isInstant:  t.includes('instant') || t.includes('insta'),
-    isBlock:    t.includes('block'),
-    isAoe:      t.includes('aoe') || t.includes('cone'),
-    isCone:     t.includes('cone'),
-    isHeal:     t.includes('heal') || t.includes('sustain') || t.includes('regen'),
-    isTransform:t.includes('transformation') || t.includes('transform'),
-  };
-}
-
-/**
- * Flatten char.spells, char.abilities, char.relics into a normalised list.
- */
-function resolveAbilities(char) {
+function resolveAbilitiesFromList(moveList) {
   const list = [];
-  const addGroup = (entries, source) => {
-    if (!entries) return;
-    for (const e of entries) {
-      if (!e || !e.name) continue;
-      const types = parseTypes(e.type);
-      const cost = parseResourceCost(e.cost);
-      list.push({
-        name: e.name,
-        source,
-        dice: e.dice || null,
-        cooldownTurns: parseCooldown(e.cooldown),
-        cost,
-        effect: e.effect || null,
-        limit: e.limit || null,
-        isOncePerFight: !!(e.limit && String(e.limit).toLowerCase().includes('fight')),
-        desc: e.desc || '',
-        ...types,
-      });
-    }
-  };
-  addGroup(char.spells,    'spell');
-  addGroup(char.abilities, 'ability');
-  addGroup(char.relics,    'relic');
+  for (const move of moveList ?? []) {
+    if (!move?.base?.nom) continue;
+    const tags           = move.base.tags ?? [];
+    const isOncePerFight = move.cooldown === 99;
+    const statusTags     = tags.filter(t => STATUS_EFFECT_TAGS.includes(t));
+
+    let cost = null;
+    if      (move.spellCost)  cost = { type: 'slots', amount: move.spellCost };
+    else if (move.kiCost)     cost = { type: 'ki',    amount: move.kiCost };
+    else if (move.soulCost)   cost = { type: 'souls', amount: move.soulCost };
+
+    list.push({
+      name:          move.base.nom,
+      source:        move.category,
+      dice:          move.base.dices ?? null,
+      cooldownTurns: isOncePerFight ? 0 : (move.cooldown ?? 0),
+      cost,
+      effect:        move.effect ?? (statusTags.length ? statusTags.map(t => TAG_TO_STATUS[t] ?? t).join(', ') : null),
+      isOncePerFight,
+      desc:          move.description ?? '',
+      tags,
+      target:        move.target ?? 'mono',
+      targetKind:    getTargetKind(move),
+      range:         move.range ?? SPELL_RANGE,
+      radius:        move.radius ?? 0,
+      maxBounce:     move.maxBounce ?? 0,
+      bounceRange:   move.range ?? SPELL_RANGE,
+      slotRegen:     move.slotRegen ?? 0,
+      precastDice:   move.precastDice ?? null,
+      maxCharges:    move.charges ?? 0,
+      isReact:    tags.includes('react'),
+      isBlock:    tags.includes('block'),
+      isInstant:  tags.includes('instant'),
+      isAoe:      move.target === 'aoe',
+      isCone:     move.target === 'cone',
+      isSplash:   move.target === 'splash',
+      isHeal:     tags.includes('heal') || tags.includes('regen'),
+      isTransform: move.category === 'transformation',
+    });
+  }
   return list;
 }
 
-// ── §4  Factory ────────────────────────────────────────────────────────────
+function resolveAbilities(char) {
+  return resolveAbilitiesFromList(char.moveSet);
+}
+
+// ── §5  Factory ────────────────────────────────────────────────────────────
 
 function buildCombatant(char, teamIndex, id) {
   const maxKi = char.ki ?? 0;
   return {
     id,
     teamIndex,
-    name: char.name,
+    name: char.nom,
     sourceChar: char,
     maxHp: char.hp,
     currentHp: char.hp,
-    spellSlots:    char.spellSlots ?? 0,
-    maxSpellSlots: char.spellSlots ?? 0,
+    spellSlots:    char.spellSlot ?? 0,
+    maxSpellSlots: char.spellSlot ?? 0,
     ki: maxKi,
     maxKi,
     kiRegen: char.kiRegen ?? 0,
     souls: char.souls ?? 0,
+    speed: char.speed ?? MAX_MOVE,
     abilities: resolveAbilities(char),
     initiativeRoll: 0,
     isKO: false,
-    cooldowns:     {},   // { abilityName: turnsLeft }
-    usedThisFight: [],   // ability names used for 1/fight
-    statusEffects: [],   // { name, turnsLeft, dice, damType, notes }
+    cooldowns:        {},
+    remainingCharges: {},
+    usedThisFight: [],
+    statusEffects: char.passif?.some(p => p.tags?.includes('fly'))
+      ? [{ name: 'fly', turnsLeft: 999, dice: null, damType: null, notes: '' }]
+      : [],
     hasCounterAttack: false,
-    x: 0,               // grid position
+    isTransformed:    false,
+    transformedBaseAtk: null,
+    domainActive:     false,
+    x: 0,
     y: 0,
   };
 }
 
-// ── §5  Lookups ────────────────────────────────────────────────────────────
+// ── §6  Lookups ────────────────────────────────────────────────────────────
 
 function getCombatant(id) { return S.combatants.find(c => c.id === id); }
 function livingCombatants(teamIndex) {
@@ -213,14 +227,18 @@ function activeCombatant() {
 function enemies(c) {
   return livingCombatants(c.teamIndex === 0 ? 1 : 0);
 }
+function allies(c) {
+  return livingCombatants(c.teamIndex);
+}
 
 function abilityAvailable(c, ab) {
   if ((c.cooldowns[ab.name] ?? 0) > 0) return false;
   if (ab.isOncePerFight && c.usedThisFight.includes(ab.name)) return false;
+  if (ab.maxCharges > 0 && (c.remainingCharges[ab.name] ?? ab.maxCharges) <= 0) return false;
   if (ab.cost) {
-    if (ab.cost.type === 'ki'    && c.ki < ab.cost.amount)    return false;
+    if (ab.cost.type === 'ki'    && c.ki < ab.cost.amount)         return false;
     if (ab.cost.type === 'slots' && c.spellSlots < ab.cost.amount) return false;
-    if (ab.cost.type === 'souls' && c.souls < ab.cost.amount) return false;
+    if (ab.cost.type === 'souls' && c.souls < ab.cost.amount)      return false;
   }
   return true;
 }
@@ -230,22 +248,31 @@ function hasSilence(c) {
 }
 
 function hasControlEffect(c) {
-  const controls = ['para', 'gel', 'stun', 'cocoon', 'fear', 'root'];
+  const controls = ['para', 'gel', 'stun', 'cocoon', 'fear'];  // root removed: only blocks movement, not action
   return c.statusEffects.find(e => controls.includes(e.name.toLowerCase())) ?? null;
 }
 
-// ── §6  Map & Movement ────────────────────────────────────────────────────
+// ── §7  Map & Movement ─────────────────────────────────────────────────────
 
-/** Chebyshev (king-move) distance between two {x,y} points. */
 function chebyshev(a, b) {
   return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
 }
 
-/**
- * 8-directional BFS from (sx,sy) up to maxDist steps.
- * Returns a Map of "x,y" → steps for all reachable walkable cells.
- * The starting cell is excluded from the result.
- */
+function hasLos(ax, ay, bx, by) {
+  if (!S.currentMap) return true;
+  let x0 = ax, y0 = ay;
+  const dx = Math.abs(bx - x0), dy = Math.abs(by - y0);
+  const sx = x0 < bx ? 1 : -1, sy = y0 < by ? 1 : -1;
+  let err = dx - dy;
+  while (true) {
+    if (x0 === bx && y0 === by) return true;
+    const e2 = 2 * err;
+    if (e2 > -dy) { err -= dy; x0 += sx; }
+    if (e2 < dx)  { err += dx; y0 += sy; }
+    if ((x0 !== bx || y0 !== by) && !isWalkableG(S.currentMap, x0, y0)) return false;
+  }
+}
+
 function bfsReachable(sx, sy, maxDist) {
   const visited = new Map();
   const queue   = [{ x: sx, y: sy, dist: 0 }];
@@ -271,53 +298,168 @@ function bfsReachable(sx, sy, maxDist) {
   return visited;
 }
 
-/** Returns a living combatant at (x,y), excluding the one with excludeId. */
 function isOccupied(x, y, excludeId = -1) {
   return S.combatants.find(c => c.x === x && c.y === y && c.id !== excludeId && !c.isKO) ?? null;
 }
 
-/** Place all combatants at their starting positions from the chosen map. */
 function placeCharacters(map) {
   for (const teamIdx of [0, 1]) {
     const spots = map.starts[teamIdx];
     const team  = S.combatants.filter(c => c.teamIndex === teamIdx);
     team.forEach((c, i) => {
       const pos = spots[Math.min(i, spots.length - 1)];
-      c.x = pos.x;
-      c.y = pos.y;
+      c.x = pos.x; c.y = pos.y;
     });
   }
 }
 
-/**
- * Check whether actor can reach target with the given ability.
- * ability = null  → basic attack (melee range).
- * Returns { inRange: boolean, reason: string }.
- */
 function targetInRange(actor, target, ability) {
   const dist = chebyshev(actor, target);
   if (!ability) {
-    return { inRange: dist <= MELEE_RANGE, reason: dist > MELEE_RANGE ? 'Must be adjacent to attack' : '' };
+    if (dist > MELEE_RANGE) return { inRange: false, reason: 'Must be adjacent to attack' };
+    if (S.currentMap && !hasLos(actor.x, actor.y, target.x, target.y))
+      return { inRange: false, reason: 'No line of sight' };
+    return { inRange: true, reason: '' };
   }
   if (ability.isAoe) return { inRange: true, reason: '' };
-  const isRanged = ability.desc && ability.desc.toLowerCase().includes('ranged');
-  if (isRanged) return { inRange: true, reason: '' };
-  return { inRange: dist <= SPELL_RANGE, reason: dist > SPELL_RANGE ? `Out of range (max ${SPELL_RANGE})` : '' };
+  const maxRange = ability.range ?? SPELL_RANGE;
+  if (dist > maxRange) return { inRange: false, reason: `Out of range (max ${maxRange})` };
+  if (S.currentMap && !hasLos(actor.x, actor.y, target.x, target.y))
+    return { inRange: false, reason: 'No line of sight' };
+  return { inRange: true, reason: '' };
 }
 
-/** Enter movement-selection mode: highlight reachable cells on the canvas. */
+function computeAimOverlay(caster, ability) {
+  if (!S.currentMap || !ability) return { inRangeCells: new Set(), losCells: new Set(), validTargetIds: new Map() };
+  const range = ability.range ?? SPELL_RANGE;
+  const { cols, rows } = S.currentMap.grid;
+  const inRangeCells = new Set();
+  const losCells     = new Set();
+  for (let gy = 0; gy < rows; gy++) {
+    for (let gx = 0; gx < cols; gx++) {
+      if (gx === caster.x && gy === caster.y) continue;
+      if (Math.max(Math.abs(gx - caster.x), Math.abs(gy - caster.y)) > range) continue;
+      if (!isWalkableG(S.currentMap, gx, gy)) continue;
+      const key = `${gx},${gy}`;
+      inRangeCells.add(key);
+      if (hasLos(caster.x, caster.y, gx, gy)) losCells.add(key);
+    }
+  }
+  const isAlly     = ability.targetKind === 'ally';
+  const isAny      = ability.targetKind === 'any';
+  const targetTeam = isAlly ? caster.teamIndex : (caster.teamIndex === 0 ? 1 : 0);
+  const candidates = isAny
+    ? S.combatants.filter(c => !c.isKO && c.id !== caster.id)
+    : livingCombatants(targetTeam);
+  const validTargetIds = new Map();
+  for (const t of candidates) {
+    if (losCells.has(`${t.x},${t.y}`)) validTargetIds.set(t.id, t);
+  }
+  return { inRangeCells, losCells, validTargetIds };
+}
+
+function coneCells(caster, ability, dirCell) {
+  if (!dirCell || !S.currentMap) return [];
+  const { cols, rows } = S.currentMap.grid;
+  const range = ability.range ?? SPELL_RANGE;
+  const dx = dirCell.x - caster.x, dy = dirCell.y - caster.y;
+  if (dx === 0 && dy === 0) return [];
+  const dirAngle = Math.atan2(dy, dx);
+  const HALF_CONE = Math.PI / 6; // 30° each side = 60° total
+  const cells = [];
+  for (let gy = 0; gy < rows; gy++) {
+    for (let gx = 0; gx < cols; gx++) {
+      if (gx === caster.x && gy === caster.y) continue;
+      if (Math.max(Math.abs(gx - caster.x), Math.abs(gy - caster.y)) > range) continue;
+      const angle = Math.atan2(gy - caster.y, gx - caster.x);
+      let diff = Math.abs(angle - dirAngle);
+      if (diff > Math.PI) diff = 2 * Math.PI - diff;
+      if (diff <= HALF_CONE) cells.push({ x: gx, y: gy });
+    }
+  }
+  return cells;
+}
+
+function coneCellTargets(caster, ability, dirCell) {
+  const cells = coneCells(caster, ability, dirCell);
+  const teamIdx = caster.teamIndex === 0 ? 1 : 0;
+  return livingCombatants(teamIdx)
+    .filter(t => cells.some(c => c.x === t.x && c.y === t.y));
+}
+
+function aoeCombatantHits(ability, caster, cx, cy) {
+  const radius  = ability.radius > 0 ? ability.radius : 1;
+  const isAlly  = ability.targetKind === 'ally';
+  const teamIdx = isAlly ? caster.teamIndex : (caster.teamIndex === 0 ? 1 : 0);
+  return livingCombatants(teamIdx)
+    .filter(t => chebyshev({ x: cx, y: cy }, t) <= radius);
+}
+
+function hasValidTarget(actor, ability) {
+  if (!ability) {
+    // melee attack
+    return livingCombatants(actor.teamIndex === 0 ? 1 : 0)
+      .some(t => targetInRange(actor, t, null).inRange);
+  }
+  if (ability.isAoe || ability.isCone || ability.isSplash) return true;
+  if (ability.targetKind === 'self')  return true;
+  if (ability.targetKind === 'ally')  return livingCombatants(actor.teamIndex).length > 0;
+  if (ability.targetKind === 'any')
+    return S.combatants.some(t => !t.isKO && t.id !== actor.id && targetInRange(actor, t, ability).inRange);
+  return livingCombatants(actor.teamIndex === 0 ? 1 : 0)
+    .some(t => targetInRange(actor, t, ability).inRange);
+}
+
+function clearAimState() {
+  S.aimMode = false; S.aimAbility = null; S.aimSection = null; S.aimHover = null;
+  document.getElementById('dungeon-canvas')?.classList.remove('aim-mode');
+}
+
+function enterAimMode(ability, section) {
+  if (!S.currentMap) return;
+  S.aimMode    = true;
+  S.aimAbility = ability;
+  S.aimSection = section;
+  S.aimHover   = null;
+  document.getElementById('dungeon-canvas')?.classList.add('aim-mode');
+  drawMap();
+}
+
+function exitAimMode() {
+  clearAimState();
+  drawMap();
+}
+
+function enterTeleportMode(c, range) {
+  S.teleportMode    = true;
+  S.teleportActorId = c.id;
+  S.teleportRange   = range;
+  document.getElementById('dungeon-canvas')?.classList.add('teleport-mode');
+  drawMap();
+}
+
+function exitTeleportMode() {
+  S.teleportMode    = false;
+  S.teleportActorId = null;
+  S.teleportRange   = 0;
+  document.getElementById('dungeon-canvas')?.classList.remove('teleport-mode');
+  drawMap();
+}
+
 function enterMoveMode() {
   const c = activeCombatant();
   if (!c || S.hasMoved || !S.currentMap) return;
+  if (c.statusEffects.some(e => e.name.toLowerCase() === 'root')) {
+    addLog(`${c.name} is rooted and cannot move!`, 'status');
+    return;
+  }
   S.moveMode = true;
-  S.reachableCells = bfsReachable(c.x, c.y, MAX_MOVE);
-  // Toggle cursor class on canvas
+  S.reachableCells = bfsReachable(c.x, c.y, c.speed);
   const canvas = document.getElementById('dungeon-canvas');
   if (canvas) canvas.classList.add('move-mode');
   drawMap();
 }
 
-/** Exit movement-selection mode. */
 function exitMoveMode() {
   S.moveMode = false;
   S.reachableCells = new Map();
@@ -326,128 +468,260 @@ function exitMoveMode() {
   drawMap();
 }
 
-/** Handle a click on the dungeon canvas at grid cell (gx, gy). */
 function handleMoveClick(gx, gy) {
   if (!S.moveMode) return;
   const c = activeCombatant();
   if (!c) return;
   const key = `${gx},${gy}`;
   if (!S.reachableCells.has(key)) return;
-  if (isOccupied(gx, gy, c.id)) {
-    addLog('That cell is occupied.', 'info');
-    return;
-  }
+  if (isOccupied(gx, gy, c.id)) { addLog('That cell is occupied.', 'info'); return; }
   addLog(`${c.name} moves to (${gx}, ${gy}).`, 'info');
-  c.x = gx;
-  c.y = gy;
+  c.x = gx; c.y = gy;
   S.hasMoved = true;
   exitMoveMode();
   renderCombatScreen();
 }
 
-/** Attach (or re-attach) the click listener on the dungeon canvas. */
 function setupCanvasClickHandler() {
   const canvas = document.getElementById('dungeon-canvas');
   if (!canvas) return;
-  // Always remove previous listener before attaching a fresh one
-  if (canvas._clickHandler) canvas.removeEventListener('click', canvas._clickHandler);
+
+  if (canvas._clickHandler)  canvas.removeEventListener('click',     canvas._clickHandler);
+  if (canvas._moveHandler)   canvas.removeEventListener('mousemove', canvas._moveHandler);
+  if (canvas._leaveHandler)  canvas.removeEventListener('mouseleave',canvas._leaveHandler);
+
+  const cellCoords = (e) => {
+    const rect  = canvas.getBoundingClientRect();
+    const cp    = cellPxOf(S.currentMap);
+    const scaleX = canvas.width  / rect.width;
+    const scaleY = canvas.height / rect.height;
+    return {
+      gx: Math.floor((e.clientX - rect.left) * scaleX / cp),
+      gy: Math.floor((e.clientY - rect.top)  * scaleY / cp),
+    };
+  };
+
   canvas._clickHandler = (e) => {
+    const { gx, gy } = cellCoords(e);
+    if (S.teleportMode) {
+      const actor = getCombatant(S.teleportActorId);
+      if (actor && chebyshev(actor, { x: gx, y: gy }) <= S.teleportRange
+          && isWalkableG(S.currentMap, gx, gy) && !isOccupied(gx, gy, actor.id)) {
+        addLog(`✦ ${actor.name} teleports to (${gx}, ${gy})!`, 'spell');
+        actor.x = gx; actor.y = gy;
+        const reactAbility = S.pendingTeleportReact;
+        S.pendingTeleportReact = null;
+        exitTeleportMode();
+        if (reactAbility) {
+          resumePendingAction(reactAbility);
+        } else {
+          renderCombatScreen();
+        }
+      }
+      return;
+    }
+    if (S.aimMode) {
+      const active      = activeCombatant();
+      const abilityName = S.aimAbility.name;
+      const section     = S.aimSection;
+
+      if (S.aimAbility.isAoe) {
+        // AoE: click places the blast center — only fire if within cast range
+        const range = S.aimAbility.range ?? SPELL_RANGE;
+        if (chebyshev(active, { x: gx, y: gy }) <= range) {
+          const hits = aoeCombatantHits(S.aimAbility, active, gx, gy);
+          exitAimMode();
+          const hintEl = document.getElementById('aim-hint-ability');
+          if (hintEl) hintEl.style.display = 'none';
+          handleCastAbility(active.id, abilityName, hits.map(t => t.id));
+        }
+        return;
+      } else if (S.aimAbility.isCone) {
+        // Cone: click direction — fire at all enemies in cone
+        const targets = coneCellTargets(active, S.aimAbility, { x: gx, y: gy });
+        exitAimMode();
+        handleCastAbility(active.id, abilityName, targets.map(t => t.id));
+      } else {
+        const overlay = computeAimOverlay(active, S.aimAbility);
+        const hit     = [...overlay.validTargetIds.values()].find(c => c.x === gx && c.y === gy);
+        if (hit) {
+          exitAimMode();
+          const hintEl = document.getElementById('aim-hint-ability');
+          if (hintEl) hintEl.style.display = 'none';
+          if (section === 'attack') handleAttack(active.id, hit.id);
+          else                      handleCastAbility(active.id, abilityName, [hit.id]);
+        }
+      }
+      return;
+    }
     if (!S.moveMode) return;
-    const rect = canvas.getBoundingClientRect();
-    const cp   = cellPxOf(S.currentMap);
-    const gx   = Math.floor((e.clientX - rect.left) * (canvas.width  / rect.width)  / cp);
-    const gy   = Math.floor((e.clientY - rect.top)  * (canvas.height / rect.height) / cp);
     handleMoveClick(gx, gy);
   };
-  canvas.addEventListener('click', canvas._clickHandler);
+
+  canvas._moveHandler = (e) => {
+    if (!S.aimMode || !S.currentMap) return;
+    const { gx, gy } = cellCoords(e);
+    if (S.aimHover?.x !== gx || S.aimHover?.y !== gy) {
+      S.aimHover = { x: gx, y: gy };
+      drawMap();
+    }
+  };
+
+  canvas._leaveHandler = () => {
+    if (!S.aimMode) return;
+    S.aimHover = null;
+    drawMap();
+  };
+
+  canvas.addEventListener('click',      canvas._clickHandler);
+  canvas.addEventListener('mousemove',  canvas._moveHandler);
+  canvas.addEventListener('mouseleave', canvas._leaveHandler);
 }
 
-/** Draw the dungeon map: PNG background → movement overlay → character tokens. */
 function drawMap() {
   const canvas = document.getElementById('dungeon-canvas');
   if (!canvas || !S.currentMap) return;
   const { image } = S.currentMap;
-
-  // Set canvas resolution to match the PNG (portrait maps need this each call)
   canvas.width  = image.naturalWidth;
   canvas.height = image.naturalHeight;
-
   const ctx    = canvas.getContext('2d');
-  const cp     = cellPxOf(S.currentMap);   // px per grid cell (e.g. 70)
+  const cp     = cellPxOf(S.currentMap);
   const active = activeCombatant();
-
-  // ── 1. PNG background ─────────────────────────────────────────────────
   ctx.drawImage(image, 0, 0);
-
-  // ── 2. Reachable-cell highlight (movement mode) ───────────────────────
   if (S.moveMode && S.reachableCells.size > 0) {
     ctx.fillStyle = 'rgba(74,144,217,0.35)';
     for (const [key] of S.reachableCells) {
       const [gx, gy] = key.split(',').map(Number);
-      if (!isOccupied(gx, gy, active?.id ?? -1)) {
+      if (!isOccupied(gx, gy, active?.id ?? -1))
         ctx.fillRect(gx * cp + 1, gy * cp + 1, cp - 2, cp - 2);
-      }
     }
-    // Blue border on the active combatant's current cell
     if (active) {
-      ctx.strokeStyle = 'rgba(74,144,217,0.9)';
-      ctx.lineWidth   = 2;
+      ctx.strokeStyle = 'rgba(74,144,217,0.9)'; ctx.lineWidth = 2;
       ctx.strokeRect(active.x * cp + 1, active.y * cp + 1, cp - 2, cp - 2);
     }
   }
-
-  // ── 3. Character tokens ───────────────────────────────────────────────
+  if (S.aimMode && S.aimAbility && active) {
+    if (S.aimAbility.isAoe) {
+      // AoE placement aim: show cast range + radius preview at hover
+      const range   = S.aimAbility.range ?? SPELL_RANGE;
+      const radius  = S.aimAbility.radius > 0 ? S.aimAbility.radius : 1;
+      const { cols, rows } = S.currentMap.grid;
+      // Faint orange: cells where AoE center can be placed (within cast range)
+      ctx.fillStyle = 'rgba(255,140,0,0.12)';
+      for (let gy = 0; gy < rows; gy++) {
+        for (let gx = 0; gx < cols; gx++) {
+          if (!isWalkableG(S.currentMap, gx, gy)) continue;
+          if (chebyshev(active, { x: gx, y: gy }) <= range)
+            ctx.fillRect(gx * cp + 1, gy * cp + 1, cp - 2, cp - 2);
+        }
+      }
+      // Hover: show AoE radius circle + hit markers
+      if (S.aimHover && chebyshev(active, S.aimHover) <= range) {
+        const { x: hx, y: hy } = S.aimHover;
+        ctx.fillStyle = 'rgba(255,100,0,0.38)';
+        for (let gy = 0; gy < rows; gy++) {
+          for (let gx = 0; gx < cols; gx++) {
+            if (chebyshev({ x: hx, y: hy }, { x: gx, y: gy }) <= radius)
+              ctx.fillRect(gx * cp + 1, gy * cp + 1, cp - 2, cp - 2);
+          }
+        }
+        ctx.strokeStyle = 'rgba(255,70,70,0.9)'; ctx.lineWidth = 2;
+        for (const t of aoeCombatantHits(S.aimAbility, active, hx, hy)) {
+          ctx.strokeRect(t.x * cp + 1, t.y * cp + 1, cp - 2, cp - 2);
+        }
+      }
+    } else if (S.aimAbility.isCone) {
+      // Cone aim: show cone footprint toward hover cell
+      const dirCell = S.aimHover ?? null;
+      const cells   = dirCell ? coneCells(active, S.aimAbility, dirCell) : [];
+      const hits    = dirCell ? coneCellTargets(active, S.aimAbility, dirCell) : [];
+      const hitIds  = new Set(hits.map(t => `${t.x},${t.y}`));
+      // Show range circle (very faint)
+      ctx.fillStyle = 'rgba(255,140,0,0.10)';
+      const range = S.aimAbility.range ?? SPELL_RANGE;
+      for (const [key] of (computeAimOverlay(active, S.aimAbility).losCells.entries?.() ?? [])) {
+        const [gx, gy] = key.split(',').map(Number);
+        ctx.fillRect(gx * cp + 1, gy * cp + 1, cp - 2, cp - 2);
+      }
+      // Cone cells
+      ctx.fillStyle = 'rgba(255,140,0,0.35)';
+      for (const { x: gx, y: gy } of cells) {
+        ctx.fillRect(gx * cp + 1, gy * cp + 1, cp - 2, cp - 2);
+      }
+      // Enemy hits in cone
+      ctx.strokeStyle = 'rgba(255,70,70,0.9)'; ctx.lineWidth = 2;
+      for (const t of hits) {
+        ctx.strokeRect(t.x * cp + 1, t.y * cp + 1, cp - 2, cp - 2);
+      }
+    } else {
+      const { inRangeCells, losCells, validTargetIds } = computeAimOverlay(active, S.aimAbility);
+      // Gray: in range but no LOS (wall-blocked)
+      ctx.fillStyle = 'rgba(80,80,80,0.45)';
+      for (const key of inRangeCells) {
+        if (!losCells.has(key)) {
+          const [gx, gy] = key.split(',').map(Number);
+          ctx.fillRect(gx * cp + 1, gy * cp + 1, cp - 2, cp - 2);
+        }
+      }
+      // Orange: in range + clear LOS
+      ctx.fillStyle = 'rgba(255,140,0,0.22)';
+      for (const key of losCells) {
+        const [gx, gy] = key.split(',').map(Number);
+        ctx.fillRect(gx * cp + 1, gy * cp + 1, cp - 2, cp - 2);
+      }
+      // Bright ring: valid targets
+      ctx.strokeStyle = 'rgba(255,70,70,0.9)'; ctx.lineWidth = 2;
+      for (const t of validTargetIds.values()) {
+        ctx.strokeRect(t.x * cp + 1, t.y * cp + 1, cp - 2, cp - 2);
+      }
+      // Hover highlight on valid target cell
+      if (S.aimHover) {
+        const { x: hx, y: hy } = S.aimHover;
+        if (losCells.has(`${hx},${hy}`)) {
+          ctx.fillStyle = 'rgba(255,255,255,0.18)';
+          ctx.fillRect(hx * cp + 1, hy * cp + 1, cp - 2, cp - 2);
+        }
+      }
+    }
+  }
+  if (S.teleportMode) {
+    const actor = getCombatant(S.teleportActorId);
+    if (actor) {
+      const { cols, rows } = S.currentMap.grid;
+      ctx.fillStyle = 'rgba(168,85,247,0.25)';
+      for (let gy = 0; gy < rows; gy++)
+        for (let gx = 0; gx < cols; gx++)
+          if (isWalkableG(S.currentMap, gx, gy) && chebyshev(actor, { x: gx, y: gy }) <= S.teleportRange)
+            ctx.fillRect(gx * cp + 1, gy * cp + 1, cp - 2, cp - 2);
+    }
+  }
   const TEAM_COL = ['#4A90D9', '#D94A4A'];
   const filter   = S.mapViewFilter;
-
-  const showTeam = (teamIdx) => {
-    if (filter === 'both')  return true;
-    if (filter === 'team0') return teamIdx === 0;
-    if (filter === 'team1') return teamIdx === 1;
-    return true;
-  };
-
-  ctx.shadowColor = 'rgba(0,0,0,0.55)';
-  ctx.shadowBlur  = 3;
-
+  const showTeam = (ti) => filter === 'both' || (filter === 'team0' ? ti === 0 : ti === 1);
+  ctx.shadowColor = 'rgba(0,0,0,0.55)'; ctx.shadowBlur = 3;
   for (const c of S.combatants) {
     if (c.isKO || !showTeam(c.teamIndex)) continue;
-    const cx     = c.x * cp + cp / 2;
-    const cy     = c.y * cp + cp / 2;
-    const isAct  = active?.id === c.id;
+    const cx = c.x * cp + cp / 2, cy = c.y * cp + cp / 2;
+    const isAct = active?.id === c.id;
     const radius = cp * (isAct ? 0.42 : 0.34);
-    const col    = TEAM_COL[c.teamIndex];
-
     ctx.beginPath();
     ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-    ctx.fillStyle = col;
+    ctx.fillStyle = c.isTransformed ? '#a855f7' : TEAM_COL[c.teamIndex];
     ctx.fill();
-
     ctx.shadowBlur = 0;
-    if (isAct) {
-      ctx.strokeStyle = '#E4B14A';
-      ctx.lineWidth   = 2.5;
-    } else {
-      ctx.strokeStyle = 'rgba(255,255,255,0.55)';
-      ctx.lineWidth   = 1;
-    }
+    ctx.strokeStyle = isAct ? '#E4B14A' : 'rgba(255,255,255,0.55)';
+    ctx.lineWidth   = isAct ? 2.5 : 1;
     ctx.stroke();
-    ctx.shadowColor = 'rgba(0,0,0,0.55)';
-    ctx.shadowBlur  = 3;
-
-    // Initial letter
-    ctx.fillStyle    = '#fff';
-    ctx.font         = `bold ${Math.round(cp * 0.4)}px monospace`;
-    ctx.textAlign    = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.shadowBlur   = 0;
+    ctx.shadowColor = 'rgba(0,0,0,0.55)'; ctx.shadowBlur = 3;
+    ctx.fillStyle = '#fff';
+    ctx.font = `bold ${Math.round(cp * 0.4)}px monospace`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.shadowBlur = 0;
     ctx.fillText(c.name[0].toUpperCase(), cx, cy);
   }
-
   ctx.shadowBlur = 0;
 }
 
-/** Returns HTML for the map view toggle buttons. */
 function renderMapToggleHTML() {
   const opts = [
     { val: 'both',  label: 'Both' },
@@ -461,7 +735,7 @@ function renderMapToggleHTML() {
   return `<div class="map-toggle-row">${btns}${mapName}</div>`;
 }
 
-// ── §7  Log ────────────────────────────────────────────────────────────────
+// ── §8  Log ────────────────────────────────────────────────────────────────
 
 function addLog(text, flavor = 'info') {
   S.log.push({ text, flavor });
@@ -478,65 +752,159 @@ function addRoundDivider() {
   addLog(`─── Round ${S.roundNumber} ───`, 'divider');
 }
 
-// ── §7  Combat Logic ───────────────────────────────────────────────────────
+// ── §9  Combat Logic ───────────────────────────────────────────────────────
 
-function applyDamage(combatant, amount) {
+function applyHeal(combatant, diceExpr) {
+  if (!diceExpr) return;
+  const r      = parseDice(diceExpr);
+  const healed = Math.min(r.total, combatant.maxHp - combatant.currentHp);
+  combatant.currentHp = Math.min(combatant.maxHp, combatant.currentHp + r.total);
+  addLog(`💚 ${combatant.name} recovers ${healed} HP! (${combatant.currentHp}/${combatant.maxHp}) [${r.breakdown}]`, 'heal');
+  updateCombatantCardDOM(combatant);
+}
+
+function applyDamage(combatant, amount, damType = null, atkTags = []) {
+  // Living Blade Armor: halve incoming physical before any absorption
+  const bladeArmor = combatant.statusEffects.find(e => e.name === 'living_blade_armor');
+  if (bladeArmor && atkTags.includes('physical')) {
+    amount = Math.floor(amount / 2);
+    combatant.statusEffects = combatant.statusEffects.filter(e => e !== bladeArmor);
+    addLog(`⚔ ${combatant.name}'s Living Blade Armor halves the physical hit! (→ ${amount})`, 'spell');
+  }
+  // Damage-absorption shield / chains check (bypassed by unblockabled or antiMagic on spell/art shields)
+  const dmgShield = combatant.statusEffects.find(e => e.name === 'damage_shield' || e.name === 'chains_of_apophis');
+  const MAGIC_SOURCES = ['spell', 'Art', 'technoSpell'];
+  if (dmgShield && atkTags.includes('antiMagic') && MAGIC_SOURCES.includes(dmgShield.source)) {
+    addLog(`🔮 ${combatant.name}'s magical shield is dispelled by Anti-Magic!`, 'info');
+    combatant.statusEffects = combatant.statusEffects.filter(e => e !== dmgShield);
+    updateCombatantCardDOM(combatant);
+    // fall through — damage is not absorbed
+  } else if (dmgShield && amount > 0 && !atkTags.includes('unblockabled')) {
+    const absorbed = Math.min(dmgShield.shieldHp, amount);
+    dmgShield.shieldHp -= absorbed;
+    amount -= absorbed;
+    const isChains = dmgShield.name === 'chains_of_apophis';
+    addLog(`${isChains ? '⛓' : '🛡'} ${combatant.name}'s ${isChains ? 'Chains of Apophis absorb' : 'shield absorbs'} ${absorbed}! (${dmgShield.shieldHp} HP left)`, 'spell');
+    if (dmgShield.shieldHp <= 0) {
+      combatant.statusEffects = combatant.statusEffects.filter(e => e !== dmgShield);
+      addLog(isChains ? `⛓ Chains of Apophis shattered!` : `🛡 ${combatant.name}'s shield is destroyed!`, 'spell');
+    }
+    if (amount <= 0) { updateCombatantCardDOM(combatant); return; }
+  }
+  // Immunity check — match against primary damType OR any tag in the attack's tag list
+  const matchedImmunity = combatant.sourceChar.immunities?.find(
+    imm => (damType && imm.toLowerCase() === damType.toLowerCase())
+           || atkTags.some(t => t.toLowerCase() === imm.toLowerCase())
+  );
+  if (matchedImmunity) {
+    addLog(`🛡 ${combatant.name} is immune to ${matchedImmunity}!`, 'info');
+    return;
+  }
+  // Conditional incoming damage reduction passives (e.g. Magic Resist -10, Wind Body -20)
+  for (const p of combatant.sourceChar.passif ?? []) {
+    if (!p.applyOn?.includes('incomingDam') || !p.dices || !p.condition?.incomingHasTag || amount <= 0) continue;
+    const condTag = p.condition.incomingHasTag.toLowerCase();
+    const matches = damType?.toLowerCase() === condTag || atkTags.some(t => t.toLowerCase() === condTag);
+    if (!matches) continue;
+    const r = parseDice(p.dices);
+    if (r.total >= 0) continue;
+    const before = amount;
+    amount = Math.max(0, amount + r.total);
+    addLog(`🛡 ${combatant.name}'s "${p.nom}" reduces incoming damage by ${before - amount}! (${before} → ${amount})`, 'info');
+  }
+  // Unkillable / incoming-damage reduction passives
+  for (const p of combatant.sourceChar.passif ?? []) {
+    if (p.applyOn?.includes('incomingDam') && p.condition?.incomingIsLethal && p.dices) {
+      if (amount >= combatant.currentHp) {
+        const reduced = parseDice(p.dices);
+        amount = Math.min(amount, reduced.total);
+        addLog(`🛡 ${combatant.name}'s "${p.nom}" reduces the lethal hit! [${reduced.breakdown}]`, 'info');
+      }
+    }
+  }
   const dmg = Math.max(0, amount);
   combatant.currentHp = Math.max(0, combatant.currentHp - dmg);
   if (combatant.currentHp <= 0 && !combatant.isKO) {
-    combatant.isKO = true;
-    addLog(`💀 ${combatant.name} is KO!`, 'death');
+    const resAb = combatant.abilities.find(a =>
+      a.name === 'Resurrection' && a.isOncePerFight && !combatant.usedThisFight.includes('Resurrection')
+    );
+    if (resAb) {
+      combatant.currentHp = 150;
+      combatant.usedThisFight.push('Resurrection');
+      addLog(`💀✨ ${combatant.name} RESURRECTS with 150 HP — Final Reckoning activates!`, 'crit');
+      combatant.statusEffects.push({ name: 'final_reckoning', turnsLeft: 999, dice: '2d12', damType: null, notes: '+2d12 atk bonus' });
+    } else {
+      combatant.isKO = true;
+      addLog(`💀 ${combatant.name} is KO!`, 'death');
+    }
   }
   updateCombatantCardDOM(combatant);
 }
 
-/**
- * Apply one or more status effects from a raw string like "1d2 burn" or "burn, 1d2 para".
- * Parses a "XdY effectName" prefix to roll duration.
- */
 function applyStatus(combatant, effectStr, defaultTurns = 2) {
   if (!effectStr) return;
+  if (combatant.sourceChar.immunities?.some(imm => imm.toLowerCase() === 'status')) {
+    addLog(`🛡 ${combatant.name} is immune to all status effects!`, 'info');
+    return;
+  }
   for (const part of String(effectStr).split(',')) {
     const p = part.trim();
     if (!p) continue;
-    // "1d2 burn" → duration rolled, "burn" → defaultTurns
-    const durMatch = p.match(/^(\d+d\d+)\s+(.+)$/i);
-    const effName = durMatch ? durMatch[2].trim() : p;
-    const turns = durMatch ? Math.max(1, parseDice(durMatch[1]).total) : defaultTurns;
-    const eff = findEffect(effName);
-    const existing = combatant.statusEffects.find(
-      e => e.name.toLowerCase() === effName.toLowerCase()
-    );
+    // "1dN effect" = 1/N probability check; succeed only on max roll (N)
+    const probMatch = p.match(/^1d(\d+)\s+(.+)$/i);
+    const effName   = probMatch ? probMatch[2].trim() : p;
+    if (probMatch) {
+      const sides = parseInt(probMatch[1]);
+      const roll  = Math.floor(Math.random() * sides) + 1;
+      if (roll < sides) {
+        addLog(`${combatant.name} resists ${effName}. (${roll}/${sides})`, 'info');
+        continue;
+      }
+    }
+    const turns = defaultTurns;
+
+    // Immunity check
+    if (combatant.sourceChar.immunities?.some(
+      imm => imm.toLowerCase() === effName.toLowerCase()
+    )) {
+      addLog(`🛡 ${combatant.name} is immune to ${effName}!`, 'info');
+      continue;
+    }
+
+    const eff      = findEffect(effName);
+    const existing = combatant.statusEffects.find(e => e.name.toLowerCase() === effName.toLowerCase());
     if (existing) {
       existing.turnsLeft = Math.max(existing.turnsLeft, turns);
     } else {
       combatant.statusEffects.push({
-        name:     eff ? eff.name : effName,
+        name:      eff ? eff.name : effName,
         turnsLeft: turns,
-        dice:     eff?.dice ?? null,
-        damType:  eff?.type ?? '—',
-        notes:    eff?.notes ?? '',
+        dice:      eff?.dice ?? null,
+        damType:   eff?.type ?? '—',
+        notes:     eff?.notes ?? '',
       });
       addLog(`${combatant.name} is now affected by ${eff ? eff.name : effName} (${turns}t)!`, 'status');
     }
   }
 }
 
-/**
- * Tick DoT effects, ki regen, cooldowns at turn start.
- * Returns true if the combatant survived (false if DoT killed them).
- */
 function tickTurn(c) {
-  const dotNames = ['burn', 'toxic', 'toxic shock', 'bleed', 'hemoragie'];
-  const expired = [];
+  const dotNames  = ['burn', 'toxic', 'toxic shock', 'bleed', 'hemoragie'];
+  const regenNames = ['regen', 'domain regen', 'regeneration'];
+  const expired   = [];
 
   for (const eff of c.statusEffects) {
     const n = eff.name.toLowerCase();
+    // DoT effects
     if (dotNames.includes(n) && eff.dice && eff.dice !== '—') {
       const r = parseDice(eff.dice);
-      applyDamage(c, r.total);
+      applyDamage(c, r.total, eff.damType);
       addLog(`${c.name} takes ${r.total} ${eff.damType} from ${eff.name}. (${r.breakdown})`, 'status');
       if (c.isKO) return false;
+    }
+    // Regen effects
+    if (regenNames.some(rn => n.includes(rn)) && eff.dice && eff.dice !== '—') {
+      applyHeal(c, eff.dice);
     }
     eff.turnsLeft--;
     if (eff.turnsLeft <= 0) expired.push(eff.name);
@@ -545,51 +913,127 @@ function tickTurn(c) {
   for (const n of expired) addLog(`${c.name}'s ${n} wears off.`, 'info');
 
   // Ki regen
-  if (c.kiRegen > 0 && c.ki < c.maxKi) {
-    c.ki = Math.min(c.maxKi, c.ki + c.kiRegen);
-  }
+  if (c.kiRegen > 0 && c.ki < c.maxKi) c.ki = Math.min(c.maxKi, c.ki + c.kiRegen);
 
   // Cooldowns
-  for (const key of Object.keys(c.cooldowns)) {
-    c.cooldowns[key] = Math.max(0, c.cooldowns[key] - 1);
-  }
+  for (const key of Object.keys(c.cooldowns)) c.cooldowns[key] = Math.max(0, c.cooldowns[key] - 1);
   return true;
 }
 
-/**
- * Resolve an attack roll (d20 vs d20).
- * Returns { hit, crit, fumble, damage, atkRoll, defRoll, breakdown }.
- */
+function applyHpPerHitPassives(combatant) {
+  for (const p of combatant.sourceChar.passif ?? []) {
+    if (!p.applyOn?.includes('hpPerHit') || !p.dices) continue;
+    const r = parseDice(p.dices);
+    applyHeal(combatant, p.dices);
+    addLog(`  💚 ${combatant.name} [${p.nom}] heals ${r.total} HP! (${combatant.currentHp}/${combatant.maxHp})`, 'heal');
+  }
+}
+
+function removeFlying(target) {
+  const idx = target.statusEffects.findIndex(e => e.name.toLowerCase() === 'fly');
+  if (idx !== -1) {
+    target.statusEffects.splice(idx, 1);
+    addLog(`⬇ ${target.name} is grounded — fly removed!`, 'status');
+    updateCombatantCardDOM(target);
+  }
+}
+
+function applyCleanse(target) {
+  const NEGATIVE = ['para','gel','freeze','burn','bleed','stun','root','fear','silence','blind','toxic','poison'];
+  const removed = target.statusEffects.filter(e => NEGATIVE.some(n => e.name.toLowerCase().includes(n)));
+  target.statusEffects = target.statusEffects.filter(e => !NEGATIVE.some(n => e.name.toLowerCase().includes(n)));
+  if (removed.length > 0)
+    addLog(`✨ ${target.name}'s ${removed.map(e => e.name).join(', ')} cleansed!`, 'heal');
+  else
+    addLog(`✨ ${target.name} has no debuffs to cleanse.`, 'info');
+  updateCombatantCardDOM(target);
+}
+
+// Determine primary damage type from a tags array
+function damTypeFromTags(tags) {
+  const dmgTags = ['fire','ice','lightning','physical','magic','earth','water','necro','psy','runik','radiant'];
+  return tags.find(t => dmgTags.includes(t)) ?? null;
+}
+
 function resolveAttack(attacker, defender, diceExpr) {
   const atkRoll = rollD20();
   const defRoll = rollD20();
-  const hit    = atkRoll.isNat20 || (!atkRoll.isNat1 && atkRoll.value >= defRoll.value);
+
+  // Apply defender's defRoll passives
+  let defBonus = 0;
+  for (const p of defender.sourceChar.passif ?? []) {
+    if (!p.applyOn?.includes('defRoll') || !p.dices) continue;
+    let applies = !p.condition;
+    if (p.condition?.allyKO)
+      applies = S.combatants.some(c => c.teamIndex === defender.teamIndex && c.isKO);
+    if (applies) defBonus += parseDice(p.dices).total;
+  }
+  const effectiveDefRoll = defRoll.value + defBonus;
+
+  const hit    = atkRoll.isNat20 || (!atkRoll.isNat1 && atkRoll.value >= effectiveDefRoll);
   const crit   = atkRoll.isNat20;
   const fumble = atkRoll.isNat1;
 
   let damage = 0, breakdown = '—';
 
   if (hit && !fumble) {
-    // Extract dice from attack string, stripping weapon name prefix
-    const raw = diceExpr || attacker.sourceChar.attack || '1d4';
-    const diceOnly = raw.split(',')[0].replace(/^[a-zA-Z\s''-]+(?=\d)/i, '').trim();
-    const rolled = parseDice(diceOnly || '1d4');
-    damage    = crit ? rolled.total * 2 : rolled.total;
-    breakdown = crit ? `CRIT ×2: ${rolled.breakdown} = ${damage}` : `${rolled.breakdown} = ${damage}`;
+    const raw = diceExpr || (attacker.transformedBaseAtk?.dices ?? attacker.sourceChar.baseAtk?.dices) || '1d4';
+    const rolled = parseDice(raw);
+
+    // Apply atkRoll passives
+    let passiveBonus = 0;
+    const passiveParts = [];
+    for (const p of attacker.sourceChar.passif ?? []) {
+      if (!p.applyOn?.includes('atkRoll') || !p.dices) continue;
+      let applies = !p.condition;
+      if (p.condition?.targetMoreHp) applies = defender.currentHp > attacker.currentHp;
+      else if (p.condition?.allyKO)  applies = S.combatants.some(c => c.teamIndex === attacker.teamIndex && c.isKO);
+      // Other conditions ignored (too system-specific)
+      if (applies) {
+        const pr = parseDice(p.dices);
+        passiveBonus += pr.total;
+        passiveParts.push(`${p.nom}[${pr.breakdown}]`);
+      }
+    }
+
+    const frStatus = attacker.statusEffects.find(e => e.name === 'final_reckoning');
+    if (frStatus?.dice) {
+      const fr = parseDice(frStatus.dice);
+      passiveBonus += fr.total;
+      passiveParts.push(`FinalReckoning[${fr.breakdown}]`);
+    }
+
+    const precastSt = attacker.statusEffects.find(e => e.name === 'runik_precast');
+    if (precastSt?.dice) {
+      const pr = parseDice(precastSt.dice);
+      passiveBonus += pr.total;
+      passiveParts.push(`RuniquePrecast[${pr.breakdown}]`);
+      attacker.statusEffects = attacker.statusEffects.filter(e => e !== precastSt);
+    }
+
+    const baseTotal = rolled.total + passiveBonus;
+    damage    = crit ? baseTotal * 2 : baseTotal;
+    const passiveStr = passiveParts.length ? ` + ${passiveParts.join(' ')}` : '';
+    breakdown = crit
+      ? `CRIT ×2: ${rolled.breakdown}${passiveStr} = ${damage}`
+      : `${rolled.breakdown}${passiveStr} = ${damage}`;
   }
 
-  return { hit, crit, fumble, damage, atkRoll: atkRoll.value, defRoll: defRoll.value, breakdown };
+  return { hit, crit, fumble, damage, atkRoll: atkRoll.value, defRoll: defRoll.value, effectiveDefRoll, breakdown };
 }
 
 function logAttackResult(atk, def, r) {
+  const defStr = r.effectiveDefRoll !== r.defRoll
+    ? `${r.defRoll}+${r.effectiveDefRoll - r.defRoll}=${r.effectiveDefRoll}`
+    : String(r.defRoll);
   if (r.crit) {
-    addLog(`⚔ CRITICAL! ${atk.name} rolls 20 vs ${def.name}'s ${r.defRoll}. ${r.breakdown}`, 'crit');
+    addLog(`⚔ CRITICAL! ${atk.name} rolls 20 vs ${def.name}'s ${defStr}. ${r.breakdown}`, 'crit');
   } else if (r.fumble) {
     addLog(`💥 FUMBLE! ${atk.name} rolls 1 — ${def.name} gets a free counter-attack!`, 'miss');
   } else if (r.hit) {
-    addLog(`${atk.name} hits ${def.name}! (${r.atkRoll} ≥ ${r.defRoll}) ${r.breakdown}`, 'hit');
+    addLog(`${atk.name} hits ${def.name}! (${r.atkRoll} ≥ ${defStr}) ${r.breakdown}`, 'hit');
   } else {
-    addLog(`${atk.name} misses ${def.name}. (${r.atkRoll} < ${r.defRoll})`, 'miss');
+    addLog(`${atk.name} misses ${def.name}. (${r.atkRoll} < ${defStr})`, 'miss');
   }
 }
 
@@ -599,9 +1043,6 @@ function checkVictory() {
   return null;
 }
 
-/**
- * Returns available react/instant/block abilities of a combatant.
- */
 function getReacts(target) {
   return target.abilities.filter(ab => {
     if (!ab.isReact && !ab.isInstant && !ab.isBlock) return false;
@@ -612,12 +1053,12 @@ function getReacts(target) {
 
 function spendResource(c, ab) {
   if (!ab.cost) return;
-  if (ab.cost.type === 'ki')    c.ki    = Math.max(0, c.ki    - ab.cost.amount);
+  if (ab.cost.type === 'ki')    c.ki         = Math.max(0, c.ki    - ab.cost.amount);
   if (ab.cost.type === 'slots') c.spellSlots = Math.max(0, c.spellSlots - ab.cost.amount);
-  if (ab.cost.type === 'souls') c.souls = Math.max(0, c.souls - ab.cost.amount);
+  if (ab.cost.type === 'souls') c.souls      = Math.max(0, c.souls - ab.cost.amount);
 }
 
-// ── §8  Action Handlers ────────────────────────────────────────────────────
+// ── §10  Action Handlers ───────────────────────────────────────────────────
 
 function handlePass() {
   addLog(`${activeCombatant().name} passes.`, 'info');
@@ -628,8 +1069,8 @@ function handleAttack(attackerId, defenderId) {
   const atk = getCombatant(attackerId);
   const def = getCombatant(defenderId);
   if (!atk || !def || def.isKO) return;
+  if (S.hasActed) { addLog('You have already acted this turn!', 'info'); return; }
 
-  // Range check — does not consume the turn on failure
   if (S.currentMap) {
     const range = targetInRange(atk, def, null);
     if (!range.inRange) {
@@ -638,6 +1079,18 @@ function handleAttack(attackerId, defenderId) {
     }
   }
 
+  // Pre-armed shield: auto-block before roll
+  const preShield = def.statusEffects.find(e => e.name.toLowerCase() === 'water_shield');
+  if (preShield) {
+    S.hasActed = true;
+    addLog(`🛡 ${def.name}'s pre-armed shield blocks ${atk.name}'s attack!`, 'spell');
+    def.statusEffects = def.statusEffects.filter(e => e !== preShield);
+    updateCombatantCardDOM(def);
+    renderCombatScreen();
+    return;
+  }
+
+  S.hasActed = true;
   const result = resolveAttack(atk, def, null);
   S.pendingAction = { type: 'attack', attackerId, defenderId, result };
 
@@ -655,39 +1108,134 @@ function handleCastAbility(casterId, abilityName, targetIds) {
   const caster  = getCombatant(casterId);
   const ability = caster?.abilities.find(a => a.name === abilityName);
   if (!ability || !abilityAvailable(caster, ability)) return;
+  if (S.hasActed && !ability.isInstant) { addLog('You have already acted this turn!', 'info'); return; }
 
   const targets = targetIds.map(id => getCombatant(id)).filter(t => t && !t.isKO);
 
-  // Range check BEFORE spending resources (non-AoE only)
-  if (S.currentMap && !ability.isAoe && targets.length > 0) {
+  // Range check for single-target (not AoE/cone/splash, not self, enemy)
+  const needsRangeCheck = !ability.isAoe && !ability.isCone && ability.targetKind === 'enemy';
+  if (S.currentMap && needsRangeCheck && targets.length > 0) {
     const range = targetInRange(caster, targets[0], ability);
     if (!range.inRange) {
       addLog(`⚠ ${ability.name} can't reach ${targets[0].name}! (${range.reason})`, 'info');
       return;
     }
   }
+  // Guard: no valid target for single-target abilities
+  if (!ability.isAoe && !ability.isCone && ability.targetKind !== 'self' && ability.targetKind !== 'ally' && !ability.isSplash && targets.length === 0) {
+    addLog(`No valid target selected.`, 'info');
+    return;
+  }
 
-  // Spend resources after range is confirmed
+  // Spend resources
   spendResource(caster, ability);
   if (ability.cooldownTurns > 0) caster.cooldowns[ability.name] = ability.cooldownTurns;
   if (ability.isOncePerFight) caster.usedThisFight.push(ability.name);
+  if (ability.maxCharges > 0) {
+    if (caster.remainingCharges[ability.name] == null) caster.remainingCharges[ability.name] = ability.maxCharges;
+    caster.remainingCharges[ability.name]--;
+  }
+
+  if (!ability.isInstant) S.hasActed = true;
 
   addLog(`${caster.name} uses ${ability.name}!`, ability.source === 'spell' ? 'spell' : 'tech');
 
-  // AoE: apply to all targets without attack roll (hits automatically)
+  // AoE: give each hit target their own sequential react prompt
   if (ability.isAoe) {
-    S.pendingAction = { type: 'aoe', casterId, abilityName, targetIds, ability };
+    S.pendingAction = { type: 'aoe', casterId, abilityName, targetIds, ability, reactorId: null, reactedIds: [], blockedIds: [] };
+    const firstReactor = ability.tags?.includes('unblockabled') ? null : targets.find(t => getReacts(t).length > 0);
+    if (firstReactor) {
+      S.pendingAction.reactorId = firstReactor.id;
+      S.pendingAction.reactedIds.push(firstReactor.id);
+      S.awaitingReact = true;
+      S.reactOptions  = getReacts(firstReactor).map(ab => ({ combatantId: firstReactor.id, ability: ab }));
+      renderReactOverlay();
+      return;
+    }
     resumePendingAction(null);
     return;
   }
 
-  // Single-target: roll attack
+  // Cone: same sequential react model as AoE
+  if (ability.isCone) {
+    S.pendingAction = { type: 'cone', casterId, abilityName, targetIds, ability, reactorId: null, reactedIds: [], blockedIds: [] };
+    const firstReactor = ability.tags?.includes('unblockabled') ? null : targets.find(t => getReacts(t).length > 0);
+    if (firstReactor) {
+      S.pendingAction.reactorId = firstReactor.id;
+      S.pendingAction.reactedIds.push(firstReactor.id);
+      S.awaitingReact = true;
+      S.reactOptions  = getReacts(firstReactor).map(ab => ({ combatantId: firstReactor.id, ability: ab }));
+      renderReactOverlay();
+      return;
+    }
+    resumePendingAction(null);
+    return;
+  }
+
+  // Splash: mono-target + AoE around primary
+  if (ability.isSplash) {
+    const target = targets[0];
+    if (!target) { addLog(`No valid target selected.`, 'info'); return; }
+    const result = ability.dice
+      ? resolveAttack(caster, target, ability.dice)
+      : { hit: true, crit: false, fumble: false, damage: 0, atkRoll: '—', defRoll: '—', effectiveDefRoll: '—', breakdown: '—' };
+    S.pendingAction = { type: 'splash', casterId, abilityName, targetIds: [target.id], result, ability };
+    const reacts = getReacts(target);
+    if (reacts.length > 0) {
+      S.awaitingReact = true;
+      S.reactOptions  = reacts.map(ab => ({ combatantId: target.id, ability: ab }));
+      renderReactOverlay();
+      return;
+    }
+    resumePendingAction(null);
+    return;
+  }
+
+  // Bounce / chain
+  if (ability.maxBounce > 0) {
+    S.pendingAction = { type: 'bounce', casterId, abilityName, targetIds, ability };
+    resumePendingAction(null);
+    return;
+  }
+
+  // Self-targeting: resolve immediately (teleportation: open teleport aim mode instead)
+  if (ability.targetKind === 'self') {
+    if (ability.tags?.includes('teleportation') && S.currentMap) {
+      enterTeleportMode(caster, ability.range ?? SPELL_RANGE);
+      return;
+    }
+    S.pendingAction = { type: 'ability', casterId, abilityName, targetIds: [casterId], result: { hit: true, crit: false, fumble: false, damage: 0, atkRoll: '—', defRoll: '—', effectiveDefRoll: '—', breakdown: '—' }, ability };
+    resumePendingAction(null);
+    return;
+  }
+
+  // Pure heal: no attack roll
+  const isPureHeal = ability.targetKind === 'ally';
+  if (isPureHeal) {
+    const target = targets[0];
+    if (!target) { addLog(`No valid target selected.`, 'info'); return; }
+    S.pendingAction = { type: 'ability', casterId, abilityName, targetIds: [target.id], result: { hit: true, crit: false, fumble: false, damage: 0, atkRoll: '—', defRoll: '—', effectiveDefRoll: '—', breakdown: '—' }, ability };
+    resumePendingAction(null);
+    return;
+  }
+
+  // Single-target damage: attack roll
   const target = targets[0];
-  if (!target) { advanceTurn(); return; }
+  if (!target) { addLog(`No valid target selected.`, 'info'); return; }
+
+  // Pre-armed shield on target: auto-block the spell
+  const preShieldSpell = target.statusEffects.find(e => e.name.toLowerCase() === 'water_shield');
+  if (preShieldSpell) {
+    addLog(`🛡 ${target.name}'s pre-armed shield blocks ${caster.name}'s ${ability.name}!`, 'spell');
+    target.statusEffects = target.statusEffects.filter(e => e !== preShieldSpell);
+    updateCombatantCardDOM(target);
+    renderCombatScreen();
+    return;
+  }
 
   const result = ability.dice
     ? resolveAttack(caster, target, ability.dice)
-    : { hit: true, crit: false, fumble: false, damage: 0, atkRoll: '—', defRoll: '—', breakdown: '—' };
+    : { hit: true, crit: false, fumble: false, damage: 0, atkRoll: '—', defRoll: '—', effectiveDefRoll: '—', breakdown: '—' };
 
   S.pendingAction = { type: 'ability', casterId, abilityName, targetIds: [target.id], result, ability };
 
@@ -701,14 +1249,102 @@ function handleCastAbility(casterId, abilityName, targetIds) {
   resumePendingAction(null);
 }
 
+function handleTransform(casterId) {
+  const c  = getCombatant(casterId);
+  const tf = c?.sourceChar.transformation;
+  if (!c || !tf || c.isTransformed) return;
+  if (S.hasActed) { addLog('You have already acted this turn!', 'info'); return; }
+
+  // Check once-per-fight
+  if (c.usedThisFight.includes(tf.base.nom)) {
+    addLog(`${c.name} has already transformed this fight!`, 'info'); return;
+  }
+
+  c.isTransformed = true;
+  c.usedThisFight.push(tf.base.nom);
+  S.hasActed = true;
+
+  if (tf.hp > 0) {
+    c.maxHp     += tf.hp;
+    c.currentHp  = Math.min(c.maxHp, c.currentHp + tf.hp);
+  }
+  if (tf.spellSlot > 0) {
+    c.spellSlots    += tf.spellSlot;
+    c.maxSpellSlots += tf.spellSlot;
+  }
+  if (tf.speed) c.speed = tf.speed;
+  if (tf.baseAtk) c.transformedBaseAtk = tf.baseAtk;
+
+  // Merge abilities: keep originals, add transformation's unique moves (tf version wins on name clash)
+  const tfAbilities = resolveAbilitiesFromList(tf.moveSet);
+  const tfNames     = new Set(tfAbilities.map(a => a.name));
+  const baseAbilities = c.abilities.filter(a => !a.isTransform && !tfNames.has(a.name));
+  c.abilities = [...baseAbilities, ...tfAbilities];
+
+  addLog(`✨ ${c.name} transforms into ${tf.base.nom}!`, 'crit');
+  if (tf.hp > 0) addLog(`  +${tf.hp} max HP. Now ${c.currentHp}/${c.maxHp}.`, 'crit');
+  updateCombatantCardDOM(c);
+  renderCombatScreen();
+}
+
+function handleActivateDomain(casterId) {
+  const c      = getCombatant(casterId);
+  const domain = c?.sourceChar.domain;
+  if (!c || !domain || c.domainActive) return;
+  if (S.hasActed) { addLog('You have already acted this turn!', 'info'); return; }
+  if (c.spellSlots < domain.spellCost) {
+    addLog(`⚠ ${c.name} needs ${domain.spellCost} spell slots for ${domain.name}!`, 'info'); return;
+  }
+
+  c.spellSlots  -= domain.spellCost;
+  c.domainActive = true;
+  S.hasActed     = true;
+
+  addLog(`🌐 ${c.name} activates Domain: ${domain.name}!`, 'crit');
+  addLog(`  "${domain.description}"`, 'spell');
+
+  for (const eff of domain.effects ?? []) {
+    const diceStr = eff.dices ? ` ${eff.dices}` : '';
+    addLog(`  • ${eff.nom}${diceStr} [${eff.tags?.join(', ')}]`, 'spell');
+
+    // Apply per-turn regen to affected targets
+    if (eff.applyOn?.includes('hpPerTurn') && eff.dices) {
+      const targets = eff.target === 'allies'
+        ? livingCombatants(c.teamIndex)
+        : [c];
+      for (const t of targets) {
+        applyStatus(t, 'regen', 999);
+        // Patch the newly-added regen with the correct dice
+        const re = t.statusEffects.find(e => e.name.toLowerCase() === 'regen');
+        if (re) re.dice = eff.dices;
+      }
+    }
+  }
+
+  updateCombatantCardDOM(c);
+  renderCombatScreen();
+}
+
 function handleReactYes() {
   const selectedName = document.querySelector('.react-ability-option.is-selected')?.dataset.abilityName
     ?? S.reactOptions[0]?.ability.name;
-  const option = S.reactOptions.find(o => o.ability.name === selectedName) ?? S.reactOptions[0];
+  const option       = S.reactOptions.find(o => o.ability.name === selectedName) ?? S.reactOptions[0];
+  const reactAbility = option?.ability ?? null;
   document.getElementById('react-overlay')?.remove();
   S.awaitingReact = false;
   S.reactOptions  = [];
-  resumePendingAction(option?.ability ?? null);
+
+  // Teleportation react: open teleport aim mode, resolve attack after blink
+  if (reactAbility?.tags?.includes('teleportation') && S.currentMap) {
+    const reactor = getCombatant(option.combatantId);
+    if (reactor) {
+      spendResource(reactor, reactAbility);
+      S.pendingTeleportReact = reactAbility;
+      enterTeleportMode(reactor, reactAbility.range ?? SPELL_RANGE);
+      return;
+    }
+  }
+  resumePendingAction(reactAbility);
 }
 
 function handleReactNo() {
@@ -718,32 +1354,95 @@ function handleReactNo() {
   resumePendingAction(null);
 }
 
-/**
- * Resolve the pending action, optionally applying a react ability first.
- * reactAbility = null → no react chosen.
- */
 function resumePendingAction(reactAbility) {
   const action = S.pendingAction;
   S.pendingAction = null;
-
   if (!action) { advanceTurn(); return; }
 
   let blocked = false;
 
   // ── React resolution ──────────────────────────────────────────────────
   if (reactAbility) {
-    const reactorId = action.defenderId ?? action.targetIds?.[0];
+    const reactorId = action.defenderId ?? action.reactorId ?? action.targetIds?.[0];
     const reactor   = getCombatant(reactorId);
     if (reactor) {
       spendResource(reactor, reactAbility);
       if (reactAbility.cooldownTurns > 0) reactor.cooldowns[reactAbility.name] = reactAbility.cooldownTurns;
       if (reactAbility.isOncePerFight) reactor.usedThisFight.push(reactAbility.name);
+      if (reactAbility.maxCharges > 0) {
+        if (reactor.remainingCharges[reactAbility.name] == null) reactor.remainingCharges[reactAbility.name] = reactAbility.maxCharges;
+        reactor.remainingCharges[reactAbility.name]--;
+      }
 
-      if (reactAbility.isBlock) {
-        addLog(`🛡 ${reactor.name} blocks with ${reactAbility.name}! Attack negated!`, 'spell');
+      if (reactAbility.tags?.includes('reflect')) {
+        const attackerId = action.attackerId ?? action.casterId;
+        const attacker   = getCombatant(attackerId);
+        if (attacker && action.result?.damage > 0) {
+          const reflectDmg = action.result.damage * 2;
+          addLog(`🪞 ${reactor.name} reflects the attack! ${attacker.name} takes ${reflectDmg}!`, 'crit');
+          applyDamage(attacker, reflectDmg, damTypeFromTags(reactAbility.tags), reactAbility.tags);
+        } else {
+          addLog(`🪞 ${reactor.name} reflects the attack!`, 'crit');
+        }
         blocked = true;
+      } else if (reactAbility.tags?.includes('half_phys')) {
+        reactor.statusEffects.push({ name: 'living_blade_armor', turnsLeft: 1, dice: null, damType: null, notes: '' });
+        addLog(`⚔ ${reactor.name} raises Living Blade Armor — halves next physical hit!`, 'spell');
+        updateCombatantCardDOM(reactor);
+        // blocked stays false — attack proceeds with halved physical damage via applyDamage
+      } else if (reactAbility.tags?.includes('teleportation')) {
+        addLog(`✦ ${reactor.name} blinks away — attack misses!`, 'spell');
+        blocked = true;
+      } else if (reactAbility.isBlock) {
+        if (reactAbility.tags?.includes('chains')) {
+          // Chains of Apophis: persistent absorb shield (Authority 8 HP), attack passes through it
+          let chainsEff = reactor.statusEffects.find(e => e.name === 'chains_of_apophis');
+          if (!chainsEff) {
+            chainsEff = { name: 'chains_of_apophis', turnsLeft: 999, shieldHp: 8, dice: null, damType: null, notes: '' };
+            reactor.statusEffects.push(chainsEff);
+          } else {
+            chainsEff.shieldHp = 8;
+          }
+          addLog(`⛓ ${reactor.name}'s Chains of Apophis intercept the attack! (${chainsEff.shieldHp} HP)`, 'spell');
+          updateCombatantCardDOM(reactor);
+          // blocked stays false — attack damage is absorbed by chains in applyDamage
+        } else if (reactAbility.dice && !reactAbility.tags?.includes('regen') && !reactAbility.tags?.includes('heal')) {
+          // Dice-block: create absorb shield, let attack through
+          const shieldHp = parseDice(reactAbility.dice).total;
+          reactor.statusEffects.push({ name: 'damage_shield', turnsLeft: 999, shieldHp, dice: null, damType: null, notes: '', source: reactAbility.source });
+          addLog(`🛡 ${reactor.name} raises ${reactAbility.name} — ${shieldHp} HP absorb shield!`, 'spell');
+          updateCombatantCardDOM(reactor);
+          // blocked stays false — attack hits the shield via applyDamage
+        } else {
+          addLog(`🛡 ${reactor.name} blocks with ${reactAbility.name}!`, 'spell');
+          if (reactAbility.tags?.includes('cleans')) applyCleanse(reactor);
+          if (reactAbility.dice) {
+            if (reactAbility.tags?.includes('regen')) {
+              applyStatus(reactor, 'regen');
+              const re = reactor.statusEffects.find(e => e.name.toLowerCase() === 'regen');
+              if (re) re.dice = reactAbility.dice;
+              addLog(`  💚 ${reactor.name} regenerates ${reactAbility.dice}/turn!`, 'heal');
+            } else if (reactAbility.tags?.includes('heal')) {
+              applyHeal(reactor, reactAbility.dice);
+            }
+          }
+          blocked = true;
+          // AoE/cone: record who is blocked (Eternal Bloom protects whole team; others are individual)
+          if (action.type === 'aoe' || action.type === 'cone') {
+            if (reactAbility.isAoe) {
+              // Eternal Bloom: shield every living ally
+              livingCombatants(reactor.teamIndex).forEach(a => {
+                if (!action.blockedIds.includes(a.id)) action.blockedIds.push(a.id);
+              });
+              addLog(`  ✦ Eternal Bloom shields the whole team!`, 'spell');
+            } else {
+              // Individual block: only the reactor is protected
+              if (!action.blockedIds.includes(reactor.id)) action.blockedIds.push(reactor.id);
+              addLog(`  (${reactor.name} only — others still take damage)`, 'info');
+            }
+          }
+        }
       } else {
-        // Dodge or counter-react
         addLog(`⚡ ${reactor.name} reacts: ${reactAbility.name}! ${reactAbility.desc}`, 'spell');
         if (reactAbility.dice) {
           const attackerId = action.attackerId ?? action.casterId;
@@ -751,12 +1450,30 @@ function resumePendingAction(reactAbility) {
           if (attacker) {
             const r = parseDice(reactAbility.dice);
             addLog(`${reactor.name}'s react deals ${r.total} to ${attacker.name}! (${r.breakdown})`, 'hit');
-            applyDamage(attacker, r.total);
+            applyDamage(attacker, r.total, damTypeFromTags(reactAbility.tags), reactAbility.tags);
           }
         }
-        blocked = true; // dodged / counter negates original
+        blocked = true;
       }
     }
+  }
+
+  // ── AoE/cone: find next un-reacted target, or proceed to damage ──────
+  if ((action.type === 'aoe' || action.type === 'cone') && reactAbility) {
+    const allT = action.targetIds.map(id => getCombatant(id)).filter(t => t && !t.isKO);
+    const next  = allT.find(t => !action.reactedIds.includes(t.id) && getReacts(t).length > 0);
+    if (next) {
+      action.reactorId = next.id;
+      action.reactedIds.push(next.id);
+      S.pendingAction = action;
+      S.awaitingReact = true;
+      S.reactOptions  = getReacts(next).map(ab => ({ combatantId: next.id, ability: ab }));
+      renderReactOverlay();
+      return; // wait for this reactor before applying damage
+    }
+    // All targets have had their react chance — proceed to damage with blocked = false
+    // (individual blocks are already tracked in action.blockedIds)
+    blocked = false;
   }
 
   // ── Apply original action ─────────────────────────────────────────────
@@ -767,52 +1484,241 @@ function resumePendingAction(reactAbility) {
       if (atk && def) {
         logAttackResult(atk, def, action.result);
         if (action.result.hit && !action.result.fumble) {
+          const atkTags = atk.transformedBaseAtk?.tags ?? atk.sourceChar.baseAtk?.tags ?? [];
+          const damType = damTypeFromTags(atkTags);
           addLog(`${def.name}: ${def.currentHp + action.result.damage} → ${Math.max(0, def.currentHp)}`, 'hit');
-          applyDamage(def, action.result.damage);
+          applyDamage(def, action.result.damage, damType, atkTags);
+          applyHpPerHitPassives(atk);
+          if (atkTags.includes('grounded')) removeFlying(def);
         }
         if (action.result.fumble) def.hasCounterAttack = true;
       }
+
     } else if (action.type === 'aoe') {
-      const caster  = getCombatant(action.casterId);
-      const ability = action.ability;
+      const caster    = getCombatant(action.casterId);
+      const ability   = action.ability;
       const allTargets = action.targetIds.map(id => getCombatant(id)).filter(t => t && !t.isKO);
-      addLog(`${caster.name}'s ${ability.name} strikes all enemies!`, 'spell');
+      const isPureHeal = ability.targetKind === 'ally';
+      // Consume Runique Precast once for the whole AoE cast
+      let precastBonus = 0;
+      const aoePrecast = caster?.statusEffects.find(e => e.name === 'runik_precast');
+      if (aoePrecast?.dice) {
+        const pr = parseDice(aoePrecast.dice);
+        precastBonus = pr.total;
+        caster.statusEffects = caster.statusEffects.filter(e => e !== aoePrecast);
+        addLog(`✦ ${caster.name}'s Runik Precast activates! (+${precastBonus})`, 'spell');
+      }
+      addLog(`${caster.name}'s ${ability.name} strikes all ${isPureHeal ? 'allies' : 'enemies'}!`, 'spell');
       for (const target of allTargets) {
+        if ((action.blockedIds ?? []).includes(target.id)) continue;
+        // Pre-armed full block auto-absorbs the hit
+        const fullBlock = target.statusEffects.find(e => e.name.toLowerCase() === 'water_shield');
+        if (fullBlock) {
+          addLog(`🛡 ${target.name}'s shield blocks the AoE!`, 'spell');
+          target.statusEffects = target.statusEffects.filter(e => e !== fullBlock);
+          updateCombatantCardDOM(target);
+          continue;
+        }
+        if (ability.tags?.includes('cleans')) applyCleanse(target);
+        if (ability.dice) {
+          if (isPureHeal) {
+            if (ability.tags?.includes('regen')) {
+              applyStatus(target, 'regen');
+              const re = target.statusEffects.find(e => e.name.toLowerCase() === 'regen');
+              if (re) re.dice = ability.dice;
+              addLog(`  ${target.name} regenerates ${ability.dice}/turn!`, 'heal');
+            } else {
+              applyHeal(target, ability.dice);
+            }
+          } else {
+            const rd = parseDice(ability.dice);
+            const damType = damTypeFromTags(ability.tags);
+            const totalDmg = rd.total + precastBonus;
+            addLog(`  ${target.name}: ${target.currentHp} → ${Math.max(0, target.currentHp - totalDmg)} (${totalDmg} dmg, ${rd.breakdown}${precastBonus ? ` +precast${precastBonus}` : ''})`, 'hit');
+            applyDamage(target, totalDmg, damType, ability.tags);
+            if (ability.isHeal) applyHeal(caster, String(totalDmg));
+            if (ability.tags?.includes('grounded')) removeFlying(target);
+          }
+        }
+        if (ability.effect) applyStatus(target, ability.effect);
+        // Slot regen (for ally AoE abilities like Arcane Canal)
+        if (isPureHeal && ability.slotRegen > 0) {
+          const gained = Math.min(ability.slotRegen, target.maxSpellSlots - target.spellSlots);
+          if (gained > 0) {
+            target.spellSlots += gained;
+            addLog(`  ✦ ${target.name} recovers ${gained} slot(s)! (${target.spellSlots}/${target.maxSpellSlots})`, 'heal');
+            updateCombatantCardDOM(target);
+          }
+        }
+      }
+
+    } else if (action.type === 'bounce') {
+      const caster   = getCombatant(action.casterId);
+      const ability  = action.ability;
+      if (!caster) return;
+      const damType  = damTypeFromTags(ability.tags);
+      const isAny    = ability.targetKind === 'any';
+      const hitTeam  = ability.targetKind === 'ally' ? caster.teamIndex : (caster.teamIndex === 0 ? 1 : 0);
+      const pool     = isAny
+        ? S.combatants.filter(c => c.id !== caster.id && !c.isKO)
+        : S.combatants.filter(c => c.teamIndex === hitTeam && !c.isKO);
+      const firstTarget = getCombatant(action.targetIds[0]) ?? pool[0];
+      if (!firstTarget) { advanceTurn(); return; }
+
+      addLog(`${caster.name} uses ${ability.name} — bouncing up to ${ability.maxBounce} targets!`, 'tech');
+      const visited = new Set([firstTarget.id]);
+      let current   = firstTarget;
+
+      for (let i = 0; i < ability.maxBounce; i++) {
+        if (!current || current.isKO) break;
+        const isAllyTarget = current.teamIndex === caster.teamIndex;
+        if (isAny && isAllyTarget) {
+          // Hybrid bounce: heal allies
+          const healed = parseDice(ability.dice);
+          addLog(`  💚 ${current.name} healed ${healed.total} HP (${healed.breakdown})!`, 'heal');
+          applyHeal(current, ability.dice);
+        } else {
+          const result = resolveAttack(caster, current, ability.dice);
+          logAttackResult(caster, current, result);
+          if (result.hit && !result.fumble && ability.dice) {
+            applyDamage(current, result.damage, damType, ability.tags);
+            if (ability.effect) applyStatus(current, ability.effect);
+            if (ability.tags?.includes('grounded')) removeFlying(current);
+          }
+          if (result.fumble) current.hasCounterAttack = true;
+        }
+
+        const next = pool
+          .filter(t => !visited.has(t.id) && !t.isKO)
+          .sort((a, b) => chebyshev(current, a) - chebyshev(current, b))
+          .find(t => !S.currentMap || chebyshev(current, t) <= ability.bounceRange);
+        if (!next) break;
+        visited.add(next.id);
+        addLog(`  ↩ Bounces to ${next.name}!`, 'tech');
+        current = next;
+      }
+
+    } else if (action.type === 'cone') {
+      const caster     = getCombatant(action.casterId);
+      const ability    = action.ability;
+      const allTargets = action.targetIds.map(id => getCombatant(id)).filter(t => t && !t.isKO);
+      addLog(`${caster.name}'s ${ability.name} sweeps in a cone!`, 'spell');
+      const damType = damTypeFromTags(ability.tags);
+      for (const target of allTargets) {
+        if ((action.blockedIds ?? []).includes(target.id)) continue;
         if (ability.dice) {
           const rd = parseDice(ability.dice);
-          addLog(`  ${target.name}: ${target.currentHp} → ${Math.max(0, target.currentHp - rd.total)} (${rd.total} dmg, ${rd.breakdown})`, 'hit');
-          applyDamage(target, rd.total);
+          addLog(`  ${target.name}: ${target.currentHp} → ${Math.max(0, target.currentHp - rd.total)} (${rd.total} dmg)`, 'hit');
+          applyDamage(target, rd.total, damType, ability.tags);
+          if (ability.tags?.includes('grounded')) removeFlying(target);
         }
         if (ability.effect) applyStatus(target, ability.effect);
       }
+
+    } else if (action.type === 'splash') {
+      const caster  = getCombatant(action.casterId);
+      const primary = getCombatant(action.targetIds[0]);
+      const ability = action.ability;
+      if (caster && primary) {
+        const damType = damTypeFromTags(ability.tags);
+        logAttackResult(caster, primary, action.result);
+        if (action.result.hit && !action.result.fumble && ability.dice) {
+          addLog(`${primary.name}: ${primary.currentHp + action.result.damage} → ${Math.max(0, primary.currentHp)} (${action.result.breakdown})`, 'hit');
+          applyDamage(primary, action.result.damage, damType, ability.tags);
+          if (action.result.fumble) primary.hasCounterAttack = true;
+          // Splash radius — hit all OTHER living enemies within radius
+          if (ability.radius > 0) {
+            const splashTeam  = caster.teamIndex === 0 ? 1 : 0;
+            const splashTargets = livingCombatants(splashTeam)
+              .filter(t => t.id !== primary.id && chebyshev(primary, t) <= ability.radius);
+            if (splashTargets.length > 0) {
+              addLog(`  Splash radius ${ability.radius} hits ${splashTargets.map(t => t.name).join(', ')}!`, 'spell');
+              for (const t of splashTargets) {
+                const rd = parseDice(ability.dice);
+                const splashDmg = Math.floor(rd.total / 2); // half damage on splash
+                addLog(`  ${t.name}: ${t.currentHp} → ${Math.max(0, t.currentHp - splashDmg)} (${splashDmg} splash)`, 'hit');
+                applyDamage(t, splashDmg, damType, ability.tags);
+                if (ability.effect) applyStatus(t, ability.effect);
+              }
+            }
+          }
+        }
+        if (ability.effect) applyStatus(primary, ability.effect);
+      }
+
     } else if (action.type === 'ability') {
       const caster  = getCombatant(action.casterId);
       const target  = getCombatant(action.targetIds[0]);
       const ability = action.ability;
       if (caster && target) {
-        logAttackResult(caster, target, action.result);
-        if (action.result.hit && !action.result.fumble) {
-          if (ability.dice && action.result.damage > 0) {
-            addLog(`${target.name}: ${target.currentHp + action.result.damage} → ${Math.max(0, target.currentHp)} (${action.result.breakdown})`, 'hit');
-            applyDamage(target, action.result.damage);
+        const isPureHeal = ability.targetKind === 'ally';
+        const isSelf     = ability.targetKind === 'self';
+
+        if (isSelf || isPureHeal) {
+          // Pre-arm block/shield
+          if (ability.isBlock) {
+            if (ability.dice) {
+              // Damage-absorption shield (Oslo Skeletal Wall, Eragon Shield, etc.)
+              const shieldHp = parseDice(ability.dice).total;
+              target.statusEffects.push({ name: 'damage_shield', turnsLeft: 999, shieldHp, dice: null, damType: null, notes: '', source: ability.source });
+              addLog(`🛡 ${target.name} gains a ${shieldHp} HP damage shield!`, 'spell');
+            } else {
+              // Full single-hit block
+              applyStatus(target, 'water_shield', 1);
+              addLog(`🛡 ${target.name} ${isSelf ? 'prepares a shield' : 'is shielded'} — next attack blocked!`, 'spell');
+            }
+          }
+          // Cleanse debuffs
+          if (ability.tags?.includes('cleans')) applyCleanse(target);
+          // Heal or regen (skip if block with dice — the dice was the shield HP)
+          if (ability.dice && !ability.isBlock) {
+            if (ability.tags?.includes('regen')) {
+              applyStatus(target, 'regen');
+              const re = target.statusEffects.find(e => e.name.toLowerCase() === 'regen');
+              if (re) re.dice = ability.dice;
+              addLog(`${target.name} regenerates ${ability.dice}/turn!`, 'heal');
+            } else {
+              applyHeal(target, ability.dice);
+            }
           }
           if (ability.effect) applyStatus(target, ability.effect);
+          // Fly buff: apply permanent fly status
+          if (ability.tags?.includes('fly') && !target.statusEffects.some(e => e.name.toLowerCase() === 'fly')) {
+            target.statusEffects.push({ name: 'fly', turnsLeft: 999, dice: null, damType: null, notes: '' });
+            addLog(`🦅 ${target.name} is now flying!`, 'spell');
+          }
+          // Precast bonus: store for next ability attack
+          if (ability.precastDice) {
+            target.statusEffects.push({ name: 'runik_precast', turnsLeft: 2, dice: ability.precastDice, damType: null, notes: '' });
+            addLog(`✦ ${target.name} prepares a Runik Precast! (+${ability.precastDice} to next cast)`, 'spell');
+          }
+          updateCombatantCardDOM(target);
+        } else {
+          logAttackResult(caster, target, action.result);
+          if (action.result.hit && !action.result.fumble) {
+            const damType = damTypeFromTags(ability.tags);
+            if (ability.dice && action.result.damage > 0) {
+              addLog(`${target.name}: ${target.currentHp + action.result.damage} → ${Math.max(0, target.currentHp)} (${action.result.breakdown})`, 'hit');
+              applyDamage(target, action.result.damage, damType, ability.tags);
+              if (ability.isHeal) applyHeal(caster, String(action.result.damage));
+              applyHpPerHitPassives(caster);
+              if (ability.tags?.includes('grounded')) removeFlying(target);
+            }
+            if (ability.effect) applyStatus(target, ability.effect);
+          }
+          if (action.result.fumble) target.hasCounterAttack = true;
         }
-        if (action.result.fumble) target.hasCounterAttack = true;
       }
     }
   }
 
   // ── Victory check ─────────────────────────────────────────────────────
   const winner = checkVictory();
-  if (winner !== null) {
-    endCombat(winner);
-    return;
-  }
+  if (winner !== null) { endCombat(winner); return; }
 
   // ── Counter-attack from fumble ─────────────────────────────────────────
   const prevActive = activeCombatant();
-  const counter = S.combatants.find(c => c.hasCounterAttack && !c.isKO);
+  const counter    = S.combatants.find(c => c.hasCounterAttack && !c.isKO);
   if (counter) {
     counter.hasCounterAttack = false;
     addLog(`⚡ ${counter.name} gets a free counter-attack!`, 'crit');
@@ -821,26 +1727,25 @@ function resumePendingAction(reactAbility) {
       const cr = resolveAttack(counter, counterTarget, null);
       logAttackResult(counter, counterTarget, cr);
       if (cr.hit && !cr.fumble) {
+        const counterAtkTags = counter.transformedBaseAtk?.tags ?? counter.sourceChar.baseAtk?.tags ?? [];
+        const damType = damTypeFromTags(counterAtkTags);
         addLog(`${counterTarget.name}: ${counterTarget.currentHp + cr.damage} → ${Math.max(0, counterTarget.currentHp)} (${cr.breakdown})`, 'hit');
-        applyDamage(counterTarget, cr.damage);
+        applyDamage(counterTarget, cr.damage, damType, counterAtkTags);
       }
     }
     const winner2 = checkVictory();
-    if (winner2 !== null) {
-      endCombat(winner2);
-      return;
-    }
+    if (winner2 !== null) { endCombat(winner2); return; }
   }
 
   advanceTurn();
 }
 
-// ── §9  Turn Flow ──────────────────────────────────────────────────────────
+// ── §11  Turn Flow ─────────────────────────────────────────────────────────
 
 function endCombat(winner) {
   S.winnerTeam = winner;
   S.phase = 'victory';
-  renderCombatScreen(); // Show final state
+  renderCombatScreen();
   setTimeout(() => renderVictoryScreen(), 1200);
 }
 
@@ -849,23 +1754,27 @@ async function startInitiative() {
   let id = 0;
   for (const teamIdx of [0, 1]) {
     for (const name of S.teamNames[teamIdx]) {
-      const char = personnageSheet.find(c => c.name === name);
+      const char = allChars.find(c => c.nom === name);
       if (char) S.combatants.push(buildCombatant(char, teamIdx, id++));
     }
   }
-  for (const c of S.combatants) c.initiativeRoll = rollDie(20);
+  // Initiative = d20 + speed modifier (speed 6 = 0, higher = bonus)
+  for (const c of S.combatants) {
+    const speedMod = Math.floor(((c.sourceChar.speed ?? 6) - 6) / 2);
+    c.initiativeRoll = Math.max(1, rollDie(20) + speedMod);
+  }
   S.initiativeOrder = [...S.combatants]
     .sort((a, b) => b.initiativeRoll - a.initiativeRoll)
     .map(c => c.id);
 
-  // Load a random map from the file manifest
-  const manifest    = await loadManifest();
-  const slug        = manifest[Math.floor(Math.random() * manifest.length)];
-  S.currentMap      = await loadMap(slug);
-  S.mapViewFilter   = 'both';
-  S.hasMoved        = false;
-  S.moveMode        = false;
-  S.reachableCells  = new Map();
+  const manifest   = await loadManifest();
+  const slug       = manifest[Math.floor(Math.random() * manifest.length)];
+  S.currentMap     = await loadMap(slug);
+  S.mapViewFilter  = 'both';
+  S.hasMoved       = false;
+  S.hasActed       = false;
+  S.moveMode       = false;
+  S.reachableCells = new Map();
 
   S.phase = 'initiative';
   render();
@@ -876,6 +1785,7 @@ function startCombat() {
   S.currentTurnIndex = 0;
   S.roundNumber = 1;
   S.log = [];
+  S.hasActed = false;
   if (S.currentMap) placeCharacters(S.currentMap);
   S.hasMoved = false;
   addRoundDivider();
@@ -888,22 +1798,22 @@ function advanceTurn() {
   let curr = S.currentTurnIndex;
   let loops = 0;
   let passedZero = false;
-
   do {
     curr = (curr + 1) % total;
     if (curr === 0) passedZero = true;
     loops++;
-    if (loops > total) return; // all KO'd
+    if (loops > total) return;
   } while (getCombatant(S.initiativeOrder[curr])?.isKO);
 
   S.currentTurnIndex = curr;
   S.hasMoved         = false;
+  S.hasActed         = false;
   S.moveMode         = false;
   S.reachableCells   = new Map();
-  if (passedZero) {
-    S.roundNumber++;
-    addRoundDivider();
-  }
+  clearAimState();
+  exitTeleportMode();
+  S.pendingTeleportReact = null;
+  if (passedZero) { S.roundNumber++; addRoundDivider(); }
 
   beginTurn(activeCombatant());
 }
@@ -911,80 +1821,79 @@ function advanceTurn() {
 function beginTurn(c) {
   if (!c) return;
 
-  // Tick DoT, regen, cooldowns
   const survived = tickTurn(c);
-
-  // Victory after DoT
   if (!survived) {
     const w = checkVictory();
     if (w !== null) { endCombat(w); return; }
   }
 
+  // hpPerTurn passifs (e.g. Undying Queen, Yokai Blood, Flame of Life)
+  for (const p of c.sourceChar.passif ?? []) {
+    if (p.applyOn?.includes('hpPerTurn') && p.dices) applyHeal(c, p.dices);
+  }
+
   addLog(`— ${c.name}'s turn —`, 'info');
 
-  // Control effects: auto-pass
+  // Control effects: skip turn (tickTurn already decremented duration)
   const ctrl = hasControlEffect(c);
-  if (ctrl && c.statusEffects.includes(ctrl)) {
+  if (ctrl) {
     addLog(`${c.name} is ${ctrl.name} and cannot act!`, 'status');
     renderCombatScreen();
-    setTimeout(() => {
-      ctrl.turnsLeft--;
-      if (ctrl.turnsLeft <= 0) {
-        c.statusEffects = c.statusEffects.filter(e => e !== ctrl);
-        addLog(`${c.name}'s ${ctrl.name} fades.`, 'info');
-      }
-      advanceTurn();
-    }, 1000);
+    setTimeout(() => advanceTurn(), 1000);
     return;
   }
 
   renderCombatScreen();
 }
 
-// ── §10  Render ────────────────────────────────────────────────────────────
+// ── §12  Render ────────────────────────────────────────────────────────────
 
 function render() {
-  if (S.phase === 'selection')  renderSelectionScreen();
+  if (S.phase === 'selection')       renderSelectionScreen();
   else if (S.phase === 'initiative') renderInitiativeScreen();
   else if (S.phase === 'combat')     renderCombatScreen();
   else if (S.phase === 'victory')    renderVictoryScreen();
 }
 
-// ── Emoji for status effect ──────────────────────────────────────────────
 function statusEmoji(name) {
   const n = name.toLowerCase();
-  if (n.includes('burn'))                             return '🔥';
-  if (n.includes('toxic') || n.includes('poison'))   return '🧪';
-  if (n.includes('bleed') || n.includes('hemo'))     return '🩸';
-  if (['para','stun','cocoon','fear'].some(k => n.includes(k))) return '⚡';
-  if (n.includes('gel') || n.includes('freeze'))     return '❄️';
-  if (n.includes('silence'))                         return '🔇';
-  if (n.includes('root'))                            return '🌿';
-  if (n.includes('blind'))                           return '🙈';
+  if (n.includes('burn'))                                         return '🔥';
+  if (n.includes('toxic') || n.includes('poison'))               return '🧪';
+  if (n.includes('bleed') || n.includes('hemo'))                 return '🩸';
+  if (['para','stun','cocoon','fear'].some(k => n.includes(k)))  return '⚡';
+  if (n.includes('gel') || n.includes('freeze'))                 return '❄️';
+  if (n.includes('silence'))                                      return '🔇';
+  if (n.includes('root'))                                         return '🌿';
+  if (n.includes('blind'))                                        return '🙈';
+  if (n.includes('regen') || n.includes('regenerat'))            return '💚';
+  if (n === 'fly')                                               return '🦅';
+  if (n === 'chains_of_apophis')                                 return '⛓';
+  if (n === 'living_blade_armor')                                return '⚔';
+  if (n === 'final_reckoning')                                   return '💀';
+  if (n === 'runik_precast')                                     return '✦';
+  if (n.includes('damage_shield'))                               return '🛡';
+  if (n.includes('water_shield') || n.includes('shield'))       return '🛡';
   return '◈';
 }
 
 function statusCssClass(damType) {
   const t = (damType || '').toLowerCase();
-  if (t === 'fire')    return 'status-fire';
-  if (t === 'poison')  return 'status-poison';
-  if (t === 'ice')     return 'status-ice';
+  if (t === 'fire')     return 'status-fire';
+  if (t === 'poison')   return 'status-poison';
+  if (t === 'ice')      return 'status-ice';
   if (t === 'physical') return 'status-phys';
-  if (t === 'holy')    return 'status-holy';
-  if (t === 'psy')     return 'status-psy';
+  if (t === 'holy')     return 'status-holy';
+  if (t === 'psy')      return 'status-psy';
   return 'status-neutral';
 }
 
-// ── Partial DOM update for a single card ─────────────────────────────────
 function updateCombatantCardDOM(c) {
   const card = document.querySelector(`.combat-char-card[data-id="${c.id}"]`);
   if (!card) return;
-  // Update HP bar
   const pct  = Math.max(0, (c.currentHp / c.maxHp) * 100);
   const bar  = card.querySelector('.hp-bar');
   const text = card.querySelector('.hp-text');
-  if (bar)  bar.style.width = `${pct.toFixed(1)}%`;
-  if (bar)  bar.className = `hp-bar${pct < 25 ? ' low' : pct < 50 ? ' mid' : ''}`;
+  if (bar)  { bar.style.width = `${pct.toFixed(1)}%`; bar.className = `hp-bar${pct < 25 ? ' low' : pct < 50 ? ' mid' : ''}`; }
   if (text) text.textContent = `${c.currentHp} / ${c.maxHp} HP`;
   if (c.isKO) card.classList.add('is-ko');
 }
@@ -999,7 +1908,6 @@ function hpBarHTML(c) {
 function resourceHTML(c) {
   let out = '';
   if (c.maxSpellSlots > 0) {
-    // Cap display to 12 pips max to avoid overflow
     const showMax = Math.min(c.maxSpellSlots, 12);
     const pips = Array.from({ length: showMax }, (_, i) =>
       `<span class="spell-pip ${i < c.spellSlots ? 'filled' : 'empty'}" title="Slot ${i + 1}"></span>`
@@ -1007,32 +1915,37 @@ function resourceHTML(c) {
     const extra = c.maxSpellSlots > 12 ? `<span class="pip-overflow">+${c.maxSpellSlots - 12}</span>` : '';
     out += `<div class="spell-pips">${pips}${extra}</div>`;
   }
-  if (c.maxKi > 0) {
-    out += `<div class="ki-counter">Ki: ${c.ki}/${c.maxKi}</div>`;
-  }
-  if (c.souls > 0 || c.sourceChar.souls) {
-    out += `<div class="ki-counter souls-counter">Souls: ${c.souls}</div>`;
-  }
+  if (c.maxKi > 0) out += `<div class="ki-counter">Ki: ${c.ki}/${c.maxKi}</div>`;
+  if (c.souls > 0 || c.sourceChar.souls) out += `<div class="ki-counter souls-counter">Souls: ${c.souls}</div>`;
   return out;
 }
 
 function statusBadgesHTML(c) {
   if (!c.statusEffects.length) return '';
-  const badges = c.statusEffects.map(e =>
-    `<span class="status-badge ${statusCssClass(e.damType)}" title="${e.notes}">
-       ${statusEmoji(e.name)} ${e.name} (${e.turnsLeft}t)
-     </span>`
-  ).join('');
+  const badges = c.statusEffects.map(e => {
+    const durTxt = e.name === 'damage_shield'
+      ? `${e.shieldHp} HP`
+      : (e.turnsLeft === 999 ? '∞' : e.turnsLeft + 't');
+    return `<span class="status-badge ${statusCssClass(e.damType)}" title="${e.notes}">
+       ${statusEmoji(e.name)} ${e.name} (${durTxt})
+     </span>`;
+  }).join('');
   return `<div class="status-badge-row">${badges}</div>`;
 }
 
 function combatantCardHTML(c, isActive) {
-  const koClass     = c.isKO     ? ' is-ko'      : '';
-  const activeClass = isActive   ? ' active-turn' : '';
-  const teamClass   = c.teamIndex === 0 ? ' team-a' : ' team-b';
-  const passivesHTML = c.sourceChar.passives?.length
-    ? `<div class="char-passives-mini">${c.sourceChar.passives.slice(0, 2).map(p =>
-        `<span class="passive-mini" title="${p}">${p.length > 40 ? p.slice(0, 40) + '…' : p}</span>`
+  const koClass      = c.isKO        ? ' is-ko'      : '';
+  const activeClass  = isActive      ? ' active-turn' : '';
+  const teamClass    = c.teamIndex === 0 ? ' team-a' : ' team-b';
+  const tfBadge      = c.isTransformed
+    ? `<span class="transform-active-badge">✨ ${c.sourceChar.transformation?.base.nom ?? 'Transformed'}</span>`
+    : '';
+  const domainBadge  = c.domainActive
+    ? `<span class="domain-active-badge">🌐 ${c.sourceChar.domain?.name ?? 'Domain'}</span>`
+    : '';
+  const passivesHTML = c.sourceChar.passif?.length
+    ? `<div class="char-passives-mini">${c.sourceChar.passif.slice(0, 2).map(p =>
+        `<span class="passive-mini" title="${p.nom}">${p.nom.length > 40 ? p.nom.slice(0, 40) + '…' : p.nom}</span>`
       ).join('')}</div>`
     : '';
   return `
@@ -1041,18 +1954,16 @@ function combatantCardHTML(c, isActive) {
       ${hpBarHTML(c)}
       ${resourceHTML(c)}
       ${statusBadgesHTML(c)}
+      ${tfBadge}${domainBadge}
       ${passivesHTML}
     </div>`;
 }
 
 function initiativeStripHTML() {
   const chips = S.initiativeOrder.map((id, idx) => {
-    const c         = getCombatant(id);
-    const isActive  = idx === S.currentTurnIndex;
-    const koClass   = c.isKO    ? ' is-ko'  : '';
-    const actClass  = isActive  ? ' active' : '';
-    const teamClass = c.teamIndex === 0 ? ' team-a' : ' team-b';
-    return `<div class="init-chip${koClass}${actClass}${teamClass}" title="${c.name} — init ${c.initiativeRoll}">
+    const c        = getCombatant(id);
+    const isActive = idx === S.currentTurnIndex;
+    return `<div class="init-chip${c.isKO ? ' is-ko' : ''}${isActive ? ' active' : ''} ${c.teamIndex === 0 ? 'team-a' : 'team-b'}" title="${c.name} — init ${c.initiativeRoll}">
               ${c.name}<br><small>${c.initiativeRoll}</small>
             </div>`;
   }).join('');
@@ -1064,10 +1975,16 @@ function abilityPreviewHTML(ability) {
   const tags = [];
   if (ability.isAoe)     tags.push('AoE');
   if (ability.isCone)    tags.push('Cone');
+  if (ability.isSplash)  tags.push('Splash');
   if (ability.isReact)   tags.push('React');
   if (ability.isInstant) tags.push('Instant');
   if (ability.isBlock)   tags.push('Block');
   if (ability.isHeal)    tags.push('Heal');
+  if (ability.maxBounce) tags.push(`Bounce×${ability.maxBounce}`);
+  if (ability.targetKind === 'ally') tags.push('Ally');
+  if (ability.targetKind === 'self') tags.push('Self');
+  if (ability.range && ability.range !== SPELL_RANGE) tags.push(`r${ability.range}`);
+  if (ability.radius > 0) tags.push(`ø${ability.radius}`);
   const tagHTML  = tags.map(t => `<span class="ab-tag">${t}</span>`).join('');
   const diceHTML = ability.dice   ? `<span class="ab-dice">${ability.dice}</span>` : '';
   const fxHTML   = ability.effect ? `<span class="ab-effect">✦ ${ability.effect}</span>` : '';
@@ -1079,125 +1996,167 @@ function abilityPreviewHTML(ability) {
 function actionPanelHTML(c) {
   const enemyTeam  = c.teamIndex === 0 ? 1 : 0;
   const enemyAlive = livingCombatants(enemyTeam);
+  const allyAlive  = livingCombatants(c.teamIndex);
   const silence    = hasSilence(c);
   const hasMap     = !!S.currentMap;
+  const acted      = S.hasActed;
 
-  // Distance-aware target options
+  // Build target options based on ability target kind
   const targetOptsForAbility = (ability) => {
+    if (ability?.targetKind === 'self') return `<option value="${c.id}">Self</option>`;
+    if (ability?.targetKind === 'ally') {
+      return allyAlive.map(t =>
+        `<option value="${t.id}">${t.name} (${t.currentHp}/${t.maxHp}HP)</option>`
+      ).join('');
+    }
+    // Enemy targeting
     if (enemyAlive.length === 0) return '<option>No targets</option>';
     return enemyAlive.map(t => {
-      const dist  = hasMap ? chebyshev(c, t) : 0;
-      const range = hasMap ? targetInRange(c, t, ability) : { inRange: true };
-      const distTxt  = hasMap ? ` ${dist}sq` : '';
-      const warnTxt  = (hasMap && !range.inRange) ? ' ⚠' : '';
+      const dist    = hasMap ? chebyshev(c, t) : 0;
+      const range   = hasMap ? targetInRange(c, t, ability) : { inRange: true, reason: '' };
+      const distTxt = hasMap ? ` ${dist}sq` : '';
+      const warnTxt = (hasMap && !range.inRange)
+        ? (range.reason.includes('sight') ? ' 🚫' : ' ⚠') : '';
       const disabled = (hasMap && !range.inRange && !ability?.isAoe) ? ' disabled' : '';
       return `<option value="${t.id}"${disabled}>${t.name} (${t.currentHp}HP${distTxt}${warnTxt})</option>`;
     }).join('');
   };
 
-  // Basic attack target options
-  const atkTargetOpts    = targetOptsForAbility(null);
-  const hasAtkTarget     = !hasMap || enemyAlive.some(t => chebyshev(c, t) <= MELEE_RANGE);
-  const noTargets        = enemyAlive.length === 0;
+  const atkTargetOpts = targetOptsForAbility(null);
+  const hasAtkTarget  = !hasMap || enemyAlive.some(t => chebyshev(c, t) <= MELEE_RANGE);
+  const noEnemies     = enemyAlive.length === 0;
 
-  // Move section (shown only if not yet moved)
+  // Move section
+  const isRooted = c.statusEffects.some(e => e.name.toLowerCase() === 'root');
   const moveSection = !S.hasMoved ? `
     <div class="action-section move-section">
-      ${S.moveMode
-        ? `<button class="action-btn map-cancel-move-btn" id="btn-cancel-move">✕ Cancel Move</button>
-           <span class="move-hint">Click a highlighted cell on the map</span>`
-        : `<button class="action-btn map-move-btn" id="btn-move">🚶 Move (${MAX_MOVE} cells)</button>`
+      ${isRooted
+        ? `<span class="move-done-badge">🌿 Rooted — cannot move</span>`
+        : S.moveMode
+          ? `<button class="action-btn map-cancel-move-btn" id="btn-cancel-move">✕ Cancel Move</button>
+             <span class="move-hint">Click a highlighted cell on the map</span>`
+          : `<button class="action-btn map-move-btn" id="btn-move">🚶 Move (${c.speed} cells)</button>`
       }
     </div>` : `
     <div class="action-section move-section">
       <span class="move-done-badge">✓ Moved</span>
     </div>`;
 
-  // Spells
-  const spellList = c.abilities.filter(ab =>
-    ab.source === 'spell' &&
+  // Unified ability list
+  const abilityList = c.abilities.filter(ab =>
     !ab.isTransform &&
     abilityAvailable(c, ab) &&
     !(silence && ab.cost?.type === 'slots')
   );
 
-  // Techniques + relics
-  const techList = c.abilities.filter(ab =>
-    (ab.source === 'ability' || ab.source === 'relic') &&
-    !ab.isTransform &&
-    abilityAvailable(c, ab)
-  );
+  const SOURCE_LABEL = { spell: 'Spell', technoSpell: 'T-Spell', technique: 'Tech', Art: 'Art', relic: 'Relic' };
 
   const abOpt = (ab) => {
-    const cdLeft  = c.cooldowns[ab.name] ?? 0;
-    const cdTxt   = cdLeft > 0 ? ` [${cdLeft}T CD]` : ab.cooldownTurns > 0 ? ` [${ab.cooldownTurns}T CD]` : '';
-    const costTxt = ab.cost  ? ` (${ab.cost.amount} ${ab.cost.type})` : '';
-    const aoeTxt  = ab.isAoe ? ' — AoE' : '';
-    const healTxt = ab.isHeal ? ' — Heal' : '';
-    return `<option value="${ab.name}">${ab.name}${costTxt}${cdTxt}${aoeTxt}${healTxt}</option>`;
+    const cdLeft    = c.cooldowns[ab.name] ?? 0;
+    const cdTxt     = cdLeft > 0 ? ` [${cdLeft}T]` : ab.cooldownTurns > 0 ? ` [${ab.cooldownTurns}T CD]` : '';
+    const costTxt   = ab.cost   ? ` · ${ab.cost.amount}${ab.cost.type === 'slots' ? 'S' : ab.cost.type === 'ki' ? 'Ki' : '♦'}` : '';
+    const srcTxt    = SOURCE_LABEL[ab.source] ? `[${SOURCE_LABEL[ab.source]}] ` : '';
+    const reactTxt  = (ab.isBlock || ab.isReact) ? ' ⚡' : '';
+    const chargeTxt = ab.maxCharges > 0 ? ` [${c.remainingCharges[ab.name] ?? ab.maxCharges}/${ab.maxCharges}♦]` : '';
+    return `<option value="${ab.name}">${srcTxt}${ab.name}${reactTxt}${costTxt}${cdTxt}${chargeTxt}</option>`;
   };
 
-  const spellSection = spellList.length > 0 ? `
+  const firstAbility = abilityList[0];
+  const atkNoTarget  = !hasValidTarget(c, null);
+  const abNoTarget   = !hasValidTarget(c, firstAbility);
+
+  const fireLabel = (ab) => {
+    if (!ab) return '🎯 Aim';
+    if (ab.tags?.includes('teleportation')) return '✦ Teleport';
+    if (ab.isAoe) return '🎯 Aim AoE';
+    if (ab.targetKind === 'self') return '→ Use';
+    if (ab.isCone) return '🔺 Aim Cone';
+    return '🎯 Aim';
+  };
+
+  // No-map fallback target dropdown (hidden when map is loaded)
+  const nomapTargetOpts = () => {
+    if (!firstAbility || firstAbility.isAoe || firstAbility.isCone || firstAbility.targetKind === 'self') return '';
+    const pool = firstAbility.targetKind === 'ally' ? allyAlive : enemyAlive;
+    if (!pool.length) return '<option>No targets</option>';
+    return pool.map(t => `<option value="${t.id}">${t.name} (${t.currentHp}HP)</option>`).join('');
+  };
+
+  const abilitySection = abilityList.length > 0 ? `
+    <div class="action-section ability-section">
+      <label class="action-label">Abilities${silence ? ' <span class="range-warn">⚠ Silenced</span>' : ` (${c.spellSlots}S · ${c.ki}Ki)`}</label>
+      <select id="ability-select" class="target-select">${abilityList.map(abOpt).join('')}</select>
+      <div class="aim-row">
+        <button class="action-btn aim-btn" id="btn-ability-fire" ${abNoTarget || (acted && !firstAbility?.isInstant) ? 'disabled' : ''}>
+          ${fireLabel(firstAbility)}
+        </button>
+        <span id="aim-hint-ability" class="aim-hint" style="display:none">↖ Click target on map</span>
+      </div>
+      ${!hasMap && nomapTargetOpts() ? `<select id="ability-target-nomap" class="target-select nomap-target">${nomapTargetOpts()}</select>` : ''}
+      <div id="ability-preview" class="ability-preview-wrap"></div>
+    </div>` : '';
+
+  // Transformation section
+  const tf = c.sourceChar.transformation;
+  const tfAbility = c.abilities.find(a => a.isTransform);
+  const transformSection = tf && tfAbility && !c.isTransformed ? `
     <div class="action-section">
-      <label class="action-label">Spell ${silence ? '⚠ Silenced' : `(${c.spellSlots} slots)`}</label>
-      <select id="spell-select" class="target-select">${spellList.map(abOpt).join('')}</select>
-      <div id="spell-preview" class="ability-preview-wrap"></div>
-      <select id="spell-target" class="target-select"${noTargets ? ' disabled' : ''}>
-        ${noTargets ? '<option>No targets</option>' : '<!-- updated by JS -->'}
-      </select>
-      <button class="action-btn confirm-action-btn" id="btn-spell" data-caster="${c.id}"${noTargets ? ' disabled' : ''}>
-        ✨ Cast Spell
+      <label class="action-label">Transformation</label>
+      <button class="action-btn transform-btn" id="btn-transform" data-caster="${c.id}"
+              ${(acted || c.usedThisFight.includes(tf.base.nom)) ? 'disabled' : ''}>
+        ✨ ${tf.base.nom} ${tfAbility.cost ? `(${tfAbility.cost.amount} ${tfAbility.cost.type})` : '(free)'}
       </button>
     </div>` : '';
 
-  const techSection = techList.length > 0 ? `
-    <div class="action-section">
-      <label class="action-label">Technique / Relic</label>
-      <select id="tech-select" class="target-select">${techList.map(abOpt).join('')}</select>
-      <div id="tech-preview" class="ability-preview-wrap"></div>
-      <select id="tech-target" class="target-select"${noTargets ? ' disabled' : ''}>
-        ${noTargets ? '<option>No targets</option>' : '<!-- updated by JS -->'}
-      </select>
-      <button class="action-btn confirm-action-btn" id="btn-tech" data-caster="${c.id}"${noTargets ? ' disabled' : ''}>
-        🔥 Use Technique
-      </button>
-    </div>` : '';
+  // Domain section
+  const domain = c.sourceChar.domain;
+  const domainSection = domain ? (c.domainActive
+    ? `<div class="action-section"><span class="domain-active-badge">🌐 ${domain.name} — Active</span></div>`
+    : `<div class="action-section">
+        <label class="action-label">Domain Expansion</label>
+        <span class="domain-cost-label">${domain.name} · ${domain.type} · ${domain.spellCost} slots</span>
+        <button class="action-btn domain-btn" id="btn-domain" data-caster="${c.id}"
+                ${(c.spellSlots < domain.spellCost || acted) ? 'disabled' : ''}>
+          🌐 Activate Domain
+        </button>
+      </div>`) : '';
 
-  const atkNote = hasMap && !hasAtkTarget && !noTargets
+  const atkNote = hasMap && atkNoTarget && !noEnemies
     ? '<span class="range-warn">Move closer to attack</span>' : '';
 
   return `
     <div class="action-panel">
-      <div class="action-panel-title">⚔ ${c.name}'s Turn</div>
+      <div class="action-panel-title">⚔ ${c.name}'s Turn${acted ? ' <span class="acted-badge">⚔ Action Used</span>' : ''}</div>
+      <div class="action-section finish-turn-section">
+        <button class="action-btn finish-turn-btn" id="btn-pass">✓ Finish Turn</button>
+      </div>
       ${moveSection}
       <div class="action-section">
-        <button class="action-btn" id="btn-pass">⏭ Pass</button>
-      </div>
-      <div class="action-section">
         <label class="action-label">Basic Attack ${atkNote}</label>
-        <select id="atk-target" class="target-select"${noTargets ? ' disabled' : ''}>
-          ${noTargets ? '<option>No targets</option>' : atkTargetOpts}
+        <select id="atk-target" class="target-select" ${noEnemies ? 'disabled' : ''}>
+          ${noEnemies ? '<option>No targets</option>' : atkTargetOpts}
         </select>
-        <button class="action-btn confirm-action-btn" id="btn-attack" data-attacker="${c.id}"${noTargets ? ' disabled' : ''}>
-          ⚔ Attack <span class="atk-dice">(${c.sourceChar.attack || '1d6'})</span>
+        <button class="action-btn confirm-action-btn" id="btn-attack" data-attacker="${c.id}"
+                ${atkNoTarget || noEnemies || acted ? 'disabled' : ''}>
+          ⚔ Attack <span class="atk-dice">(${c.transformedBaseAtk?.dices ?? c.sourceChar.baseAtk?.dices ?? '1d6'})</span>
         </button>
       </div>
-      ${spellSection}
-      ${techSection}
+      ${abilitySection}
+      ${transformSection}
+      ${domainSection}
     </div>`;
 }
 
 function reactPromptHTML() {
   if (!S.awaitingReact || !S.reactOptions.length) return '';
-  const reactor    = getCombatant(S.reactOptions[0].combatantId);
-  const action     = S.pendingAction;
-  const attacker   = getCombatant(action?.attackerId ?? action?.casterId);
+  const reactor  = getCombatant(S.reactOptions[0].combatantId);
+  const action   = S.pendingAction;
+  const attacker = getCombatant(action?.attackerId ?? action?.casterId);
   const abilityOpts = S.reactOptions.map((opt, i) => `
     <div class="react-ability-option ${i === 0 ? 'is-selected' : ''}" data-ability-name="${opt.ability.name}">
       <strong>${opt.ability.name}</strong>
       <span class="react-option-desc">${opt.ability.desc || (opt.ability.isBlock ? 'Block' : 'React')}</span>
     </div>`).join('');
-
   return `
     <div id="react-overlay" class="react-overlay">
       <div class="react-dialog">
@@ -1215,39 +2174,35 @@ function reactPromptHTML() {
 
 function logPanelHTML() {
   const entries = S.log.slice(-80).map(e => {
-    if (e.flavor === 'divider')
-      return `<div class="log-round-divider">${e.text}</div>`;
+    if (e.flavor === 'divider') return `<div class="log-round-divider">${e.text}</div>`;
     return `<div class="log-entry log-${e.flavor}">${e.text}</div>`;
   }).join('');
   return `<div class="combat-log" id="combat-log">${entries}</div>`;
 }
 
-// ── Screen renders ────────────────────────────────────────────────────────
+// ── Screen renders ─────────────────────────────────────────────────────────
 
 function renderSelectionScreen() {
-  const allChars = personnageSheet;
-
   const charGrid = (teamIdx) => allChars.map(c => {
-    const inThis  = S.teamNames[teamIdx].includes(c.name);
-    const inOther = S.teamNames[1 - teamIdx].includes(c.name);
+    const inThis  = S.teamNames[teamIdx].includes(c.nom);
+    const inOther = S.teamNames[1 - teamIdx].includes(c.nom);
     const full    = S.teamNames[teamIdx].length >= 4;
     const locked  = !inThis && (inOther || full);
-    const abilCount = (c.spells?.length ?? 0) + (c.abilities?.length ?? 0) + (c.relics?.length ?? 0);
+    const abilCount = c.moveSet?.length ?? 0;
     return `
       <div class="char-select-card${inThis ? ' is-selected' : ''}${locked ? ' is-disabled' : ''}">
-        <div class="select-card-name">${c.name}</div>
-        <div class="select-card-stats">${c.hp} HP · ${c.spellSlots ?? 0} slots · ${c.ki ?? 0} ki</div>
-        <div class="select-card-count">${abilCount} abilities</div>
+        <div class="select-card-name">${c.nom}</div>
+        <div class="select-card-stats">${c.hp} HP · ${c.spellSlot ?? 0} slots · ${c.ki ?? 0} ki · spd ${c.speed ?? 6}</div>
+        <div class="select-card-count">${abilCount} moves</div>
         ${inThis
-          ? `<button class="select-btn remove-btn" data-name="${c.name}" data-team="${teamIdx}">✕ Remove</button>`
-          : `<button class="select-btn add-btn" data-name="${c.name}" data-team="${teamIdx}" ${locked ? 'disabled' : ''}>+ Team ${teamIdx + 1}</button>`
+          ? `<button class="select-btn remove-btn" data-name="${c.nom}" data-team="${teamIdx}">✕ Remove</button>`
+          : `<button class="select-btn add-btn" data-name="${c.nom}" data-team="${teamIdx}" ${locked ? 'disabled' : ''}>+ Team ${teamIdx + 1}</button>`
         }
       </div>`;
   }).join('');
 
   const roster = (teamIdx) => {
-    if (!S.teamNames[teamIdx].length)
-      return '<span class="no-selection">None selected</span>';
+    if (!S.teamNames[teamIdx].length) return '<span class="no-selection">None selected</span>';
     return S.teamNames[teamIdx].map(n =>
       `<span class="selected-chip">● ${n}
          <button class="chip-remove" data-name="${n}" data-team="${teamIdx}">×</button>
@@ -1287,21 +2242,19 @@ function renderSelectionScreen() {
 
 function renderInitiativeScreen() {
   const rows = S.initiativeOrder.map(id => {
-    const c       = getCombatant(id);
-    const pct     = ((c.initiativeRoll / 20) * 100).toFixed(1);
-    const tcls    = c.teamIndex === 0 ? 'team-a' : 'team-b';
+    const c    = getCombatant(id);
+    const pct  = ((c.initiativeRoll / 26) * 100).toFixed(1); // max = 20 + 3 from speed 12
+    const tcls = c.teamIndex === 0 ? 'team-a' : 'team-b';
     return `
       <div class="init-roll-row">
         <span class="init-name ${tcls}">${c.name}</span>
         <div class="init-bar-track">
-          <div class="init-bar-fill ${tcls}" style="width:0%" data-target="${pct}"></div>
+          <div class="init-bar-fill ${tcls}" style="width:0%" data-target="${Math.min(pct, 100)}"></div>
         </div>
         <span class="init-value">${c.initiativeRoll}</span>
       </div>`;
   }).join('');
-
   const order = S.initiativeOrder.map(id => getCombatant(id).name).join(' → ');
-
   root.innerHTML = `
     <div class="initiative-screen">
       <h3 class="init-screen-title">⚔ Initiative Rolls</h3>
@@ -1309,8 +2262,6 @@ function renderInitiativeScreen() {
       <p class="init-order-display">Turn order: <strong>${order}</strong></p>
       <button class="combat-start-btn" id="btn-begin">▶ Begin Combat</button>
     </div>`;
-
-  // Animate bars after paint
   requestAnimationFrame(() => {
     setTimeout(() => {
       root.querySelectorAll('.init-bar-fill').forEach(el => {
@@ -1319,20 +2270,15 @@ function renderInitiativeScreen() {
       });
     }, 60);
   });
-
   document.getElementById('btn-begin')?.addEventListener('click', startCombat);
 }
 
 function renderCombatScreen() {
   const active = activeCombatant();
-
   const allCardsHTML = [0, 1].map(teamIdx => `
     <div class="team-cards-group">
       <div class="team-label ${teamIdx === 0 ? 'team-a-header' : 'team-b-header'}">⚔ Team ${teamIdx + 1}</div>
-      ${S.combatants
-          .filter(c => c.teamIndex === teamIdx)
-          .map(c => combatantCardHTML(c, active?.id === c.id))
-          .join('')}
+      ${S.combatants.filter(c => c.teamIndex === teamIdx).map(c => combatantCardHTML(c, active?.id === c.id)).join('')}
     </div>`).join('');
 
   root.innerHTML = `
@@ -1359,27 +2305,24 @@ function renderCombatScreen() {
     </div>
     ${S.awaitingReact ? reactPromptHTML() : ''}`;
 
-  // Scroll log to bottom
   const log = root.querySelector('#combat-log');
   if (log) log.scrollTop = log.scrollHeight;
 
   bindCombatEvents();
 
-  // Draw map and attach canvas click handler AFTER DOM is ready
   const canvas = document.getElementById('dungeon-canvas');
   if (canvas && S.moveMode) canvas.classList.add('move-mode');
   drawMap();
   setupCanvasClickHandler();
 
-  // Update dynamic spell/tech target dropdowns based on currently selected ability
-  updateAbilityTargetDropdown('spell-select', 'spell-target', active);
-  updateAbilityTargetDropdown('tech-select',  'tech-target',  active);
+  // Ability preview initialized after bind
+  const ab0 = active?.abilities.find(a => a.name === document.getElementById('ability-select')?.value);
+  const prevEl = document.getElementById('ability-preview');
+  if (prevEl) prevEl.innerHTML = abilityPreviewHTML(ab0);
 }
 
 function renderReactOverlay() {
-  // Remove any existing overlay
   document.getElementById('react-overlay')?.remove();
-  // Append overlay to body (above everything)
   const wrapper = document.createElement('div');
   wrapper.innerHTML = reactPromptHTML();
   document.body.appendChild(wrapper.firstElementChild);
@@ -1389,7 +2332,6 @@ function renderReactOverlay() {
 function renderVictoryScreen() {
   const winner    = S.winnerTeam;
   const survivors = S.combatants.filter(c => c.teamIndex === winner && !c.isKO);
-
   const survivorCards = survivors.map(c => `
     <div class="survivor-chip">
       <div class="survivor-name">${c.name}</div>
@@ -1409,19 +2351,11 @@ function renderVictoryScreen() {
     </div>`;
 
   document.getElementById('btn-rematch')?.addEventListener('click', async () => {
-    // Reset and re-use same teams
-    S.combatants      = [];
-    S.initiativeOrder = [];
-    S.log             = [];
-    S.winnerTeam      = null;
-    S.awaitingReact   = false;
-    S.pendingAction   = null;
-    S.reactOptions    = [];
-    S.currentMap      = null;
-    S.mapViewFilter   = 'both';
-    S.hasMoved        = false;
-    S.moveMode        = false;
-    S.reachableCells  = new Map();
+    S.combatants = []; S.initiativeOrder = []; S.log = []; S.winnerTeam = null;
+    S.awaitingReact = false; S.pendingAction = null; S.reactOptions = [];
+    S.currentMap = null; S.mapViewFilter = 'both';
+    S.hasMoved = false; S.hasActed = false; S.moveMode = false; S.reachableCells = new Map();
+    clearAimState();
     const btn = document.getElementById('btn-rematch');
     if (btn) { btn.disabled = true; btn.textContent = '⏳ Loading map…'; }
     await startInitiative();
@@ -1432,42 +2366,30 @@ function renderVictoryScreen() {
       phase: 'selection', teamNames: [[], []], combatants: [],
       initiativeOrder: [], log: [], winnerTeam: null,
       awaitingReact: false, pendingAction: null, reactOptions: [],
-      currentMap: null, mapViewFilter: 'both', hasMoved: false,
-      moveMode: false, reachableCells: new Map(),
+      currentMap: null, mapViewFilter: 'both',
+      hasMoved: false, hasActed: false, moveMode: false, reachableCells: new Map(),
     });
     render();
   });
 }
 
-/**
- * Repopulate a spell/tech target dropdown based on the selected ability.
- * This handles range filtering dynamically as ability selection changes.
- */
-function updateAbilityTargetDropdown(selectId, targetId, actor) {
-  const sel = document.getElementById(selectId);
-  const tgt = document.getElementById(targetId);
-  if (!sel || !tgt || !actor) return;
-  const ability = actor.abilities.find(a => a.name === sel.value);
-  if (!ability) return;
-  const enemyTeam  = actor.teamIndex === 0 ? 1 : 0;
-  const enemyAlive = livingCombatants(enemyTeam);
-  if (enemyAlive.length === 0) return;
-  tgt.innerHTML = targetOptsForAbilityDynamic(actor, ability, enemyAlive);
-}
+// Kept for any legacy call-sites (now a no-op; ability targeting is handled by syncAbilityBtn)
+function updateAbilityTargetDropdown() {}
 
 function targetOptsForAbilityDynamic(actor, ability, enemyAlive) {
   const hasMap = !!S.currentMap;
   return enemyAlive.map(t => {
     const dist     = hasMap ? chebyshev(actor, t) : 0;
-    const range    = hasMap ? targetInRange(actor, t, ability) : { inRange: true };
+    const range    = hasMap ? targetInRange(actor, t, ability) : { inRange: true, reason: '' };
     const distTxt  = hasMap ? ` ${dist}sq` : '';
-    const warnTxt  = (hasMap && !range.inRange) ? ' ⚠' : '';
+    const warnTxt  = (hasMap && !range.inRange)
+      ? (range.reason.includes('sight') ? ' 🚫' : ' ⚠') : '';
     const disabled = (hasMap && !range.inRange && !ability?.isAoe) ? ' disabled' : '';
     return `<option value="${t.id}"${disabled}>${t.name} (${t.currentHp}HP${distTxt}${warnTxt})</option>`;
   }).join('');
 }
 
-// ── §11  Event Binding ─────────────────────────────────────────────────────
+// ── §13  Event Binding ─────────────────────────────────────────────────────
 
 function bindSelectionEvents() {
   root.querySelectorAll('.add-btn').forEach(btn => {
@@ -1480,7 +2402,6 @@ function bindSelectionEvents() {
       }
     });
   });
-
   root.querySelectorAll('.remove-btn, .chip-remove').forEach(btn => {
     btn.addEventListener('click', e => {
       const name = e.currentTarget.dataset.name;
@@ -1489,7 +2410,6 @@ function bindSelectionEvents() {
       renderSelectionScreen();
     });
   });
-
   document.getElementById('btn-start')?.addEventListener('click', async () => {
     const btn = document.getElementById('btn-start');
     if (btn) { btn.disabled = true; btn.textContent = '⏳ Loading map…'; }
@@ -1508,37 +2428,69 @@ function bindCombatEvents() {
     if (!isNaN(targetId)) handleAttack(active.id, targetId);
   });
 
-  document.getElementById('btn-spell')?.addEventListener('click', () => {
-    const abilityName = document.getElementById('spell-select')?.value;
-    const ability = active.abilities.find(a => a.name === abilityName);
-    if (!ability) return;
+  // ── Unified ability handler ────────────────────────────────────────────────
+  function getSelectedAbility() {
+    return active.abilities.find(a => a.name === document.getElementById('ability-select')?.value);
+  }
+
+  function fireAbilityImmediate(ability) {
     const targetIds = ability.isAoe
-      ? enemies(active).map(t => t.id)
-      : [parseInt(document.getElementById('spell-target')?.value)].filter(n => !isNaN(n));
-    handleCastAbility(active.id, abilityName, targetIds);
+      ? (ability.targetKind === 'ally'
+          ? livingCombatants(active.teamIndex).map(t => t.id)
+          : enemies(active).map(t => t.id))
+      : [active.id];
+    handleCastAbility(active.id, ability.name, targetIds);
+  }
+
+  document.getElementById('btn-ability-fire')?.addEventListener('click', () => {
+    const ability = getSelectedAbility();
+    if (!ability) return;
+    if (ability.tags?.includes('teleportation')) {
+      if (!S.currentMap) { addLog(`No map for teleportation.`, 'info'); return; }
+      // Resources spent in handleCastAbility via self-targeting path
+      handleCastAbility(active.id, ability.name, [active.id]);
+      return;
+    }
+    if (ability.targetKind === 'self') {
+      fireAbilityImmediate(ability);
+      return;
+    }
+    if (ability.isAoe) {
+      if (!S.currentMap) { fireAbilityImmediate(ability); return; }
+      enterAimMode(ability, 'ability');
+      const hint = document.getElementById('aim-hint-ability');
+      if (hint) hint.style.display = 'inline';
+      return;
+    }
+    if (!S.currentMap) {
+      const targetId = parseInt(document.getElementById('ability-target-nomap')?.value);
+      if (!isNaN(targetId)) handleCastAbility(active.id, ability.name, [targetId]);
+      return;
+    }
+    enterAimMode(ability, 'ability');
+    const hint = document.getElementById('aim-hint-ability');
+    if (hint) hint.style.display = 'inline';
   });
 
-  document.getElementById('btn-tech')?.addEventListener('click', () => {
-    const abilityName = document.getElementById('tech-select')?.value;
-    const ability = active.abilities.find(a => a.name === abilityName);
-    if (!ability) return;
-    const targetIds = ability.isAoe
-      ? enemies(active).map(t => t.id)
-      : [parseInt(document.getElementById('tech-target')?.value)].filter(n => !isNaN(n));
-    handleCastAbility(active.id, abilityName, targetIds);
+  // Transform button
+  document.getElementById('btn-transform')?.addEventListener('click', () => {
+    handleTransform(parseInt(document.getElementById('btn-transform').dataset.caster));
   });
 
-  // ── Move / Cancel-move ────────────────────────────────────────────────
+  // Domain button
+  document.getElementById('btn-domain')?.addEventListener('click', () => {
+    handleActivateDomain(parseInt(document.getElementById('btn-domain').dataset.caster));
+  });
+
+  // Move / Cancel-move
   document.getElementById('btn-move')?.addEventListener('click', () => {
-    enterMoveMode();
-    renderCombatScreen();
+    enterMoveMode(); renderCombatScreen();
   });
   document.getElementById('btn-cancel-move')?.addEventListener('click', () => {
-    exitMoveMode();
-    renderCombatScreen();
+    exitMoveMode(); renderCombatScreen();
   });
 
-  // ── Map view toggle ───────────────────────────────────────────────────
+  // Map view toggle
   document.querySelectorAll('.map-toggle-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       S.mapViewFilter = btn.dataset.filter;
@@ -1549,36 +2501,49 @@ function bindCombatEvents() {
     });
   });
 
-  // ── Ability preview on select ──────────────────────────────────────────
-  function updatePreview(selectId, previewId) {
-    const sel = document.getElementById(selectId);
-    const box = document.getElementById(previewId);
-    if (!sel || !box) return;
-    const ab = active.abilities.find(a => a.name === sel.value);
-    box.innerHTML = abilityPreviewHTML(ab);
-  }
+  // Ability preview + fire button sync
+  function syncAbilityBtn() {
+    const ab   = getSelectedAbility();
+    const btn  = document.getElementById('btn-ability-fire');
+    const prev = document.getElementById('ability-preview');
+    const hint = document.getElementById('aim-hint-ability');
+    if (prev) prev.innerHTML = abilityPreviewHTML(ab);
 
-  updatePreview('spell-select', 'spell-preview');
-  updatePreview('tech-select',  'tech-preview');
-  document.getElementById('spell-select')?.addEventListener('change', () => {
-    updatePreview('spell-select', 'spell-preview');
-    updateAbilityTargetDropdown('spell-select', 'spell-target', active);
-  });
-  document.getElementById('tech-select')?.addEventListener('change', () => {
-    updatePreview('tech-select', 'tech-preview');
-    updateAbilityTargetDropdown('tech-select', 'tech-target', active);
-  });
+    if (!ab || !btn) return;
+    const isImmediate = ab.targetKind === 'self' && !ab.tags?.includes('teleportation');
+    btn.textContent = ab.tags?.includes('teleportation') ? '✦ Teleport'
+      : ab.isAoe ? '🎯 Aim AoE'
+      : ab.targetKind === 'self' ? '→ Use'
+      : ab.isCone ? '🔺 Aim Cone'
+      : '🎯 Aim';
+    btn.disabled = !hasValidTarget(active, ab) || (S.hasActed && !ab.isInstant);
+
+    // Update no-map fallback dropdown
+    const nomapSel = document.getElementById('ability-target-nomap');
+    if (nomapSel) {
+      const pool = ab.targetKind === 'ally'
+        ? livingCombatants(active.teamIndex)
+        : livingCombatants(active.teamIndex === 0 ? 1 : 0);
+      nomapSel.innerHTML = pool.map(t => `<option value="${t.id}">${t.name} (${t.currentHp}HP)</option>`).join('') || '<option>No targets</option>';
+      nomapSel.style.display = (!S.currentMap && !isImmediate) ? '' : 'none';
+    }
+
+    // If in aim mode, update it for new ability
+    if (S.aimMode && S.aimSection === 'ability') {
+      if (!isImmediate && S.currentMap) {
+        enterAimMode(ab, 'ability');
+      } else {
+        exitAimMode();
+        if (hint) hint.style.display = 'none';
+      }
+    }
+  }
+  syncAbilityBtn();
+
+  document.getElementById('ability-select')?.addEventListener('change', syncAbilityBtn);
 }
 
 function bindReactEvents() {
-  root.querySelectorAll?.('.react-ability-option')?.forEach?.(opt => {
-    opt.addEventListener('click', () => {
-      document.querySelectorAll('.react-ability-option').forEach(o => o.classList.remove('is-selected'));
-      opt.classList.add('is-selected');
-    });
-  });
-
-  // Overlay is appended to body, not root
   document.querySelectorAll('.react-ability-option').forEach(opt => {
     opt.addEventListener('click', () => {
       document.querySelectorAll('.react-ability-option').forEach(o => o.classList.remove('is-selected'));
@@ -1589,5 +2554,5 @@ function bindReactEvents() {
   document.getElementById('btn-react-no')?.addEventListener('click', handleReactNo);
 }
 
-// ── §12  Boot ──────────────────────────────────────────────────────────────
-render();
+// ── §14  Boot ──────────────────────────────────────────────────────────────
+(async () => { await loadChars(); render(); })();
