@@ -500,6 +500,23 @@ export function enterMoveMode() {
   }
   S.moveMode = true;
   S.reachableCells = bfsReachable(c.x, c.y, c.speed);
+
+  // Remove cells that exit a non-open active enemy domain (only if already inside it)
+  for (const ad of S.activeDomains) {
+    if (ad.domain.type === 'Ouvert') continue;
+    const owner = getCombatant(ad.casterId);
+    if (!owner || owner.isKO || owner.teamIndex === c.teamIndex) continue;
+    const domainRadius = ad.domain.radius ?? 8;
+    const center = { x: ad.centerX, y: ad.centerY };
+    if (chebyshev(c, center) > domainRadius) continue; // character already outside — no restriction
+    const toDelete = [];
+    for (const key of S.reachableCells.keys()) {
+      const [kx, ky] = key.split(',').map(Number);
+      if (chebyshev({ x: kx, y: ky }, center) > domainRadius) toDelete.push(key);
+    }
+    for (const key of toDelete) S.reachableCells.delete(key);
+  }
+
   const canvas = document.getElementById('dungeon-canvas');
   if (canvas) canvas.classList.add('move-mode');
   drawMap();
@@ -520,6 +537,18 @@ export function handleMoveClick(gx, gy) {
   const key = `${gx},${gy}`;
   if (!S.reachableCells.has(key)) return;
   if (isOccupied(gx, gy, c.id)) { addLog('That cell is occupied.', 'info'); return; }
+  for (const ad of S.activeDomains) {
+    if (ad.domain.type === 'Ouvert') continue;
+    const owner = getCombatant(ad.casterId);
+    if (!owner || owner.isKO || owner.teamIndex === c.teamIndex) continue;
+    const domainRadius = ad.domain.radius ?? 8;
+    const center = { x: ad.centerX, y: ad.centerY };
+    if (chebyshev(c, center) > domainRadius) continue; // already outside — no restriction
+    if (chebyshev({ x: gx, y: gy }, center) > domainRadius) {
+      addLog(`⛔ ${c.name} is trapped within ${owner.name}'s domain!`, 'status');
+      return;
+    }
+  }
   addLog(`${c.name} moves to (${gx}, ${gy}).`, 'info');
   c.x = gx; c.y = gy;
   S.hasMoved = true;
@@ -552,8 +581,18 @@ export function setupCanvasClickHandler() {
     const { gx, gy } = cellCoords(e);
     if (S.teleportMode) {
       const actor = getCombatant(S.teleportActorId);
+      const teleportBlockedByDomain = S.activeDomains.some(ad => {
+        if (ad.domain.type === 'Ouvert') return false;
+        const owner = getCombatant(ad.casterId);
+        if (!owner || owner.isKO || owner.teamIndex === actor?.teamIndex) return false;
+        const domainRadius = ad.domain.radius ?? 8;
+        const center = { x: ad.centerX, y: ad.centerY };
+        return chebyshev(actor, center) <= domainRadius
+          && chebyshev({ x: gx, y: gy }, center) > domainRadius;
+      });
       if (actor && chebyshev(actor, { x: gx, y: gy }) <= S.teleportRange
-          && isWalkableG(S.currentMap, gx, gy) && !isOccupied(gx, gy, actor.id)) {
+          && isWalkableG(S.currentMap, gx, gy) && !isOccupied(gx, gy, actor.id)
+          && !teleportBlockedByDomain) {
         addLog(`✦ ${actor.name} teleports to (${gx}, ${gy})!`, 'spell');
         actor.x = gx; actor.y = gy;
         const reactAbility = S.pendingTeleportReact;
@@ -635,6 +674,35 @@ export function drawMap() {
   const cp     = cellPxOf(S.currentMap);
   const active = activeCombatant();
   ctx.drawImage(image, 0, 0);
+
+  // Draw active domain zones
+  if (S.activeDomains.length > 0) {
+    const { cols, rows } = S.currentMap.grid;
+    const DOMAIN_FILL   = ['rgba(74,144,217,0.13)', 'rgba(217,74,74,0.13)'];
+    const DOMAIN_BORDER = ['rgba(74,144,217,0.65)', 'rgba(217,74,74,0.65)'];
+    const OPEN_FILL     = ['rgba(74,217,144,0.10)', 'rgba(217,144,74,0.10)'];
+    const OPEN_BORDER   = ['rgba(74,217,144,0.50)', 'rgba(217,144,74,0.50)'];
+    for (const ad of S.activeDomains) {
+      const owner = getCombatant(ad.casterId);
+      if (!owner || owner.isKO) continue;
+      const domainRadius = ad.domain.radius ?? 8;
+      const isOpen = ad.domain.type === 'Ouvert';
+      const ti = owner.teamIndex;
+      ctx.fillStyle   = isOpen ? (OPEN_FILL[ti]   ?? OPEN_FILL[0])   : (DOMAIN_FILL[ti]   ?? DOMAIN_FILL[0]);
+      ctx.strokeStyle = isOpen ? (OPEN_BORDER[ti]  ?? OPEN_BORDER[0]) : (DOMAIN_BORDER[ti]  ?? DOMAIN_BORDER[0]);
+      ctx.lineWidth = 2;
+      ctx.setLineDash(isOpen ? [4, 4] : []);
+      for (let gy = 0; gy < rows; gy++) {
+        for (let gx = 0; gx < cols; gx++) {
+          const dist = chebyshev({ x: gx, y: gy }, { x: ad.centerX, y: ad.centerY });
+          if (dist <= domainRadius) ctx.fillRect(gx * cp, gy * cp, cp, cp);
+          if (dist === domainRadius) ctx.strokeRect(gx * cp + 1, gy * cp + 1, cp - 2, cp - 2);
+        }
+      }
+    }
+    ctx.setLineDash([]);
+  }
+
   if (S.moveMode && S.reachableCells.size > 0) {
     ctx.fillStyle = 'rgba(74,144,217,0.35)';
     for (const [key] of S.reachableCells) {
@@ -1095,14 +1163,17 @@ export function checkVictory() {
 }
 
 export function getReacts(target) {
-  const insideCompleteDomain = S.activeDomains.some(d => {
+  const insideClosedDomain = S.activeDomains.some(d => {
     const owner = getCombatant(d.casterId);
-    return owner && !owner.isKO && owner.teamIndex !== target.teamIndex && d.domain.type === 'Complet';
+    if (!owner || owner.isKO || owner.teamIndex === target.teamIndex) return false;
+    if (d.domain.type === 'Ouvert') return false;
+    const domainRadius = d.domain.radius ?? 8;
+    return chebyshev(target, { x: d.centerX, y: d.centerY }) <= domainRadius;
   });
   return target.abilities.filter(ab => {
     if (!ab.isReact && !ab.isInstant && !ab.isBlock) return false;
     if (ab.isTransform) return false;
-    if (insideCompleteDomain && ab.tags?.includes('teleportation')) return false;
+    if (insideClosedDomain && ab.tags?.includes('teleportation')) return false;
     return abilityAvailable(target, ab);
   });
 }
@@ -1381,7 +1452,7 @@ export function handleActivateDomain(casterId) {
   c.spellSlots  -= domain.spellCost;
   c.domainCharges--;
   c.domainActive = true;
-  S.activeDomains.push({ casterId: c.id, domain });
+  S.activeDomains.push({ casterId: c.id, domain, centerX: c.x, centerY: c.y });
   S.hasActed = true;
 
   addLog(`🌐 ${c.name} activates Domain Expansion: ${domain.name}! [${domain.type} · Ref. ${domain.rafinement ?? 'N/A'}]`, 'crit');

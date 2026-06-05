@@ -121,6 +121,7 @@
       "name": "Sanctuaire du Premier Éclat",
       "type": "Complet",
       "rafinement": 5,
+      "radius": 8,
       "description": "L'espace se transforme en un vide doré infini où l'énergie de la création pure sature l'air.",
       "spellCost": 6,
       "effects": [
@@ -258,6 +259,7 @@
       "name": "Ombre Naissante de l'Oni",
       "type": "Incomplet",
       "rafinement": 0,
+      "radius": 6,
       "description": "Une brume noire et violette s'échappe du sol, créant des silhouettes monstrueuses sans toutefois fermer l'espace.",
       "spellCost": 5,
       "effects": [
@@ -1004,6 +1006,7 @@
       "name": "Le Brasero des Ames Perdues",
       "type": "Ouvert",
       "rafinement": 3,
+      "radius": 8,
       "description": "Un autel apparaît derrière Kaelgrym, émettant une vague constante de flammes sur un large rayon. Toutes les techniques du style Aincrad par Kaelgrym sont augmentées.",
       "spellCost": 5,
       "effects": [
@@ -2263,6 +2266,7 @@
       "name": "Grave of the Thousand Gods",
       "type": "Complet",
       "rafinement": 7,
+      "radius": 8,
       "description": "Un cimetière désolé sous un ciel de sang, où des milliers d'armes divines sont plantées dans le sol, vibrant d'anti-magie.",
       "spellCost": 7,
       "effects": [

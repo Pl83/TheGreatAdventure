@@ -24,7 +24,9 @@
       "Bash(Select-Object Name, Extension)",
       "Bash(Format-Table -AutoSize)",
       "Bash(node --input-type=module)",
-      "PowerShell(head *)"
+      "PowerShell(head *)",
+      "Bash(node -e \"const fs=require\\('fs'\\); const chars=JSON.parse\\(fs.readFileSync\\('js/characters.json','utf8'\\)\\); const withDomain=chars.filter\\(c=>c.domain\\); withDomain.forEach\\(c=>console.log\\(c.nom,':', JSON.stringify\\(c.domain\\).substring\\(0,300\\)\\)\\)\")",
+      "Bash(node -e \"const fs=require\\('fs'\\); const chars=JSON.parse\\(fs.readFileSync\\('js/characters.json','utf8'\\)\\); const withDomain=chars.filter\\(c=>c.domain\\); console.log\\(JSON.stringify\\(withDomain.map\\(c=>\\({nom:c.nom, domain:{name:c.domain.name,type:c.domain.type,rafinement:c.domain.rafinement}}\\)\\),null,2\\)\\)\")"
     ]
   }
 }
