@@ -2717,6 +2717,29 @@ header.nav-open .nav-toggle span:nth-child(3) { transform: translateY(-9px) rota
 .transform-active-badge { background: #ece4f6; border: 1px solid var(--tga-violet); color: var(--tga-violet-deep); }
 .domain-active-badge { background: #e3eef1; border: 1px solid var(--tga-teal); color: var(--tga-teal-deep); }
 
+/* Active domain overlay strip */
+.active-domain-strip {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 6px 10px;
+  background: rgba(0,0,0,0.55);
+  border: 1px solid var(--tga-teal);
+  border-radius: var(--tga-r-xs);
+  margin-bottom: 4px;
+}
+.domain-strip-entry {
+  font-family: var(--tga-font-display);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 3px;
+}
+.domain-strip-entry.team0 { background: rgba(0,180,180,0.18); border: 1px solid var(--tga-teal); color: var(--tga-teal-soft); }
+.domain-strip-entry.team1 { background: rgba(180,80,80,0.18); border: 1px solid #c06060; color: #e08080; }
+
 /* =============================================================================
    4 · COMMAND PANEL — the action console
    ============================================================================= */
