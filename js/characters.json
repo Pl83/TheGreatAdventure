@@ -2495,7 +2495,6 @@
     "speed": 7,
     "autority": 3,
     "immunities": [
-      "wet",
       "lightning"
     ],
     "baseAtk": {
@@ -2504,7 +2503,7 @@
       "tags": [
         "physical",
         "lightning",
-        "water"
+        "wind"
       ]
     },
     "passif": [
@@ -2512,7 +2511,7 @@
         "nom": "Azure Dragon's Remnant",
         "tags": [
           "buff",
-          "water",
+          "wind",
           "lightning"
         ],
         "applyOn": [
@@ -2554,11 +2553,11 @@
       "description": "Azure Dragon — East. Activates when at least one other Divine Beast is present.",
       "effects": [
         {
-          "nom": "Eastern Tide",
+          "nom": "Eastern Wind",
           "dices": "+1d8",
           "tags": [
             "buff",
-            "water"
+            "wind"
           ],
           "applyOn": [
             "atkRoll"
@@ -2569,7 +2568,8 @@
           "nom": "Dragon Blessing",
           "dices": "1d6",
           "tags": [
-            "regen"
+            "regen",
+            "organic"
           ],
           "applyOn": [
             "hpPerTurn"
@@ -2596,11 +2596,11 @@
       {
         "category": "Art",
         "base": {
-          "nom": "Azure Torrent",
+          "nom": "Gale Claw",
           "dices": "2d10+4",
           "tags": [
-            "water",
-            "wet"
+            "wind",
+            "physical"
           ]
         },
         "target": "cone",
@@ -2613,8 +2613,7 @@
           "nom": "Dragon Scale Guard",
           "tags": [
             "block",
-            "react",
-            "half_phys"
+            "react"
           ]
         },
         "target": "self",
@@ -2625,16 +2624,16 @@
       {
         "category": "spell",
         "base": {
-          "nom": "Raging Current",
+          "nom": "Verdant Surge",
           "dices": "1d20+6",
           "tags": [
-            "water",
-            "magic",
-            "wet"
+            "organic",
+            "magic"
           ]
         },
         "target": "mono",
         "range": 12,
+        "description": "A burst of living wood energy tears through the target.",
         "spellCost": 1
       },
       {
@@ -2644,7 +2643,7 @@
           "dices": "2d12+1d8+4",
           "tags": [
             "lightning",
-            "water",
+            "wind",
             "magic"
           ]
         },
@@ -2659,7 +2658,7 @@
           "dices": "3d10+8",
           "tags": [
             "lightning",
-            "water",
+            "wind",
             "magic",
             "unblockabled"
           ]
@@ -2667,8 +2666,7 @@
         "target": "aoe",
         "range": 10,
         "radius": 4,
-        "effect": "stun",
-        "description": "The cry of the Azure Dragon. Disadvange on foe rolls for 1 turn.",
+        "description": "The cry of the Azure Dragon. Disadvantage on foe rolls for 1 turn.",
         "spellCost": 2,
         "kiCost": 4,
         "cooldown": 4
@@ -2882,6 +2880,194 @@
         "range": 15,
         "description": "Divine fire of the South. True damage.",
         "kiCost": 14,
+        "cooldown": 5
+      }
+    ]
+  },
+  {
+    "nom": "Black Turtle",
+    "deceased": true,
+    "hp": 120,
+    "spellSlot": 8,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 4,
+    "autority": 4,
+    "immunities": [
+      "water",
+      "wet",
+      "freeze",
+      "earth"
+    ],
+    "baseAtk": {
+      "nom": "Abyssal Shell Strike",
+      "dices": "2d10+1d8+8",
+      "tags": [
+        "physical",
+        "water",
+        "earth"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Immortal Shell",
+        "dices": "-2d6",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "incomingDam"
+        ],
+        "description": "The divine shell of the Black Turtle reduces all incoming damage."
+      },
+      {
+        "nom": "Abyss Ward",
+        "dices": "+4",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "defRoll",
+          "savingThrow"
+        ]
+      },
+      {
+        "nom": "Sunken Colossus",
+        "dices": "+1d10",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ],
+        "condition": {
+          "contextHasTag": "water"
+        },
+        "description": "In water or flooded terrain, the Black Turtle's power is absolute."
+      },
+      {
+        "nom": "Northern Bastion",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "defRoll"
+        ],
+        "description": "Cannot be moved, knocked back, or grounded against its will."
+      }
+    ],
+    "divineSync": {
+      "description": "Black Turtle — North. Activates when at least one other Divine Beast is present.",
+      "effects": [
+        {
+          "nom": "Northern Depths",
+          "dices": "-1d8",
+          "tags": [
+            "buff"
+          ],
+          "applyOn": [
+            "incomingDam"
+          ],
+          "target": "allies",
+          "description": "The Turtle's presence reduces damage taken by all allies."
+        },
+        {
+          "nom": "Tidal Anchor",
+          "tags": [
+            "buff",
+            "water"
+          ],
+          "applyOn": [
+            "defRoll"
+          ],
+          "dices": "+2",
+          "target": "self"
+        }
+      ]
+    },
+    "moveSet": [
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Abyssal Current",
+          "dices": "2d12+8",
+          "tags": [
+            "water",
+            "magic",
+            "wet"
+          ]
+        },
+        "target": "cone",
+        "range": 8,
+        "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Stone Tide",
+          "dices": "1d20+1d8+6",
+          "tags": [
+            "earth",
+            "water",
+            "magic"
+          ]
+        },
+        "target": "mono",
+        "range": 12,
+        "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Glacial Prison",
+          "dices": "1d12+4",
+          "tags": [
+            "ice",
+            "water",
+            "magic",
+            "root"
+          ]
+        },
+        "target": "aoe",
+        "range": 8,
+        "radius": 4,
+        "description": "Encase foes in ice. 1d2 root + 1d2 freeze.",
+        "spellCost": 2
+      },
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Tortoise Bastion",
+          "dices": "60",
+          "tags": [
+            "magic",
+            "block",
+            "earth",
+            "water"
+          ]
+        },
+        "target": "self",
+        "range": 0,
+        "description": "Raise a divine barrier of stone and water with 60 HP.",
+        "spellCost": 2
+      },
+      {
+        "category": "technoSpell",
+        "base": {
+          "nom": "Depths of the North",
+          "dices": "4d12+12",
+          "tags": [
+            "water",
+            "earth",
+            "magic",
+            "undodgeable"
+          ]
+        },
+        "target": "aoe",
+        "range": 12,
+        "radius": 6,
+        "description": "The ocean itself crashes down. True damage to all in range.",
+        "spellCost": 3,
         "cooldown": 5
       }
     ]
