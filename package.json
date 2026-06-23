@@ -1,0 +1,10 @@
+{
+  "name": "the-great-adventure",
+  "version": "1.0.0",
+  "description": "Combat simulator and character codex.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "node --test"
+  }
+}

@@ -24,7 +24,17 @@
       "Bash(Select-Object Name, Extension)",
       "Bash(Format-Table -AutoSize)",
       "Bash(node --input-type=module)",
-      "PowerShell(head *)"
+      "PowerShell(head *)",
+      "Bash(python3 *)",
+      "Bash(cd *)",
+      "Bash(node --test test/parseDice.test.js)",
+      "Bash(node --test test/resolveAttack.test.js)",
+      "Bash(node --test)",
+      "Bash(node --test test/fight.test.js)",
+      "Bash(node --check js/combat-logic.js)",
+      "Bash(npm test *)",
+      "Bash(node -e ' *)",
+      "Bash(node --input-type=module -e ' *)"
     ]
   }
 }

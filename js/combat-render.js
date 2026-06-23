@@ -7,10 +7,11 @@ import {
   activeCombatant, livingCombatants, koAllies, getCombatant,
   enemies, abilityAvailable, hasSilence, hasValidTarget,
   chebyshev, targetInRange,
-  drawMap, setupCanvasClickHandler,
+  setupCanvasClickHandler,
   clearAimState, startCombat, startInitiative,
 } from './combat-logic.js';
 
+import { drawMap } from './combat-map.js';
 import { bindSelectionEvents, bindCombatEvents, bindReactEvents } from './combat-events.js';
 
 export const root = document.getElementById('combat-root');

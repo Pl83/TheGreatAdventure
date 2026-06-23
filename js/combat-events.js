@@ -5,7 +5,7 @@
 import {
   S,
   activeCombatant, livingCombatants, enemies,
-  hasValidTarget, drawMap,
+  hasValidTarget,
   handlePass, handleAttack, handleCastAbility,
   handleTransform, handleActivateDomain,
   handleReactYes, handleReactNo,
@@ -13,6 +13,8 @@ import {
   enterAimMode, exitAimMode,
   addLog, startInitiative,
 } from './combat-logic.js';
+
+import { drawMap } from './combat-map.js';
 
 import { abilityPreviewHTML, abilityFireLabel, renderCombatScreen, renderSelectionScreen } from './combat-render.js';
 
