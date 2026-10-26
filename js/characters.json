@@ -2623,7 +2623,8 @@
           "nom": "Dragon Scale Guard",
           "tags": [
             "block",
-            "react"
+            "react",
+            "half_phys"
           ]
         },
         "target": "self",

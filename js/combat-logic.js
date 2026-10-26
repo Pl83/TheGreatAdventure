@@ -1090,7 +1090,8 @@ export function applyDamage(combatant, amount, damType = null, atkTags = [], ign
 }
 
 export function applyStatus(combatant, effectStr, defaultTurns = 2) {
-  if (!effectStr) return;
+  // A hit that kills its target still applies its effect afterwards; the dead keep no statuses
+  if (!effectStr || combatant.isKO) return;
   const immunities = (combatant.sourceChar.immunities ?? []).map(i => i.toLowerCase());
   for (const part of String(effectStr).split(',')) {
     const p = part.trim();
@@ -1439,7 +1440,7 @@ export function handleAttack(attackerId, defenderId) {
     addLog(`🛡 ${def.name}'s pre-armed shield blocks ${atk.name}'s attack!`, 'spell');
     def.statusEffects = def.statusEffects.filter(e => e !== preShield);
     updateCombatantCardDOM(def);
-    _R.renderCombatScreen();
+    advanceTurn();
     return;
   }
 
@@ -1611,7 +1612,8 @@ export function handleCastAbility(casterId, abilityName, targetIds) {
     addLog(`🛡 ${target.name}'s pre-armed shield blocks ${caster.name}'s ${ability.name}!`, 'spell');
     target.statusEffects = target.statusEffects.filter(e => e !== preShieldSpell);
     updateCombatantCardDOM(target);
-    _R.renderCombatScreen();
+    // Instant moves do not use the action: the turn stays open
+    if (ability.isInstant) _R.renderCombatScreen(); else advanceTurn();
     return;
   }
 
@@ -1776,6 +1778,16 @@ export function handleReactNo() {
   resumePendingAction(null);
 }
 
+// Halves the next physical hit taken. Statuses tick when their owner's turn starts, so 1 turn lasts
+// through every enemy action until the owner acts again.
+function raiseBladeArmor(c, ability) {
+  const existing = c.statusEffects.find(e => e.name === 'living_blade_armor');
+  if (existing) existing.turnsLeft = Math.max(existing.turnsLeft, 1);
+  else c.statusEffects.push({ name: 'living_blade_armor', turnsLeft: 1, dice: null, damType: null, notes: '' });
+  addLog(`⚔ ${c.name} raises ${ability.name} — halves next physical hit!`, 'spell');
+  updateCombatantCardDOM(c);
+}
+
 // One absorb shield per combatant: a new cast refreshes it to the larger value instead of stacking forever
 function grantDamageShield(target, shieldHp, source) {
   const existing = target.statusEffects.find(e => e.name === 'damage_shield');
@@ -1819,9 +1831,7 @@ export function resumePendingAction(reactAbility) {
         }
         blocked = true;
       } else if (reactAbility.tags?.includes('half_phys')) {
-        reactor.statusEffects.push({ name: 'living_blade_armor', turnsLeft: 1, dice: null, damType: null, notes: '' });
-        addLog(`⚔ ${reactor.name} raises Living Blade Armor — halves next physical hit!`, 'spell');
-        updateCombatantCardDOM(reactor);
+        raiseBladeArmor(reactor, reactAbility);
       } else if (reactAbility.tags?.includes('teleportation')) {
         addLog(`✦ ${reactor.name} blinks away — attack misses!`, 'spell');
         blocked = true;
@@ -2105,7 +2115,9 @@ export function resumePendingAction(reactAbility) {
         const isSelf     = ability.targetKind === 'self';
 
         if (isSelf || isPureHeal) {
-          if (ability.isBlock) {
+          if (ability.tags?.includes('half_phys')) {
+            raiseBladeArmor(target, ability);
+          } else if (ability.isBlock) {
             // A ward must outlast a full round: statuses tick when their owner's turn starts, so an ally
             // that acts right after the caster would otherwise lose it before any enemy could attack
             const wardTurns = target.id === caster.id ? 1 : 2;
