@@ -441,6 +441,25 @@ export function freeCellAdjacentTo(target, from, excludeId = -1) {
   return best;
 }
 
+// Free walkable cell with line of sight to `target`, searched ring by ring up to `maxRing` cells away.
+// Within a ring, the cell nearest to `from` wins; `accept` can veto cells (e.g. domain traps).
+function freeCellNear(target, from, maxRing, excludeId = -1, accept = () => true) {
+  if (!S.currentMap) return null;
+  for (let ring = 1; ring <= maxRing; ring++) {
+    let best = null, bestD = Infinity;
+    for (let dx = -ring; dx <= ring; dx++) for (let dy = -ring; dy <= ring; dy++) {
+      if (Math.max(Math.abs(dx), Math.abs(dy)) !== ring) continue;
+      const x = target.x + dx, y = target.y + dy;
+      if (!isWalkableG(S.currentMap, x, y) || isOccupied(x, y, excludeId)) continue;
+      if (!hasLos(x, y, target.x, target.y) || !accept(x, y)) continue;
+      const d = chebyshev({ x, y }, from);
+      if (d < bestD) { bestD = d; best = { x, y }; }
+    }
+    if (best) return best;
+  }
+  return null;
+}
+
 // Dash: the caster crosses the gap and lands next to the target
 function dashToward(c, target) {
   if (!S.currentMap || chebyshev(c, target) <= MELEE_RANGE) return;
@@ -1358,15 +1377,16 @@ function reflectSpell(reactor, reflectAb, action) {
   return true;
 }
 
-// Greater Teleportation: allies within the radius follow the caster to the destination
+// Greater Teleportation: allies within the radius follow the caster to the destination, landing on the
+// nearest free cell in sight of the caster (up to GROUP_TELEPORT_REACH cells away, so tight spots still fit everyone)
+const GROUP_TELEPORT_REACH = 3;
 function relocateAllies(leader, origin, radius) {
   const moved = [];
   for (const a of allies(leader)) {
     if (a.id === leader.id || chebyshev(a, origin) > radius) continue;
-    const cell = freeCellAdjacentTo(leader, leader, a.id);
+    // Walking out of an enemy domain is not allowed, teleporting out of it neither
+    const cell = freeCellNear(leader, a, GROUP_TELEPORT_REACH, a.id, (x, y) => !trappingDomainOwner(a, x, y));
     if (!cell) { addLog(`  ${a.name} finds no room at the destination.`, 'info'); continue; }
-    const trap = trappingDomainOwner(a, cell.x, cell.y);
-    if (trap) { addLog(`⛔ ${a.name} is held in place by ${trap.name}'s domain.`, 'status'); continue; }
     addLog(`  ✦ ${a.name} follows to (${cell.x}, ${cell.y}).`, 'spell');
     a.x = cell.x; a.y = cell.y;
     moved.push(a.id);
