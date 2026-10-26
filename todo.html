@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="img/logo/lego.webp" type="image/x-icon">
+    <link rel="stylesheet" href="css/main.css">
+    <title>Todo — The Great Adventure</title>
+</head>
+<body>
+    <header>
+        <div class="brand">
+            <span class="brand-name">The Great Adventure</span>
+            <span class="brand-sub">Worldbuilding compendium — House of Pilou, est. 2020</span>
+        </div>
+        <nav>
+            <ul>
+                <li class="menu"><a href="index.html">Home</a></li>
+                <li class="menu"><a href="factions.html">Factions</a></li>
+                <li class="menu"><a href="maps.html">World</a></li>
+                <li class="menu"><a href="artifacts.html">Artifacts</a></li>
+                <li class="menu"><a href="dnl.html">D&amp;L</a></li>
+                <li class="menu"><a href="combat.html">⚔ Combat</a></li>
+                <li class="menu"><a href="timeline.html">Timeline</a></li>
+            </ul>
+        </nav>
+        <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+            <span></span><span></span><span></span>
+        </button>
+    </header>
+    <main>
+        <div class="page-heading">
+            <span class="page-eyebrow">Codex ∞ · The Forge</span>
+            <h2>Combat Todo</h2>
+            <p class="page-lede">Bugs, oddities and missing mechanics found by the combat test passes. Progress is saved in this browser.</p>
+            <div class="tga-divider"><span>✦</span></div>
+        </div>
+        <div id="todo-root"></div>
+    </main>
+    <script src="js/nav.js"></script>
+    <script type="module" src="js/todo.js"></script>
+</body>
+</html>
