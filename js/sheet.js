@@ -282,7 +282,7 @@ function renderCard(char) {
             const teams = getStoredTeams();
             if (teams[team].includes(nom)) {
                 teams[team] = teams[team].filter(n => n !== nom);
-            } else if (teams[team].length < 4) {
+            } else if (teams[team].length < 5) {
                 teams[team].push(nom);
             }
             saveTeams(teams);

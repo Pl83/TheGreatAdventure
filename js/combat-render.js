@@ -5,7 +5,7 @@
 import {
   _R, S, SPELL_RANGE, allChars,
   activeCombatant, livingCombatants, koAllies, getCombatant,
-  enemies, abilityAvailable, hasSilence, hasValidTarget,
+  enemies, abilityAvailable, hasSilence, hasValidTarget, hasControlEffect,
   chebyshev, targetInRange,
   drawMap, setupCanvasClickHandler,
   clearAimState, startCombat, startInitiative,
@@ -162,9 +162,7 @@ export function actionPanelHTML(c) {
   const targetOptsForAbility = (ability) => {
     if (ability?.targetKind === 'self') return `<option value="${c.id}">Self</option>`;
     if (ability?.targetKind === 'ally') {
-      const allyPool = ability.isRevive
-        ? [...allyAlive, ...koAllies(c.teamIndex)]
-        : allyAlive;
+      const allyPool = ability.isRevive ? koAllies(c.teamIndex) : allyAlive;
       return allyPool.map(t =>
         `<option value="${t.id}">${t.name} (${t.currentHp}/${t.maxHp}HP)${t.isKO ? ' [KO]' : ''}</option>`
       ).join('');
@@ -201,6 +199,7 @@ export function actionPanelHTML(c) {
 
   const abilityList = c.abilities.filter(ab =>
     !ab.isTransform &&
+    !ab.isVoid &&
     abilityAvailable(c, ab) &&
     !(silence && ab.cost?.type === 'slots')
   );
@@ -225,7 +224,9 @@ export function actionPanelHTML(c) {
 
   const nomapTargetOpts = () => {
     if (!firstAbility || firstAbility.isAoe || firstAbility.isCone || firstAbility.targetKind === 'self') return '';
-    const pool = firstAbility.targetKind === 'ally' ? allyAlive : enemyAlive;
+    const pool = firstAbility.targetKind === 'ally'
+      ? (firstAbility.isRevive ? koAllies(c.teamIndex) : allyAlive)
+      : enemyAlive;
     if (!pool.length) return '<option>No targets</option>';
     return pool.map(t => `<option value="${t.id}">${t.name} (${t.currentHp}HP)</option>`).join('');
   };
@@ -238,7 +239,7 @@ export function actionPanelHTML(c) {
         <button class="action-btn aim-btn" id="btn-ability-fire" ${abNoTarget || (acted && !firstAbility?.isInstant) ? 'disabled' : ''}>
           ${fireLabel(firstAbility)}
         </button>
-        <span id="aim-hint-ability" class="aim-hint" style="display:none">↖ Click target on map</span>
+        <span id="aim-hint-ability" class="aim-hint" style="display:none">↖ Click target on map (Esc / right-click to cancel)</span>
       </div>
       ${!hasMap && nomapTargetOpts() ? `<select id="ability-target-nomap" class="target-select nomap-target">${nomapTargetOpts()}</select>` : ''}
       <div id="ability-preview" class="ability-preview-wrap"></div>
@@ -250,7 +251,7 @@ export function actionPanelHTML(c) {
     <div class="action-section">
       <label class="action-label">Transformation</label>
       <button class="action-btn transform-btn" id="btn-transform" data-caster="${c.id}"
-              ${(acted || c.usedThisFight.includes(tf.base.nom)) ? 'disabled' : ''}>
+              ${(acted || c.usedThisFight.includes(tf.base.nom) || !abilityAvailable(c, tfAbility)) ? 'disabled' : ''}>
         ${tf.base.nom} ${tfAbility.cost ? `(${tfAbility.cost.amount} ${tfAbility.cost.type})` : '(free)'}
       </button>
     </div>` : '';
@@ -278,6 +279,15 @@ export function actionPanelHTML(c) {
         return `<span class="domain-strip-entry ${teamClass}">🌐 ${owner.name}: ${d.domain.name} [${d.domain.type}]</span>`;
       }).join('')}</div>`
     : '';
+
+  const ctrl = hasControlEffect(c);
+  if (ctrl) {
+    return `
+    ${activeDomainStrip}
+    <div class="action-panel">
+      <div class="action-panel-title">${c.name}'s Turn <span class="acted-badge">${ctrl.name} — cannot act</span></div>
+    </div>`;
+  }
 
   const atkNote = hasMap && atkNoTarget && !noEnemies
     ? '<span class="range-warn">Move closer to attack</span>' : '';
@@ -366,7 +376,7 @@ export function renderSelectionScreen() {
   const charGrid = (teamIdx) => allChars.map(c => {
       const inThis  = S.teamNames[teamIdx].includes(c.nom);
       const inOther = S.teamNames[1 - teamIdx].includes(c.nom);
-      const full    = S.teamNames[teamIdx].length >= 4;
+      const full    = S.teamNames[teamIdx].length >= 5;
       const locked  = !inThis && (inOther || full);
       const abilCount = c.moveSet?.length ?? 0;
       return `
@@ -398,7 +408,7 @@ export function renderSelectionScreen() {
       <div class="selection-header">
         <span class="cx-eyebrow">War Council</span>
         <h3 class="selection-title">Choose Your Champions</h3>
-        <p class="selection-sub">Pick 1–4 characters per team, then roll for initiative.</p>
+        <p class="selection-sub">Pick 1–5 characters per team, then roll for initiative.</p>
       </div>
       <div class="selection-teams">
         <div class="selection-team">
@@ -423,9 +433,10 @@ export function renderSelectionScreen() {
 }
 
 export function renderInitiativeScreen() {
+  const initMax = Math.max(26, ...S.initiativeOrder.map(id => getCombatant(id).initiativeRoll)); // 20 + speed bonus, but never clip a bigger roll
   const rows = S.initiativeOrder.map(id => {
     const c    = getCombatant(id);
-    const pct  = ((c.initiativeRoll / 26) * 100).toFixed(1); // max = 20 + 3 from speed 12
+    const pct  = ((c.initiativeRoll / initMax) * 100).toFixed(1);
     const tcls = c.teamIndex === 0 ? 'team-a' : 'team-b';
     return `
       <div class="init-roll-row">

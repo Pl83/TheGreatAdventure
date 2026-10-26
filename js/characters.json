@@ -150,6 +150,7 @@
   },
   {
     "nom": "Thormak, The Titan Slayer",
+    "tags": ["beast", "tiger"],
     "hp": 70,
     "spellSlot": 9,
     "ki": 0,
@@ -165,11 +166,11 @@
     "passif": [
       {
         "nom": "Unkillable",
-        "dices": "1d2",
+        "chance": 0.5,
         "tags": ["buff"],
         "applyOn": ["incomingDam"],
         "condition": { "incomingIsLethal": true },
-        "description": "If incoming damage would be lethal, reduce to 1d2 instead."
+        "description": "If incoming damage would be lethal: 50% chance to survive, but HP drops to 1."
       },
       {
         "nom": "Titan Slayer",
@@ -823,6 +824,7 @@
   },
   {
     "nom": "Ras",
+    "tags": ["beast", "tiger"],
     "hp": 80,
     "spellSlot": 0,
     "ki": 0,
@@ -962,22 +964,22 @@
       },
       {
         "category": "technique",
-        "base": { "nom": "Reaver", "dices": "1d8+4", "tags": ["physical", "bleed"] },
+        "base": { "nom": "Reaver", "dices": "1d8+4", "tags": ["physical", "bleed", "sword"] },
         "target": "aoe", "range": 3, "radius": 2, "cooldown": 3
       },
       {
         "category": "technique",
-        "base": { "nom": "Farant Fullmoon", "dices": "4d6+8", "tags": ["physical"] },
+        "base": { "nom": "Farant Fullmoon", "dices": "4d6+8", "tags": ["physical", "sword"] },
         "target": "mono", "range": 3, "cooldown": 2
       },
       {
         "category": "technique",
-        "base": { "nom": "Raging Chopper", "dices": "2d6+4", "tags": ["physical"] },
+        "base": { "nom": "Raging Chopper", "dices": "2d6+4", "tags": ["physical", "sword"] },
         "target": "cone", "range": 4, "cooldown": 3
       },
       {
         "category": "technique",
-        "base": { "nom": "Vorpal Slash", "dices": "1d12+5", "tags": ["physical", "heal"] },
+        "base": { "nom": "Vorpal Slash", "dices": "1d12+5", "tags": ["physical", "heal", "sword"] },
         "target": "mono", "range": 3,
         "description": "100% lifesteal on damage dealt.",
         "cooldown": 4
@@ -991,14 +993,14 @@
       },
       {
         "category": "relic",
-        "base": { "nom": "Ifrit's Bane (Sleeping)", "dices": "1d12+1d6+4", "tags": ["fire", "physical"] },
+        "base": { "nom": "Ifrit's Bane (Sleeping)", "dices": "1d12+1d6+4", "tags": ["fire", "physical", "sword"] },
         "target": "mono", "range": 4,
         "description": "Absorb fire damage to restore spell slots.",
         "cooldown": 0
       },
       {
         "category": "relic",
-        "base": { "nom": "Ifrit's Bane (Awake)", "dices": "1d12+1d8+1d6+6", "tags": ["fire", "physical", "burn"] },
+        "base": { "nom": "Ifrit's Bane (Awake)", "dices": "1d12+1d8+1d6+6", "tags": ["fire", "physical", "burn", "sword"] },
         "target": "mono", "range": 4, "cooldown": 0
       }
     ],
@@ -1205,6 +1207,7 @@
   },
   {
     "nom": "White",
+    "tags": ["evil"],
     "hp": 250,
     "spellSlot": 0,
     "ki": 0,
@@ -1315,6 +1318,7 @@
   },
   {
     "nom": "Vorrakan Duskbane",
+    "tags": ["evil"],
     "hp": 65,
     "spellSlot": 10,
     "ki": 0,
@@ -1332,14 +1336,14 @@
     "moveSet": [
       {
         "category": "spell",
-        "base": { "nom": "Black Hole", "tags": ["magic", "psy"] },
+        "base": { "nom": "Black Hole", "tags": ["magic", "psy", "react", "block", "void"] },
         "target": "aoe", "range": 10, "radius": 5,
-        "description": "Pulls everything into shadow void.",
+        "description": "React: swallows the incoming move for the whole team around Vorrakan and stores it in the shadow void.",
         "spellCost": 2
       },
       {
         "category": "spell",
-        "base": { "nom": "Shadow Slash", "tags": ["magic", "physical"] },
+        "base": { "nom": "Shadow Slash", "dices": "2d6+8", "tags": ["magic", "physical"] },
         "target": "cone", "range": 5, "spellCost": 1
       },
       {
@@ -1349,9 +1353,9 @@
       },
       {
         "category": "spell",
-        "base": { "nom": "Shadow Gate", "tags": ["magic"] },
+        "base": { "nom": "Shadow Gate", "tags": ["magic", "gate"] },
         "target": "mono", "range": 10,
-        "description": "Spit something from shadow void.",
+        "description": "Spits a random move out of the shadow void at the target. Does nothing if the void is empty.",
         "spellCost": 1
       },
       {
@@ -1361,7 +1365,7 @@
       },
       {
         "category": "technique",
-        "base": { "nom": "Force Grab/Pull", "dices": "1d6+2", "tags": ["physical", "psy"] },
+        "base": { "nom": "Force Grab/Pull", "dices": "1d6+2", "tags": ["physical", "psy", "pull"] },
         "target": "mono", "range": 10, "cooldown": 2
       },
       {
@@ -1395,7 +1399,7 @@
       },
       {
         "category": "technique",
-        "base": { "nom": "Airzutsu", "tags": ["buff"] },
+        "base": { "nom": "Airzutsu", "tags": ["buff", "fly"] },
         "target": "self", "range": 0, "duration": 1,
         "description": "Fly for 1 turn.",
         "cooldown": 2
@@ -1416,6 +1420,7 @@
   },
   {
     "nom": "Morrow",
+    "tags": ["evil"],
     "hp": 65,
     "spellSlot": 5,
     "ki": 0,
@@ -1540,6 +1545,7 @@
   },
   {
     "nom": "Spheras Nightmare",
+    "tags": ["evil"],
     "hp": 105,
     "spellSlot": 10,
     "ki": 0,
@@ -1560,6 +1566,7 @@
   },
   {
     "nom": "Dream Hunter",
+    "tags": ["evil"],
     "hp": 110,
     "spellSlot": 6,
     "ki": 0,
@@ -1596,6 +1603,7 @@
   },
   {
     "nom": "Astrid Nightmare",
+    "tags": ["evil"],
     "hp": 130,
     "spellSlot": 7,
     "ki": 0,
@@ -1629,6 +1637,7 @@
   },
   {
     "nom": "Sylvanas Nightmare",
+    "tags": ["evil"],
     "hp": 130,
     "spellSlot": 6,
     "ki": 0,
@@ -2296,6 +2305,7 @@
   },
   {
     "nom": "Jeagen, White Tiger",
+    "tags": ["beast", "tiger"],
     "hp": 110,
     "spellSlot": 0,
     "ki": 20,
@@ -2846,7 +2856,7 @@
         "target": "mono",
         "range": 8,
         "description": "Wrap an ally in phoenix fire. Block one attack + regen 1d10+6 HP.",
-        "kiCost": 5
+        "kiCost": 6
       },
       {
         "category": "Art",

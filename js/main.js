@@ -382,7 +382,7 @@ export const personnageSheet = [
     {
         name: "Thormak, The Titan Slayer",
         hp: 70,
-        passives: ["Unkillable (1d2 if mortal dam)", "Titan Slayer (+1d12 if foe has more HP)"],
+        passives: ["Unkillable (50% to survive a lethal hit at 1 HP)", "Titan Slayer (+1d12 if foe has more HP)"],
         spells: [
             { name: "Fire Spear", type: "mono + aoe", dice: "1d20 mono + 1d12 aoe" },
             { name: "Blink", type: "instant", desc: "Teleportation" }

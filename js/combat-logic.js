@@ -33,7 +33,7 @@ export async function loadChars() {
 
 export const S = {
   phase: 'selection',   // 'selection' | 'initiative' | 'combat' | 'victory'
-  teamNames: [[], []],  // up to 4 character names per team
+  teamNames: [[], []],  // up to 5 character names per team
   combatants: [],
   initiativeOrder: [],
   currentTurnIndex: 0,
@@ -44,6 +44,7 @@ export const S = {
   activeDomains: [],  // { casterId, domain } for currently active domains
   log: [],
   winnerTeam: null,
+  turnSerial: 0,        // bumped on every turn change; stale timers compare against it
   hasActed:    false,   // active combatant used their action this turn
   // ── Map system ──────────────────────────────────────────────────────────
   currentMap:     null,
@@ -79,9 +80,24 @@ export function rollD20() {
   return { value: v, isNat20: v === 20, isNat1: v === 1 };
 }
 
-export function parseDice(expr) {
+export function parseDice(expr, ctx = {}) {
   if (!expr || expr === '—' || expr === '-') return { total: 0, breakdown: '—' };
   let s = String(expr);
+  // "NdM*(expr)": multiply a roll by a parenthesised sub-expression
+  const mulM = s.match(/^\s*(.+?)\s*\*\s*\(([^)]+)\)\s*$/);
+  if (mulM) {
+    const left = parseDice(mulM[1], ctx), right = parseDice(mulM[2], ctx);
+    return { total: left.total * right.total, breakdown: `(${left.breakdown}) × (${right.breakdown})` };
+  }
+  // "+N%missingHp": percentage of the target's missing HP (ctx.missingHp)
+  let pctTotal = 0;
+  const pctParts = [];
+  s = s.replace(/([+-]?)\s*(\d+)\s*%\s*missingHp/gi, (_, sign, pct) => {
+    const v = Math.floor(parseInt(pct) / 100 * (ctx.missingHp ?? 0)) * (sign === '-' ? -1 : 1);
+    pctTotal += v;
+    pctParts.push(`${pct}% missing HP[${v}]`);
+    return '';
+  });
   s = s.replace(/(\d+)\s*\*\s*(\d+)d(\d+)/gi, (_, mult, cnt, sides) =>
     `${parseInt(mult) * parseInt(cnt)}d${sides}`
   );
@@ -120,6 +136,8 @@ export function parseDice(expr) {
     const numM = s.match(/^(\d+)/);
     if (numM) { total = parseInt(numM[1]); parts.push(String(total)); }
   }
+  total += pctTotal;
+  parts.push(...pctParts);
   return { total, breakdown: parts.join(' ') || '0' };
 }
 
@@ -131,6 +149,12 @@ export function findEffect(name) {
 
 const TAG_TO_STATUS = { freeze: 'gel', poison: 'toxic' };
 const STATUS_EFFECT_TAGS = ['para','gel','freeze','burn','bleed','stun','root','fear','silence','blind','toxic','poison'];
+// A status and the tag it is applied from are interchangeable for immunity checks
+const STATUS_ALIASES = { gel: 'freeze', freeze: 'gel', toxic: 'poison', poison: 'toxic' };
+// Self/ally buffs are never blocked by a "status" immunity
+const BENEFICIAL_STATUSES = ['regen', 'regeneration', 'domain regen', 'water_shield', 'fly'];
+// Physical/elemental damage types. Delivery tags such as "magic" and "runik" are not types.
+const DAMAGE_TYPES = ['physical','fire','ice','lightning','earth','water','necro','psy','radiant','wind','holy','dark','poison'];
 
 // Determine whether an ability targets allies, self, enemies, or both teams
 export function getTargetKind(move) {
@@ -181,12 +205,15 @@ export function resolveAbilitiesFromList(moveList) {
       isReact:    tags.includes('react'),
       isBlock:    tags.includes('block'),
       isInstant:  tags.includes('instant'),
+      isVoid:     tags.includes('void'),
+      isGate:     tags.includes('gate'),
       isAoe:      move.target === 'aoe',
       isCone:     move.target === 'cone',
       isSplash:   move.target === 'splash',
       isHeal:     tags.includes('heal') || tags.includes('regen'),
       isRevive:   tags.includes('revive'),
       isTransform: move.category === 'transformation',
+      duration:   move.duration ?? null,
     });
   }
   return list;
@@ -220,6 +247,7 @@ export function buildCombatant(char, teamIndex, id) {
     cooldowns:        {},
     remainingCharges: {},
     usedThisFight: [],
+    shadowVoid: [],   // moves swallowed by Black Hole, waiting for Shadow Gate
     statusEffects: char.passif?.some(p => p.tags?.includes('fly'))
       ? [{ name: 'fly', turnsLeft: 999, dice: null, damType: null, notes: '' }]
       : [],
@@ -258,6 +286,9 @@ export function getDomainEffects(combatant, context = {}) {
   if (!combatant.domainActive) return [];
   const domain = combatant.sourceChar.domain;
   if (!domain) return [];
+  // The domain only empowers its owner while the owner stands inside its area
+  const entry = S.activeDomains.find(d => d.casterId === combatant.id);
+  if (entry && chebyshev(combatant, { x: entry.centerX, y: entry.centerY }) > (domain.radius ?? 8)) return [];
   return (domain.effects ?? []).filter(eff => {
     if (!eff.applyOn?.includes(context.applyOn)) return false;
     if (eff.target === 'foes') return false; // foe effects handled in beginTurn
@@ -349,12 +380,73 @@ export function isOccupied(x, y, excludeId = -1) {
   return S.combatants.find(c => c.x === x && c.y === y && c.id !== excludeId && !c.isKO) ?? null;
 }
 
+// Name of the enemy closed domain that would trap `c` if it tried to reach (x, y), or null
+export function trappingDomainOwner(c, x, y) {
+  for (const ad of S.activeDomains) {
+    if (ad.domain.type === 'Ouvert') continue;
+    const owner = getCombatant(ad.casterId);
+    if (!owner || owner.isKO || owner.teamIndex === c.teamIndex) continue;
+    const radius = ad.domain.radius ?? 8;
+    const center = { x: ad.centerX, y: ad.centerY };
+    if (chebyshev(c, center) <= radius && chebyshev({ x, y }, center) > radius) return owner;
+  }
+  return null;
+}
+
+// Free walkable cell next to `target`, nearest to `from` (used by dash and pull)
+export function freeCellAdjacentTo(target, from, excludeId = -1) {
+  if (!S.currentMap) return null;
+  let best = null, bestD = Infinity;
+  for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
+    if (!dx && !dy) continue;
+    const x = target.x + dx, y = target.y + dy;
+    if (!isWalkableG(S.currentMap, x, y) || isOccupied(x, y, excludeId)) continue;
+    if (!hasLos(x, y, target.x, target.y)) continue;
+    const d = chebyshev({ x, y }, from);
+    if (d < bestD) { bestD = d; best = { x, y }; }
+  }
+  return best;
+}
+
+// Dash: the caster crosses the gap and lands next to the target
+function dashToward(c, target) {
+  if (!S.currentMap || chebyshev(c, target) <= MELEE_RANGE) return;
+  const cell = freeCellAdjacentTo(target, c, c.id);
+  if (!cell) { addLog(`  ${c.name} finds no room to close in on ${target.name}.`, 'info'); return; }
+  const trap = trappingDomainOwner(c, cell.x, cell.y);
+  if (trap) { addLog(`⛔ ${c.name} cannot dash out of ${trap.name}'s domain.`, 'status'); return; }
+  addLog(`  ${c.name} dashes to (${cell.x}, ${cell.y}).`, 'info');
+  c.x = cell.x; c.y = cell.y;
+}
+
+// Pull: drag the target next to the caster
+function pullTarget(caster, target) {
+  if (!S.currentMap || chebyshev(caster, target) <= MELEE_RANGE) return;
+  const cell = freeCellAdjacentTo(caster, target, target.id);
+  if (!cell) return;
+  const trap = trappingDomainOwner(target, cell.x, cell.y);
+  if (trap) { addLog(`⛔ ${target.name} is held in place by ${trap.name}'s domain.`, 'status'); return; }
+  addLog(`  ${target.name} is pulled to (${cell.x}, ${cell.y}).`, 'spell');
+  target.x = cell.x; target.y = cell.y;
+}
+
 export function placeCharacters(map) {
   for (const teamIdx of [0, 1]) {
     const spots = map.starts[teamIdx];
     const team  = S.combatants.filter(c => c.teamIndex === teamIdx);
+    const taken = new Set();
     team.forEach((c, i) => {
-      const pos = spots[Math.min(i, spots.length - 1)];
+      let pos = spots[i];
+      if (!pos) {
+        // More fighters than start cells: use the nearest free walkable cell to the last start
+        const anchor = spots[spots.length - 1];
+        const near = [...bfsReachable(anchor.x, anchor.y, 4).entries()]
+          .sort((a, b) => a[1] - b[1])
+          .map(([k]) => { const [x, y] = k.split(',').map(Number); return { x, y }; })
+          .find(p => !taken.has(`${p.x},${p.y}`));
+        pos = near ?? anchor;
+      }
+      taken.add(`${pos.x},${pos.y}`);
       c.x = pos.x; c.y = pos.y;
     });
   }
@@ -382,9 +474,12 @@ export function computeAimOverlay(caster, ability) {
   const { cols, rows } = S.currentMap.grid;
   const inRangeCells = new Set();
   const losCells     = new Set();
+  const isAlly     = ability.targetKind === 'ally';
+  const isAny      = ability.targetKind === 'any';
   for (let gy = 0; gy < rows; gy++) {
     for (let gx = 0; gx < cols; gx++) {
-      if (gx === caster.x && gy === caster.y) continue;
+      // Ally spells may target the caster, so their own cell stays selectable
+      if (gx === caster.x && gy === caster.y && !isAlly) continue;
       if (Math.max(Math.abs(gx - caster.x), Math.abs(gy - caster.y)) > range) continue;
       if (!isWalkableG(S.currentMap, gx, gy)) continue;
       const key = `${gx},${gy}`;
@@ -392,12 +487,11 @@ export function computeAimOverlay(caster, ability) {
       if (hasLos(caster.x, caster.y, gx, gy)) losCells.add(key);
     }
   }
-  const isAlly     = ability.targetKind === 'ally';
-  const isAny      = ability.targetKind === 'any';
   const targetTeam = isAlly ? caster.teamIndex : (caster.teamIndex === 0 ? 1 : 0);
+  // Revive targets KO'd allies; every other ally spell targets the living
   const candidates = isAny
     ? S.combatants.filter(c => !c.isKO && c.id !== caster.id)
-    : livingCombatants(targetTeam);
+    : (ability.isRevive ? koAllies(targetTeam) : livingCombatants(targetTeam));
   const validTargetIds = new Map();
   for (const t of candidates) {
     if (losCells.has(`${t.x},${t.y}`)) validTargetIds.set(t.id, t);
@@ -448,7 +542,8 @@ export function hasValidTarget(actor, ability) {
   }
   if (ability.isAoe || ability.isCone || ability.isSplash) return true;
   if (ability.targetKind === 'self')  return true;
-  if (ability.targetKind === 'ally')  return livingCombatants(actor.teamIndex).length > 0 || (ability.isRevive && koAllies(actor.teamIndex).length > 0);
+  if (ability.isRevive)               return koAllies(actor.teamIndex).length > 0;
+  if (ability.targetKind === 'ally')  return livingCombatants(actor.teamIndex).length > 0;
   if (ability.targetKind === 'any')
     return S.combatants.some(t => !t.isKO && t.id !== actor.id && targetInRange(actor, t, ability).inRange);
   return livingCombatants(actor.teamIndex === 0 ? 1 : 0)
@@ -473,6 +568,14 @@ export function enterAimMode(ability, section) {
 export function exitAimMode() {
   clearAimState();
   drawMap();
+}
+
+// Player backs out of targeting (Esc / right-click): nothing is spent
+export function cancelAim() {
+  if (!S.aimMode) return;
+  exitAimMode();
+  const hint = document.getElementById('aim-hint-ability');
+  if (hint) hint.style.display = 'none';
 }
 
 export function enterTeleportMode(c, range) {
@@ -563,6 +666,7 @@ export function setupCanvasClickHandler() {
   if (canvas._clickHandler)  canvas.removeEventListener('click',     canvas._clickHandler);
   if (canvas._moveHandler)   canvas.removeEventListener('mousemove', canvas._moveHandler);
   if (canvas._leaveHandler)  canvas.removeEventListener('mouseleave',canvas._leaveHandler);
+  if (canvas._menuHandler)   canvas.removeEventListener('contextmenu',canvas._menuHandler);
 
   const cellCoords = (e) => {
     const rect  = canvas.getBoundingClientRect();
@@ -615,6 +719,7 @@ export function setupCanvasClickHandler() {
         const range = S.aimAbility.range ?? SPELL_RANGE;
         if (chebyshev(active, { x: gx, y: gy }) <= range) {
           const hits = aoeCombatantHits(S.aimAbility, active, gx, gy);
+          if (hits.length === 0) { addLog('No valid target in that area — pick another cell.', 'info'); return; }
           exitAimMode();
           const hintEl = document.getElementById('aim-hint-ability');
           if (hintEl) hintEl.style.display = 'none';
@@ -623,6 +728,7 @@ export function setupCanvasClickHandler() {
         return;
       } else if (S.aimAbility.isCone) {
         const targets = coneCellTargets(active, S.aimAbility, { x: gx, y: gy });
+        if (targets.length === 0) { addLog('No valid target in that direction — pick another cell.', 'info'); return; }
         exitAimMode();
         handleCastAbility(active.id, abilityName, targets.map(t => t.id));
       } else {
@@ -657,6 +763,13 @@ export function setupCanvasClickHandler() {
     drawMap();
   };
 
+  canvas._menuHandler = (e) => {
+    if (!S.aimMode) return;
+    e.preventDefault();
+    cancelAim();
+  };
+
+  canvas.addEventListener('contextmenu', canvas._menuHandler);
   canvas.addEventListener('click',      canvas._clickHandler);
   canvas.addEventListener('mousemove',  canvas._moveHandler);
   canvas.addEventListener('mouseleave', canvas._leaveHandler);
@@ -823,7 +936,12 @@ export function drawMap() {
     ctx.font = `bold ${Math.round(cp * 0.4)}px monospace`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.shadowBlur = 0;
-    ctx.fillText(c.name[0].toUpperCase(), cx, cy);
+    // The map is drawn rotated; counter-rotate so the initial reads upright
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(Math.PI / 2);
+    ctx.fillText(c.name[0].toUpperCase(), 0, 0);
+    ctx.restore();
   }
   ctx.shadowBlur = 0;
 }
@@ -858,18 +976,41 @@ export function updateCombatantCardDOM(c) {
   if (c.isKO) card.classList.add('is-ko');
 }
 
-export function applyHeal(combatant, diceExpr) {
+export function applyHeal(combatant, diceExpr, label = null) {
   if (!diceExpr) return;
   const r      = parseDice(diceExpr);
   const amount = Math.max(0, r.total);
   const healed = Math.min(amount, combatant.maxHp - combatant.currentHp);
   combatant.currentHp = Math.min(combatant.maxHp, combatant.currentHp + amount);
   if (healed > 0)
-    addLog(`💚 ${combatant.name} recovers ${healed} HP! (${combatant.currentHp}/${combatant.maxHp}) [${r.breakdown}]`, 'heal');
+    addLog(`💚 ${combatant.name}${label ? ` [${label}]` : ''} recovers ${healed} HP! (${combatant.currentHp}/${combatant.maxHp}) [${r.breakdown}]`, 'heal');
   updateCombatantCardDOM(combatant);
 }
 
+// Applies one hit to `combatant` and returns the HP it actually lost (0 when fully
+// absorbed or immune). The "HP before → after" line is logged here, after every
+// mitigation step, so callers never need to predict the result themselves.
 export function applyDamage(combatant, amount, damType = null, atkTags = [], ignoreDR = false) {
+  const done = () => { updateCombatantCardDOM(combatant); return 0; };
+
+  // Immunity — only the damage *types* of the hit count (status tags are handled in applyStatus).
+  // Fully immune → nothing lands. Immune to only some of the types → the hit is split
+  // evenly between its types and the immune share is lost (e.g. physical+fire vs fire-immune).
+  const types = [...new Set([damType, ...atkTags]
+    .filter(t => t && DAMAGE_TYPES.includes(String(t).toLowerCase()))
+    .map(t => String(t).toLowerCase()))];
+  const immune = (combatant.sourceChar.immunities ?? []).map(i => i.toLowerCase());
+  const immuneTypes = types.filter(t => immune.includes(t));
+  if (immuneTypes.length === types.length && types.length > 0) {
+    addLog(`🛡 ${combatant.name} is immune to ${immuneTypes.join('/')}!`, 'info');
+    return done();
+  }
+  if (immuneTypes.length > 0) {
+    const before = amount;
+    amount = Math.floor(amount * (types.length - immuneTypes.length) / types.length);
+    addLog(`🛡 ${combatant.name} is immune to ${immuneTypes.join('/')} — only the rest of the hit lands (${before} → ${amount}).`, 'info');
+  }
+
   // Living Blade Armor: halve incoming physical before any absorption
   const bladeArmor = combatant.statusEffects.find(e => e.name === 'living_blade_armor');
   if (bladeArmor && atkTags.includes('physical')) {
@@ -895,42 +1036,39 @@ export function applyDamage(combatant, amount, damType = null, atkTags = [], ign
       combatant.statusEffects = combatant.statusEffects.filter(e => e !== dmgShield);
       addLog(isChains ? `⛓ Chains of Apophis shattered!` : `🛡 ${combatant.name}'s shield is destroyed!`, 'spell');
     }
-    if (amount <= 0) { updateCombatantCardDOM(combatant); return; }
+    if (amount <= 0) return done();
   }
-  // Immunity check — match against primary damType OR any tag in the attack's tag list
-  const matchedImmunity = combatant.sourceChar.immunities?.find(
-    imm => (damType && imm.toLowerCase() === damType.toLowerCase())
-           || atkTags.some(t => t.toLowerCase() === imm.toLowerCase())
-  );
-  if (matchedImmunity) {
-    addLog(`🛡 ${combatant.name} is immune to ${matchedImmunity}!`, 'info');
-    return;
-  }
-  // Conditional incoming damage reduction passives (e.g. Magic Resist -10, Wind Body -20)
+  // Conditional incoming damage reduction passives (e.g. Magic Resist -10, Iron Pelt -1d6+2).
+  // A leading minus marks the whole expression as a reduction: "-1d8+10" reduces by 1d8+10.
   for (const p of combatant.sourceChar.passif ?? []) {
     if (ignoreDR) break;
     if (!p.applyOn?.includes('incomingDam') || !p.dices || !p.condition?.incomingHasTag || amount <= 0) continue;
+    const expr = String(p.dices).trim();
+    if (!expr.startsWith('-')) continue;
     const condTag = p.condition.incomingHasTag.toLowerCase();
     const matches = damType?.toLowerCase() === condTag || atkTags.some(t => t.toLowerCase() === condTag);
     if (!matches) continue;
-    const r = parseDice(p.dices);
-    if (r.total >= 0) continue;
+    const r = parseDice(expr.slice(1).trim());
     const before = amount;
-    amount = Math.max(0, amount + r.total);
+    amount = Math.max(0, amount - r.total);
     addLog(`🛡 ${combatant.name}'s "${p.nom}" reduces incoming damage by ${before - amount}! (${before} → ${amount})`, 'info');
   }
-  // Unkillable / incoming-damage reduction passives
+  // Lethal-hit passives (Unkillable): a coin flip to survive, at the cost of dropping to 1 HP
   for (const p of combatant.sourceChar.passif ?? []) {
-    if (p.applyOn?.includes('incomingDam') && p.condition?.incomingIsLethal && p.dices) {
-      if (amount >= combatant.currentHp) {
-        const reduced = parseDice(p.dices);
-        amount = Math.min(amount, reduced.total);
-        addLog(`🛡 ${combatant.name}'s "${p.nom}" reduces the lethal hit! [${reduced.breakdown}]`, 'info');
-      }
+    if (!p.applyOn?.includes('incomingDam') || !p.condition?.incomingIsLethal || p.chance == null) continue;
+    if (amount < combatant.currentHp) continue;
+    if (Math.random() < p.chance) {
+      amount = combatant.currentHp - 1;
+      addLog(`🛡 ${combatant.name}'s "${p.nom}" holds — survives the lethal hit on 1 HP!`, 'crit');
+    } else {
+      addLog(`🛡 ${combatant.name}'s "${p.nom}" fails to hold!`, 'info');
     }
+    break;
   }
   const dmg = Math.max(0, amount);
-  combatant.currentHp = Math.max(0, combatant.currentHp - dmg);
+  const hpBefore = combatant.currentHp;
+  combatant.currentHp = Math.max(0, hpBefore - dmg);
+  if (dmg > 0) addLog(`  ${combatant.name}: ${hpBefore} → ${combatant.currentHp}`, 'hit');
   if (combatant.currentHp <= 0 && !combatant.isKO) {
     const resAb = combatant.abilities.find(a =>
       a.name === 'Resurrection' && a.isOncePerFight && !combatant.usedThisFight.includes('Resurrection')
@@ -942,25 +1080,39 @@ export function applyDamage(combatant, amount, damType = null, atkTags = [], ign
       combatant.statusEffects.push({ name: 'final_reckoning', turnsLeft: 999, dice: '2d12', damType: null, notes: '+2d12 atk bonus' });
     } else {
       combatant.isKO = true;
+      combatant.statusEffects = [];   // the dead keep no buffs or damage-over-time
       addLog(`💀 ${combatant.name} is KO!`, 'death');
       if (combatant.domainActive) suppressDomain(combatant);
     }
   }
   updateCombatantCardDOM(combatant);
+  return dmg;
 }
 
 export function applyStatus(combatant, effectStr, defaultTurns = 2) {
   if (!effectStr) return;
-  if (combatant.sourceChar.immunities?.some(imm => imm.toLowerCase() === 'status')) {
-    addLog(`🛡 ${combatant.name} is immune to all status effects!`, 'info');
-    return;
-  }
+  const immunities = (combatant.sourceChar.immunities ?? []).map(i => i.toLowerCase());
   for (const part of String(effectStr).split(',')) {
     const p = part.trim();
     if (!p) continue;
     // "1dN effect" = 1/N probability check; succeed only on max roll (N)
     const probMatch = p.match(/^1d(\d+)\s+(.+)$/i);
     const effName   = probMatch ? probMatch[2].trim() : p;
+    const key       = effName.toLowerCase();
+    const beneficial = BENEFICIAL_STATUSES.includes(key);
+
+    // Buffs are never blocked by immunities; everything else is checked against the
+    // blanket "status" immunity and the status's own name or alias (gel ↔ freeze, toxic ↔ poison)
+    if (!beneficial) {
+      if (immunities.includes('status')) {
+        addLog(`🛡 ${combatant.name} is immune to all status effects!`, 'info');
+        continue;
+      }
+      if (immunities.includes(key) || (STATUS_ALIASES[key] && immunities.includes(STATUS_ALIASES[key]))) {
+        addLog(`🛡 ${combatant.name} is immune to ${effName}!`, 'info');
+        continue;
+      }
+    }
     if (probMatch) {
       const sides = parseInt(probMatch[1]);
       const roll  = Math.floor(Math.random() * sides) + 1;
@@ -971,15 +1123,8 @@ export function applyStatus(combatant, effectStr, defaultTurns = 2) {
     }
     const turns = defaultTurns;
 
-    if (combatant.sourceChar.immunities?.some(
-      imm => imm.toLowerCase() === effName.toLowerCase()
-    )) {
-      addLog(`🛡 ${combatant.name} is immune to ${effName}!`, 'info');
-      continue;
-    }
-
     const eff      = findEffect(effName);
-    const existing = combatant.statusEffects.find(e => e.name.toLowerCase() === effName.toLowerCase());
+    const existing = combatant.statusEffects.find(e => e.name.toLowerCase() === key);
     if (existing) {
       existing.turnsLeft = Math.max(existing.turnsLeft, turns);
     } else {
@@ -1004,8 +1149,8 @@ export function tickTurn(c) {
     const n = eff.name.toLowerCase();
     if (dotNames.includes(n) && eff.dice && eff.dice !== '—') {
       const r = parseDice(eff.dice);
-      applyDamage(c, r.total, eff.damType);
-      addLog(`${c.name} takes ${r.total} ${eff.damType} from ${eff.name}. (${r.breakdown})`, 'status');
+      const dealt = applyDamage(c, r.total, eff.damType);
+      if (dealt > 0) addLog(`${c.name} takes ${dealt} ${eff.damType} from ${eff.name}. (${r.breakdown})`, 'status');
       if (c.isKO) return false;
     }
     if (regenNames.some(rn => n.includes(rn)) && eff.dice && eff.dice !== '—') {
@@ -1026,9 +1171,7 @@ export function tickTurn(c) {
 export function applyHpPerHitPassives(combatant) {
   for (const p of combatant.sourceChar.passif ?? []) {
     if (!p.applyOn?.includes('hpPerHit') || !p.dices) continue;
-    const r = parseDice(p.dices);
-    applyHeal(combatant, p.dices);
-    addLog(`  💚 ${combatant.name} [${p.nom}] heals ${r.total} HP! (${combatant.currentHp}/${combatant.maxHp})`, 'heal');
+    applyHeal(combatant, p.dices, p.nom);   // rolled once, logged once (and only if HP was actually missing)
   }
 }
 
@@ -1057,32 +1200,117 @@ export function damTypeFromTags(tags) {
   return tags.find(t => dmgTags.includes(t)) ?? null;
 }
 
-export function resolveAttack(attacker, defender, diceExpr, ability = null) {
+// Does this attacker's hit bypass damage-reduction passives? (its domain, or the move's own unblockabled tag)
+function ignoresDR(c, ability) {
+  return !!ability?.tags?.includes('unblockabled')
+      || getDomainEffects(c, { applyOn: 'atkRoll', ability }).some(e => e.tags?.includes('unblockabled'));
+}
+
+// Does passive `p` (owned by `owner`, facing `other`) currently apply?
+// Conditions the engine cannot evaluate (e.g. selfBehindTarget, needs facing) never apply.
+function passiveConditionMet(p, owner, other, ability) {
+  const cond = p.condition;
+  if (!cond) return true;
+  if (cond.targetMoreHp)   return other.currentHp > owner.currentHp;
+  if (cond.allyKO)         return S.combatants.some(c => c.teamIndex === owner.teamIndex && c.isKO);
+  if (cond.selfBelow50pct) return owner.currentHp <= owner.maxHp * 0.5;
+  if (cond.is1v1)          return livingCombatants(0).length === 1 && livingCombatants(1).length === 1;
+  if (cond.targetHasTag) {
+    // a character `tags` list (when the data provides one) or a status the target is under (e.g. "stun")
+    const tag = cond.targetHasTag.toLowerCase();
+    return (other.sourceChar.tags ?? []).some(t => t.toLowerCase() === tag)
+        || other.statusEffects.some(e => e.name.toLowerCase() === tag);
+  }
+  if (cond.weaponType) {
+    const w = cond.weaponType.toLowerCase();
+    if (ability) return !!ability.tags?.includes(w);
+    const atk = owner.transformedBaseAtk ?? owner.sourceChar.baseAtk;
+    return (atk?.tags ?? []).includes(w) || (atk?.nom ?? '').toLowerCase().includes(w);
+  }
+  return false;
+}
+
+// The attacker's d20 for one move. Advantage / sure-hit come from the owner's domain or the move's own tags.
+function rollAttackD20(attacker, ability) {
   const domainAtkEffs = getDomainEffects(attacker, { applyOn: 'atkRoll', ability });
-  const domainAdv     = domainAtkEffs.some(e => e.tags?.includes('adv'));
-  const domainSureHit = domainAtkEffs.some(e => e.tags?.includes('undodgeable'));
+  const adv     = domainAtkEffs.some(e => e.tags?.includes('adv'))         || !!ability?.tags?.includes('adv');
+  const sureHit = domainAtkEffs.some(e => e.tags?.includes('undodgeable')) || !!ability?.tags?.includes('undodgeable');
 
-  const roll1    = rollD20();
-  const roll2    = domainAdv ? rollD20() : null;
-  const atkRoll  = domainAdv
-    ? (roll1.value >= (roll2?.value ?? 0) ? roll1 : roll2)
-    : roll1;
-  if (domainAdv && roll2) addLog(`  🌐 Domain Advantage: rolled ${roll1.value} & ${roll2.value}, kept ${atkRoll.value}`, 'spell');
+  const roll1 = rollD20();
+  const roll2 = adv ? rollD20() : null;
+  const roll  = adv ? (roll1.value >= roll2.value ? roll1 : roll2) : roll1;
+  if (adv) addLog(`  🎲 Advantage: rolled ${roll1.value} & ${roll2.value}, kept ${roll.value}`, 'spell');
+  return { roll, sureHit };
+}
 
-  const defRoll = rollD20();
-
-  let defBonus = 0;
+function defenseBonus(defender, attacker, ability) {
+  let bonus = 0;
   for (const p of defender.sourceChar.passif ?? []) {
     if (!p.applyOn?.includes('defRoll') || !p.dices) continue;
-    let applies = !p.condition;
-    if (p.condition?.allyKO)          applies = S.combatants.some(c => c.teamIndex === defender.teamIndex && c.isKO);
-    else if (p.condition?.selfBelow50pct) applies = defender.currentHp <= defender.maxHp * 0.5;
-    if (applies) defBonus += parseDice(p.dices).total;
+    if (passiveConditionMet(p, defender, attacker, ability)) bonus += parseDice(p.dices).total;
   }
-  const effectiveDefRoll = defRoll.value + defBonus;
+  return bonus;
+}
+
+const hasInitiativeBonus = c => (c.sourceChar.passif ?? []).some(p => p.applyOn?.includes('initRoll'));
+
+// Area moves (aoe / cone / splash): the caster rolls once, every victim rolls its own defense against it.
+//   defense fails (or the caster rolled a natural 20 / the move is a sure-hit) → full damage
+//   defense wins                                                              → half damage
+//   defense wins by more than 5, or the victim has an initiative bonus        → no damage at all
+// Returns the damage multiplier (1, 0.5 or 0).
+const AREA_FULL_DODGE_MARGIN = 5;
+
+// Shadow void: Black Hole stores the move it swallows, Shadow Gate spits one back out at a random target.
+const GATE_CONE_RADIUS = 2;   // a gated cone has no origin, so it lands as a small burst around the target
+
+function absorbIntoVoid(reactor, action) {
+  const source = getCombatant(action.attackerId ?? action.casterId);
+  let ability = action.ability;
+  if (!ability && source) {
+    const atk = source.transformedBaseAtk ?? source.sourceChar.baseAtk;
+    if (atk) ability = resolveAbilitiesFromList([{ category: 'technique', base: { nom: atk.nom, dices: atk.dices, tags: atk.tags }, target: 'mono' }])[0];
+  }
+  if (!ability) return;
+  reactor.shadowVoid.push({ ability, from: source?.name ?? 'Unknown' });
+  addLog(`🌑 ${source?.name ?? 'The attacker'}'s ${ability.name} is swallowed by the shadow void! (${reactor.shadowVoid.length} stored)`, 'spell');
+}
+
+// The stored move as Shadow Gate launches it: free, and without the movement that belonged to its original caster
+function gateAbility(stored) {
+  const ab = stored.ability;
+  return {
+    ...ab,
+    cost: null, cooldownTurns: 0, isOncePerFight: false, maxCharges: 0, isInstant: false,
+    tags: ab.tags.filter(t => t !== 'dash' && t !== 'pull'),
+  };
+}
+function areaDefense(atk, target, caster, ability) {
+  if (atk.sureHit) return 1;
+  const defRoll = rollD20().value;
+  const bonus   = defenseBonus(target, caster, ability);
+  const def     = defRoll + bonus;
+  const defStr  = bonus ? `${defRoll}+${bonus}=${def}` : String(defRoll);
+  if (atk.roll.isNat20 || def <= atk.roll.value) {
+    addLog(`  🎲 ${target.name} fails to defend (${defStr} vs ${atk.roll.value})`, 'hit');
+    return 1;
+  }
+  if (def - atk.roll.value > AREA_FULL_DODGE_MARGIN || hasInitiativeBonus(target)) {
+    addLog(`  💨 ${target.name} evades completely! (${defStr} vs ${atk.roll.value})`, 'miss');
+    return 0;
+  }
+  addLog(`  🛡 ${target.name} partly defends — half damage (${defStr} vs ${atk.roll.value})`, 'info');
+  return 0.5;
+}
+
+export function resolveAttack(attacker, defender, diceExpr, ability = null) {
+  const { roll: atkRoll, sureHit: domainSureHit } = rollAttackD20(attacker, ability);
+
+  const defRoll = rollD20();
+  const effectiveDefRoll = defRoll.value + defenseBonus(defender, attacker, ability);
 
   const domainForcesHit = domainSureHit && !atkRoll.isNat1;
-  if (domainForcesHit) addLog(`  🌐 Domain Sure-Hit — attack cannot be dodged!`, 'spell');
+  if (domainForcesHit) addLog(`  🎯 Sure-Hit — attack cannot be dodged!`, 'spell');
 
   const hit    = atkRoll.isNat20 || domainForcesHit || (!atkRoll.isNat1 && atkRoll.value >= effectiveDefRoll);
   const crit   = atkRoll.isNat20;
@@ -1092,17 +1320,13 @@ export function resolveAttack(attacker, defender, diceExpr, ability = null) {
 
   if (hit && !fumble) {
     const raw = diceExpr || (attacker.transformedBaseAtk?.dices ?? attacker.sourceChar.baseAtk?.dices) || '1d4';
-    const rolled = parseDice(raw);
+    const rolled = parseDice(raw, { missingHp: defender.maxHp - defender.currentHp });
 
     let passiveBonus = 0;
     const passiveParts = [];
     for (const p of attacker.sourceChar.passif ?? []) {
       if (!p.applyOn?.includes('atkRoll') || !p.dices) continue;
-      let applies = !p.condition;
-      if (p.condition?.targetMoreHp)      applies = defender.currentHp > attacker.currentHp;
-      else if (p.condition?.allyKO)       applies = S.combatants.some(c => c.teamIndex === attacker.teamIndex && c.isKO);
-      else if (p.condition?.selfBelow50pct) applies = attacker.currentHp <= attacker.maxHp * 0.5;
-      if (applies) {
+      if (passiveConditionMet(p, attacker, defender, ability)) {
         const pr = parseDice(p.dices);
         passiveBonus += pr.total;
         passiveParts.push(`${p.nom}[${pr.breakdown}]`);
@@ -1142,6 +1366,7 @@ export function resolveAttack(attacker, defender, diceExpr, ability = null) {
 }
 
 export function logAttackResult(atk, def, r) {
+  if (r.atkRoll === '—') return;   // effect-only move: there was no attack roll to report
   const defStr = r.effectiveDefRoll !== r.defRoll
     ? `${r.defRoll}+${r.effectiveDefRoll - r.defRoll}=${r.effectiveDefRoll}`
     : String(r.defRoll);
@@ -1150,15 +1375,17 @@ export function logAttackResult(atk, def, r) {
   } else if (r.fumble) {
     addLog(`💥 FUMBLE! ${atk.name} rolls 1 — ${def.name} gets a free counter-attack!`, 'miss');
   } else if (r.hit) {
-    addLog(`${atk.name} hits ${def.name}! (${r.atkRoll} ≥ ${defStr}) ${r.breakdown}`, 'hit');
+    const cmp = r.domainSureHit && r.atkRoll < r.effectiveDefRoll ? 'sure hit' : `${r.atkRoll} ≥ ${defStr}`;
+    addLog(`${atk.name} hits ${def.name}! (${cmp}) ${r.breakdown}`, 'hit');
   } else {
     addLog(`${atk.name} misses ${def.name}. (${r.atkRoll} < ${defStr})`, 'miss');
   }
 }
 
+// Returns the index of the winning team, or null while both teams still stand
 export function checkVictory() {
-  if (livingCombatants(0).length === 0) return 0;
-  if (livingCombatants(1).length === 0) return 1;
+  if (livingCombatants(0).length === 0) return 1;
+  if (livingCombatants(1).length === 0) return 0;
   return null;
 }
 
@@ -1232,11 +1459,12 @@ export function handleAttack(attackerId, defenderId) {
 
 export function handleCastAbility(casterId, abilityName, targetIds) {
   const caster  = getCombatant(casterId);
-  const ability = caster?.abilities.find(a => a.name === abilityName);
+  let ability = caster?.abilities.find(a => a.name === abilityName);
   if (!ability || !abilityAvailable(caster, ability)) return;
+  if (ability.isVoid) { addLog(`⚠ ${ability.name} can only be used as a reaction.`, 'info'); return; }
   if (S.hasActed && !ability.isInstant) { addLog('You have already acted this turn!', 'info'); return; }
 
-  const targets = targetIds.map(id => getCombatant(id)).filter(t => t && (ability.isRevive || !t.isKO));
+  let targets = targetIds.map(id => getCombatant(id)).filter(t => t && (ability.isRevive || !t.isKO));
 
   const needsRangeCheck = !ability.isAoe && !ability.isCone && ability.targetKind === 'enemy';
   if (S.currentMap && needsRangeCheck && targets.length > 0) {
@@ -1251,8 +1479,23 @@ export function handleCastAbility(casterId, abilityName, targetIds) {
     return;
   }
 
+  // Nothing is spent on a cast that cannot do anything
+  if ((ability.isAoe || ability.isCone) && targets.length === 0) {
+    addLog(`⚠ ${ability.name} has no valid target in that area.`, 'info');
+    return;
+  }
+  if (ability.isRevive && !targets.some(t => t.isKO)) {
+    addLog(`⚠ ${ability.name} needs a KO'd ally.`, 'info');
+    return;
+  }
+  if (ability.isGate && caster.shadowVoid.length === 0) {
+    addLog(`⚠ The shadow void is empty — ${ability.name} has nothing to spit out.`, 'info');
+    return;
+  }
+
   spendResource(caster, ability);
-  if (ability.cooldownTurns > 0) caster.cooldowns[ability.name] = ability.cooldownTurns;
+  // Cooldowns tick once at the start of the owner's turns, so +1 gives a lockout of exactly N turns
+  if (ability.cooldownTurns > 0) caster.cooldowns[ability.name] = ability.cooldownTurns + 1;
   if (ability.isOncePerFight) caster.usedThisFight.push(ability.name);
   if (ability.maxCharges > 0) {
     if (caster.remainingCharges[ability.name] == null) caster.remainingCharges[ability.name] = ability.maxCharges;
@@ -1263,9 +1506,33 @@ export function handleCastAbility(casterId, abilityName, targetIds) {
 
   addLog(`${caster.name} uses ${ability.name}!`, ability.source === 'spell' ? 'spell' : 'tech');
 
+  // Shadow Gate: a random stored move is launched in place of the gate itself. The gate opens beside the
+  // target, so the stored move's own range does not matter; area moves burst around the target.
+  if (ability.isGate) {
+    const [stored] = caster.shadowVoid.splice(Math.floor(Math.random() * caster.shadowVoid.length), 1);
+    const focus = targets[0];
+    ability = gateAbility(stored);
+    addLog(`🌑 The gate opens beside ${focus.name} — ${stored.from}'s ${ability.name} comes out of the void! (${caster.shadowVoid.length} left)`, 'spell');
+    if (ability.isAoe || ability.isCone) {
+      const area = { ...ability, radius: ability.isCone ? GATE_CONE_RADIUS : ability.radius };
+      targets   = S.currentMap ? aoeCombatantHits(area, caster, focus.x, focus.y) : livingCombatants(caster.teamIndex === 0 ? 1 : 0);
+      targetIds = targets.map(t => t.id);
+    }
+  }
+
+  // Effects that never prompt a react: friendly buffs, unblockable moves, and moves that deal no damage or status
+  const noReacts = ability.targetKind === 'ally' || !!ability.tags?.includes('unblockabled');
+  const hasMechanics = ability.dice || ability.effect || ability.precastDice || ability.slotRegen > 0 || ability.isRevive
+    || ability.isBlock || ability.targetKind === 'self'
+    || ability.tags?.some(t => ['dash', 'fly', 'teleportation', 'cleans', 'pull'].includes(t));
+  if (!hasMechanics) addLog(`  ⚠ ${ability.name} has no mechanical effect in the simulator yet.`, 'info');
+
+  // Dash: close the distance to the target before the move resolves
+  if (ability.tags?.includes('dash') && ability.targetKind === 'enemy' && targets[0]) dashToward(caster, targets[0]);
+
   if (ability.isAoe) {
     S.pendingAction = { type: 'aoe', casterId, abilityName, targetIds, ability, reactorId: null, reactedIds: [], blockedIds: [] };
-    const firstReactor = ability.tags?.includes('unblockabled') ? null : targets.find(t => getReacts(t).length > 0);
+    const firstReactor = noReacts ? null : targets.find(t => getReacts(t).length > 0);
     if (firstReactor) {
       S.pendingAction.reactorId = firstReactor.id;
       S.pendingAction.reactedIds.push(firstReactor.id);
@@ -1280,7 +1547,7 @@ export function handleCastAbility(casterId, abilityName, targetIds) {
 
   if (ability.isCone) {
     S.pendingAction = { type: 'cone', casterId, abilityName, targetIds, ability, reactorId: null, reactedIds: [], blockedIds: [] };
-    const firstReactor = ability.tags?.includes('unblockabled') ? null : targets.find(t => getReacts(t).length > 0);
+    const firstReactor = noReacts ? null : targets.find(t => getReacts(t).length > 0);
     if (firstReactor) {
       S.pendingAction.reactorId = firstReactor.id;
       S.pendingAction.reactedIds.push(firstReactor.id);
@@ -1300,7 +1567,7 @@ export function handleCastAbility(casterId, abilityName, targetIds) {
       ? resolveAttack(caster, target, ability.dice, ability)
       : { hit: true, crit: false, fumble: false, damage: 0, atkRoll: '—', defRoll: '—', effectiveDefRoll: '—', breakdown: '—' };
     S.pendingAction = { type: 'splash', casterId, abilityName, targetIds: [target.id], result, ability };
-    const reacts = getReacts(target);
+    const reacts = noReacts ? [] : getReacts(target);
     if (reacts.length > 0) {
       S.awaitingReact = true;
       S.reactOptions  = reacts.map(ab => ({ combatantId: target.id, ability: ab }));
@@ -1354,7 +1621,8 @@ export function handleCastAbility(casterId, abilityName, targetIds) {
 
   S.pendingAction = { type: 'ability', casterId, abilityName, targetIds: [target.id], result, ability };
 
-  const reacts = getReacts(target);
+  // A move with no damage and no status has nothing to block, so it never prompts a react
+  const reacts = (noReacts || !(ability.dice || ability.effect)) ? [] : getReacts(target);
   if (reacts.length > 0) {
     S.awaitingReact = true;
     S.reactOptions  = reacts.map(ab => ({ combatantId: target.id, ability: ab }));
@@ -1373,6 +1641,11 @@ export function handleTransform(casterId) {
   if (c.usedThisFight.includes(tf.base.nom)) {
     addLog(`${c.name} has already transformed this fight!`, 'info'); return;
   }
+
+  // Pay the transformation's listed cost (it used to be shown on the button but never charged)
+  const tfAb = c.abilities.find(a => a.isTransform);
+  if (tfAb && !abilityAvailable(c, tfAb)) { addLog(`⚠ ${c.name} cannot pay for ${tf.base.nom}.`, 'info'); return; }
+  if (tfAb) spendResource(c, tfAb);
 
   c.isTransformed = true;
   c.usedThisFight.push(tf.base.nom);
@@ -1397,7 +1670,7 @@ export function handleTransform(casterId) {
   addLog(`✨ ${c.name} transforms into ${tf.base.nom}!`, 'crit');
   if (tf.hp > 0) addLog(`  +${tf.hp} max HP. Now ${c.currentHp}/${c.maxHp}.`, 'crit');
   updateCombatantCardDOM(c);
-  _R.renderCombatScreen();
+  advanceTurn();   // transforming uses the action, like every other action
 }
 
 export function suppressDomain(ownerCombatant) {
@@ -1440,7 +1713,7 @@ export function handleActivateDomain(casterId) {
         c.domainCharges--;
         S.hasActed = true;
         updateCombatantCardDOM(c);
-        _R.renderCombatScreen();
+        advanceTurn();
         return;
       } else {
         addLog(`🌐 ${c.name}'s ${domain.name} is suppressed by ${enemyOwner.name}'s stronger domain!`, 'crit');
@@ -1461,15 +1734,6 @@ export function handleActivateDomain(casterId) {
   for (const eff of domain.effects ?? []) {
     addLog(`  • ${eff.nom}${eff.dices ? ` (${eff.dices})` : ''}`, 'spell');
 
-    if (eff.applyOn?.includes('hpPerTurn') && eff.target !== 'foes' && eff.dices) {
-      const pool = eff.target === 'allies' ? livingCombatants(c.teamIndex) : [c];
-      for (const t of pool) {
-        applyStatus(t, 'regen', 999);
-        const re = t.statusEffects.find(e => e.name.toLowerCase() === 'regen');
-        if (re) { re.dice = eff.dices; re.fromDomain = true; }
-      }
-    }
-
     if (eff.applyOn?.includes('autority') && eff.target === 'foes' && eff.dices) {
       const delta = parseDice(eff.dices).total;
       for (const foe of livingCombatants(c.teamIndex === 0 ? 1 : 0)) {
@@ -1481,7 +1745,7 @@ export function handleActivateDomain(casterId) {
 
   addLog(`  Charges remaining: ${c.domainCharges}`, 'info');
   updateCombatantCardDOM(c);
-  _R.renderCombatScreen();
+  advanceTurn();   // expanding a domain uses the action
 }
 
 export function handleReactYes() {
@@ -1496,7 +1760,7 @@ export function handleReactYes() {
   if (reactAbility?.tags?.includes('teleportation') && S.currentMap) {
     const reactor = getCombatant(option.combatantId);
     if (reactor) {
-      spendResource(reactor, reactAbility);
+      // Cost is paid once, in resumePendingAction, when the teleport has been placed
       S.pendingTeleportReact = reactAbility;
       enterTeleportMode(reactor, reactAbility.range ?? SPELL_RANGE);
       return;
@@ -1512,6 +1776,17 @@ export function handleReactNo() {
   resumePendingAction(null);
 }
 
+// One absorb shield per combatant: a new cast refreshes it to the larger value instead of stacking forever
+function grantDamageShield(target, shieldHp, source) {
+  const existing = target.statusEffects.find(e => e.name === 'damage_shield');
+  if (existing) {
+    existing.shieldHp = Math.max(existing.shieldHp, shieldHp);
+    existing.source = source;
+  } else {
+    target.statusEffects.push({ name: 'damage_shield', turnsLeft: 999, shieldHp, dice: null, damType: null, notes: '', source });
+  }
+}
+
 export function resumePendingAction(reactAbility) {
   const action = S.pendingAction;
   S.pendingAction = null;
@@ -1525,7 +1800,7 @@ export function resumePendingAction(reactAbility) {
     const reactor   = getCombatant(reactorId);
     if (reactor) {
       spendResource(reactor, reactAbility);
-      if (reactAbility.cooldownTurns > 0) reactor.cooldowns[reactAbility.name] = reactAbility.cooldownTurns;
+      if (reactAbility.cooldownTurns > 0) reactor.cooldowns[reactAbility.name] = reactAbility.cooldownTurns + 1;
       if (reactAbility.isOncePerFight) reactor.usedThisFight.push(reactAbility.name);
       if (reactAbility.maxCharges > 0) {
         if (reactor.remainingCharges[reactAbility.name] == null) reactor.remainingCharges[reactAbility.name] = reactAbility.maxCharges;
@@ -1550,6 +1825,16 @@ export function resumePendingAction(reactAbility) {
       } else if (reactAbility.tags?.includes('teleportation')) {
         addLog(`✦ ${reactor.name} blinks away — attack misses!`, 'spell');
         blocked = true;
+      } else if (reactAbility.isVoid) {
+        addLog(`🌑 ${reactor.name} opens ${reactAbility.name}!`, 'spell');
+        absorbIntoVoid(reactor, action);
+        blocked = true;
+        if (action.type === 'aoe' || action.type === 'cone') {
+          const radius = reactAbility.radius || 1;
+          const covered = livingCombatants(reactor.teamIndex).filter(a => !S.currentMap || chebyshev(reactor, a) <= radius);
+          for (const a of covered) if (!action.blockedIds.includes(a.id)) action.blockedIds.push(a.id);
+          addLog(`  ✦ The void shields ${covered.map(a => a.name).join(', ')}!`, 'spell');
+        }
       } else if (reactAbility.isBlock) {
         if (reactAbility.tags?.includes('chains')) {
           let chainsEff = reactor.statusEffects.find(e => e.name === 'chains_of_apophis');
@@ -1563,7 +1848,7 @@ export function resumePendingAction(reactAbility) {
           updateCombatantCardDOM(reactor);
         } else if (reactAbility.dice && !reactAbility.tags?.includes('regen') && !reactAbility.tags?.includes('heal')) {
           const shieldHp = Math.max(0, parseDice(reactAbility.dice).total);
-          reactor.statusEffects.push({ name: 'damage_shield', turnsLeft: 999, shieldHp, dice: null, damType: null, notes: '', source: reactAbility.source });
+          grantDamageShield(reactor, shieldHp, reactAbility.source);
           addLog(`🛡 ${reactor.name} raises ${reactAbility.name} — ${shieldHp} HP absorb shield!`, 'spell');
           updateCombatantCardDOM(reactor);
         } else {
@@ -1611,7 +1896,7 @@ export function resumePendingAction(reactAbility) {
   // ── AoE/cone: find next un-reacted target, or proceed to damage ──────
   if ((action.type === 'aoe' || action.type === 'cone') && reactAbility) {
     const allT = action.targetIds.map(id => getCombatant(id)).filter(t => t && !t.isKO);
-    const next  = allT.find(t => !action.reactedIds.includes(t.id) && getReacts(t).length > 0);
+    const next  = allT.find(t => !action.reactedIds.includes(t.id) && !action.blockedIds.includes(t.id) && getReacts(t).length > 0);
     if (next) {
       action.reactorId = next.id;
       action.reactedIds.push(next.id);
@@ -1635,7 +1920,6 @@ export function resumePendingAction(reactAbility) {
           const atkTags = atk.transformedBaseAtk?.tags ?? atk.sourceChar.baseAtk?.tags ?? [];
           const damType = damTypeFromTags(atkTags);
           const ignoreDR = getDomainEffects(atk, { applyOn: 'atkRoll' }).some(e => e.tags?.includes('unblockabled'));
-          addLog(`${def.name}: ${def.currentHp + action.result.damage} → ${Math.max(0, def.currentHp)}`, 'hit');
           applyDamage(def, action.result.damage, damType, atkTags, ignoreDR);
           applyHpPerHitPassives(atk);
           if (atkTags.includes('grounded')) removeFlying(def);
@@ -1663,8 +1947,10 @@ export function resumePendingAction(reactAbility) {
         caster.statusEffects = caster.statusEffects.filter(e => e !== aoePrecast);
         addLog(`✦ ${caster.name}'s Runik Precast activates! (+${precastBonus})`, 'spell');
       }
-      const aoeIgnoreDR = getDomainEffects(caster, { applyOn: 'atkRoll', ability }).some(e => e.tags?.includes('unblockabled'));
+      const aoeIgnoreDR = ignoresDR(caster, ability);
       addLog(`${caster.name}'s ${ability.name} strikes all ${isPureHeal ? 'allies' : 'enemies'}!`, 'spell');
+      const aoeAtk = isPureHeal ? null : rollAttackD20(caster, ability);
+      if (aoeAtk) addLog(`  🎲 ${caster.name} rolls ${aoeAtk.roll.value} to land it`, 'spell');
       for (const target of allTargets) {
         if ((action.blockedIds ?? []).includes(target.id)) continue;
         const fullBlock = target.statusEffects.find(e => e.name.toLowerCase() === 'water_shield');
@@ -1674,6 +1960,8 @@ export function resumePendingAction(reactAbility) {
           updateCombatantCardDOM(target);
           continue;
         }
+        const mult = aoeAtk ? areaDefense(aoeAtk, target, caster, ability) : 1;
+        if (mult === 0) continue;
         if (ability.tags?.includes('cleans')) applyCleanse(target);
         if (ability.dice) {
           if (isPureHeal) {
@@ -1688,8 +1976,8 @@ export function resumePendingAction(reactAbility) {
           } else {
             const rd = parseDice(ability.dice);
             const damType = damTypeFromTags(ability.tags);
-            const totalDmg = rd.total + precastBonus;
-            addLog(`  ${target.name}: ${target.currentHp} → ${Math.max(0, target.currentHp - totalDmg)} (${totalDmg} dmg, ${rd.breakdown}${precastBonus ? ` +precast${precastBonus}` : ''})`, 'hit');
+            const totalDmg = Math.floor((rd.total + precastBonus) * mult);
+            addLog(`  ${target.name} is hit for ${totalDmg} (${rd.breakdown}${precastBonus ? ` +precast${precastBonus}` : ''}${mult < 1 ? ' ×½' : ''})`, 'hit');
             applyDamage(target, totalDmg, damType, ability.tags, aoeIgnoreDR);
             if (ability.isHeal) applyHeal(caster, String(totalDmg));
             if (ability.tags?.includes('grounded')) removeFlying(target);
@@ -1734,7 +2022,7 @@ export function resumePendingAction(reactAbility) {
           const result = resolveAttack(caster, current, ability.dice, ability);
           logAttackResult(caster, current, result);
           if (result.hit && !result.fumble && ability.dice) {
-            const ignoreDR = getDomainEffects(caster, { applyOn: 'atkRoll', ability }).some(e => e.tags?.includes('unblockabled'));
+            const ignoreDR = ignoresDR(caster, ability);
             applyDamage(current, result.damage, damType, ability.tags, ignoreDR);
             if (ability.effect) applyStatus(current, ability.effect);
             if (ability.tags?.includes('grounded')) removeFlying(current);
@@ -1758,13 +2046,18 @@ export function resumePendingAction(reactAbility) {
       const allTargets = action.targetIds.map(id => getCombatant(id)).filter(t => t && !t.isKO);
       addLog(`${caster.name}'s ${ability.name} sweeps in a cone!`, 'spell');
       const damType = damTypeFromTags(ability.tags);
-      const coneIgnoreDR = getDomainEffects(caster, { applyOn: 'atkRoll', ability }).some(e => e.tags?.includes('unblockabled'));
+      const coneIgnoreDR = ignoresDR(caster, ability);
+      const coneAtk = rollAttackD20(caster, ability);
+      addLog(`  🎲 ${caster.name} rolls ${coneAtk.roll.value} to land it`, 'spell');
       for (const target of allTargets) {
         if ((action.blockedIds ?? []).includes(target.id)) continue;
+        const mult = areaDefense(coneAtk, target, caster, ability);
+        if (mult === 0) continue;
         if (ability.dice) {
           const rd = parseDice(ability.dice);
-          addLog(`  ${target.name}: ${target.currentHp} → ${Math.max(0, target.currentHp - rd.total)} (${rd.total} dmg)`, 'hit');
-          applyDamage(target, rd.total, damType, ability.tags, coneIgnoreDR);
+          const dmg = Math.floor(rd.total * mult);
+          addLog(`  ${target.name} is hit for ${dmg} (${rd.breakdown}${mult < 1 ? ' ×½' : ''})`, 'hit');
+          applyDamage(target, dmg, damType, ability.tags, coneIgnoreDR);
           if (ability.tags?.includes('grounded')) removeFlying(target);
         }
         if (ability.effect) applyStatus(target, ability.effect);
@@ -1779,7 +2072,6 @@ export function resumePendingAction(reactAbility) {
         logAttackResult(caster, primary, action.result);
         if (action.result.fumble) primary.hasCounterAttack = true;
         if (action.result.hit && !action.result.fumble && ability.dice) {
-          addLog(`${primary.name}: ${primary.currentHp + action.result.damage} → ${Math.max(0, primary.currentHp)} (${action.result.breakdown})`, 'hit');
           applyDamage(primary, action.result.damage, damType, ability.tags);
           if (ability.radius > 0) {
             const splashTeam  = caster.teamIndex === 0 ? 1 : 0;
@@ -1787,10 +2079,14 @@ export function resumePendingAction(reactAbility) {
               .filter(t => t.id !== primary.id && chebyshev(primary, t) <= ability.radius);
             if (splashTargets.length > 0) {
               addLog(`  Splash radius ${ability.radius} hits ${splashTargets.map(t => t.name).join(', ')}!`, 'spell');
+              // the primary target's attack roll is the one the bystanders defend against
+              const splashAtk = { roll: { value: action.result.atkRoll, isNat20: action.result.crit }, sureHit: action.result.domainSureHit };
               for (const t of splashTargets) {
+                const mult = areaDefense(splashAtk, t, caster, ability);
+                if (mult === 0) continue;
                 const rd = parseDice(ability.dice);
-                const splashDmg = Math.floor(rd.total / 2);
-                addLog(`  ${t.name}: ${t.currentHp} → ${Math.max(0, t.currentHp - splashDmg)} (${splashDmg} splash)`, 'hit');
+                const splashDmg = Math.floor(rd.total / 2 * mult);
+                addLog(`  ${t.name} is caught by the splash for ${splashDmg}.`, 'hit');
                 applyDamage(t, splashDmg, damType, ability.tags);
                 if (ability.effect) applyStatus(t, ability.effect);
               }
@@ -1810,13 +2106,23 @@ export function resumePendingAction(reactAbility) {
 
         if (isSelf || isPureHeal) {
           if (ability.isBlock) {
-            if (ability.dice) {
+            // A ward must outlast a full round: statuses tick when their owner's turn starts, so an ally
+            // that acts right after the caster would otherwise lose it before any enemy could attack
+            const wardTurns = target.id === caster.id ? 1 : 2;
+            if (ability.dice && !ability.tags?.includes('regen')) {
               const shieldHp = Math.max(0, parseDice(ability.dice).total);
-              target.statusEffects.push({ name: 'damage_shield', turnsLeft: 999, shieldHp, dice: null, damType: null, notes: '', source: ability.source });
+              grantDamageShield(target, shieldHp, ability.source);
               addLog(`🛡 ${target.name} gains a ${shieldHp} HP damage shield!`, 'spell');
             } else {
-              applyStatus(target, 'water_shield', 1);
+              applyStatus(target, 'water_shield', wardTurns);
               addLog(`🛡 ${target.name} ${isSelf ? 'prepares a shield' : 'is shielded'} — next attack blocked!`, 'spell');
+              // Same effect as the react version: block one attack, then regenerate
+              if (ability.dice && ability.tags?.includes('regen')) {
+                applyStatus(target, 'regen');
+                const re = target.statusEffects.find(e => e.name.toLowerCase() === 'regen');
+                if (re) re.dice = ability.dice;
+                addLog(`  💚 ${target.name} regenerates ${ability.dice}/turn!`, 'heal');
+              }
             }
           }
           if (ability.tags?.includes('cleans')) applyCleanse(target);
@@ -1824,6 +2130,9 @@ export function resumePendingAction(reactAbility) {
             target.isKO = false;
             target.currentHp = Math.floor(target.maxHp * 0.5);
             addLog(`${caster.name} revives ${target.name} with ${target.currentHp}/${target.maxHp} HP!`, 'heal');
+            // KO clears every status, so give back innate flight
+            if (target.sourceChar.passif?.some(p => p.tags?.includes('fly')))
+              target.statusEffects.push({ name: 'fly', turnsLeft: 999, dice: null, damType: null, notes: '' });
             updateCombatantCardDOM(target);
           } else if (ability.dice && !ability.isBlock) {
             if (ability.tags?.includes('regen')) {
@@ -1837,7 +2146,7 @@ export function resumePendingAction(reactAbility) {
           }
           if (ability.effect) applyStatus(target, ability.effect);
           if (ability.tags?.includes('fly') && !target.statusEffects.some(e => e.name.toLowerCase() === 'fly')) {
-            target.statusEffects.push({ name: 'fly', turnsLeft: 999, dice: null, damType: null, notes: '' });
+            target.statusEffects.push({ name: 'fly', turnsLeft: ability.duration > 0 ? ability.duration : 999, dice: null, damType: null, notes: '' });
             addLog(`🦅 ${target.name} is now flying!`, 'spell');
           }
           if (ability.precastDice) {
@@ -1850,14 +2159,14 @@ export function resumePendingAction(reactAbility) {
           if (action.result.hit && !action.result.fumble) {
             const damType = damTypeFromTags(ability.tags);
             if (ability.dice && action.result.damage > 0) {
-              const ignoreDR = getDomainEffects(caster, { applyOn: 'atkRoll', ability }).some(e => e.tags?.includes('unblockabled'));
-              addLog(`${target.name}: ${target.currentHp + action.result.damage} → ${Math.max(0, target.currentHp)} (${action.result.breakdown})`, 'hit');
+              const ignoreDR = ignoresDR(caster, ability);
               applyDamage(target, action.result.damage, damType, ability.tags, ignoreDR);
               if (ability.isHeal) applyHeal(caster, String(action.result.damage));
               applyHpPerHitPassives(caster);
               if (ability.tags?.includes('grounded')) removeFlying(target);
             }
             if (ability.effect) applyStatus(target, ability.effect);
+            if (ability.tags?.includes('pull') && !target.isKO) pullTarget(caster, target);
           } else if (!action.result.hit && !action.result.fumble) {
             const shadowEffs = getDomainEffects(target, { applyOn: 'atkRoll', foeJustMissed: true });
             if (shadowEffs.length > 0 && shadowEffs[0].dices) {
@@ -1881,15 +2190,17 @@ export function resumePendingAction(reactAbility) {
   const counter    = S.combatants.find(c => c.hasCounterAttack && !c.isKO);
   if (counter) {
     counter.hasCounterAttack = false;
-    addLog(`⚡ ${counter.name} gets a free counter-attack!`, 'crit');
     const counterTarget = prevActive;
-    if (counterTarget && !counterTarget.isKO) {
+    // A counter-attack is a melee swing: it needs the attacker within reach, like any basic attack
+    const canReach = !S.currentMap || !counterTarget || targetInRange(counter, counterTarget, null).inRange;
+    if (canReach) addLog(`⚡ ${counter.name} gets a free counter-attack!`, 'crit');
+    else addLog(`⚡ ${counter.name} could counter-attack, but ${counterTarget.name} is out of reach.`, 'info');
+    if (canReach && counterTarget && !counterTarget.isKO) {
       const cr = resolveAttack(counter, counterTarget, null);
       logAttackResult(counter, counterTarget, cr);
       if (cr.hit && !cr.fumble) {
         const counterAtkTags = counter.transformedBaseAtk?.tags ?? counter.sourceChar.baseAtk?.tags ?? [];
         const damType = damTypeFromTags(counterAtkTags);
-        addLog(`${counterTarget.name}: ${counterTarget.currentHp + cr.damage} → ${Math.max(0, counterTarget.currentHp)} (${cr.breakdown})`, 'hit');
         applyDamage(counterTarget, cr.damage, damType, counterAtkTags);
       }
     }
@@ -1897,6 +2208,8 @@ export function resumePendingAction(reactAbility) {
     if (winner2 !== null) { endCombat(winner2); return; }
   }
 
+  // Instant moves (e.g. Fire Shield) do not use the action: the turn stays open
+  if (action.ability?.isInstant && !S.hasActed) { _R.renderCombatScreen(); return; }
   advanceTurn();
 }
 
@@ -1947,6 +2260,7 @@ export async function startInitiative() {
 export function startCombat() {
   S.phase = 'combat';
   S.currentTurnIndex = 0;
+  S.turnSerial++;
   S.roundNumber = 1;
   S.log = [];
   S.hasActed = false;
@@ -1970,6 +2284,7 @@ export function advanceTurn() {
   } while (getCombatant(S.initiativeOrder[curr])?.isKO);
 
   S.currentTurnIndex = curr;
+  S.turnSerial++;
   S.hasMoved         = false;
   S.hasActed         = false;
   S.moveMode         = false;
@@ -1989,6 +2304,7 @@ export function beginTurn(c) {
   if (!survived) {
     const w = checkVictory();
     if (w !== null) { endCombat(w); return; }
+    advanceTurn(); return;   // died to damage-over-time: no turn to play
   }
 
   for (const p of c.sourceChar.passif ?? []) {
@@ -2001,20 +2317,27 @@ export function beginTurn(c) {
     }
   }
 
+  // Domain auras tick on whoever starts a turn inside the area
   for (const entry of S.activeDomains) {
     const domainOwner = getCombatant(entry.casterId);
     if (!domainOwner || domainOwner.isKO) continue;
-    if (domainOwner.teamIndex === c.teamIndex) continue;
+    const radius = entry.domain.radius ?? 8;
+    if (S.currentMap && chebyshev(c, { x: entry.centerX, y: entry.centerY }) > radius) continue;
+    const friendly = domainOwner.teamIndex === c.teamIndex;
     for (const eff of entry.domain.effects ?? []) {
-      if (!eff.applyOn?.includes('hpPerTurn') || eff.target !== 'foes' || !eff.dices) continue;
-      const dmg = parseDice(eff.dices).total;
-      const damType = damTypeFromTags(eff.tags ?? []);
-      addLog(`🔥 ${c.name} takes ${dmg} ${damType ?? ''} from ${entry.domain.name}! (${eff.nom})`, 'status');
-      applyDamage(c, dmg, damType, eff.tags ?? []);
-      if (c.isKO) {
-        const w = checkVictory();
-        if (w !== null) { endCombat(w); return; }
-        advanceTurn(); return;
+      if (!eff.applyOn?.includes('hpPerTurn') || !eff.dices) continue;
+      if (friendly && eff.target !== 'foes') {
+        applyHeal(c, eff.dices, eff.nom);
+      } else if (!friendly && eff.target === 'foes') {
+        const dmg = parseDice(eff.dices).total;
+        const damType = damTypeFromTags(eff.tags ?? []);
+        addLog(`🔥 ${c.name} is scorched by ${entry.domain.name}! (${eff.nom})`, 'status');
+        applyDamage(c, dmg, damType, eff.tags ?? []);
+        if (c.isKO) {
+          const w = checkVictory();
+          if (w !== null) { endCombat(w); return; }
+          advanceTurn(); return;
+        }
       }
     }
   }
@@ -2025,7 +2348,8 @@ export function beginTurn(c) {
   if (ctrl) {
     addLog(`${c.name} is ${ctrl.name} and cannot act!`, 'status');
     _R.renderCombatScreen();
-    setTimeout(() => advanceTurn(), 1000);
+    const serial = S.turnSerial;
+    setTimeout(() => { if (S.phase === 'combat' && S.turnSerial === serial) advanceTurn(); }, 1000);
     return;
   }
 

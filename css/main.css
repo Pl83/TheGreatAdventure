@@ -2273,7 +2273,7 @@ header.nav-open .nav-toggle span:nth-child(3) { transform: translateY(-9px) rota
 .combat-start-btn:disabled { opacity: .4; cursor: not-allowed; }
 .secondary-btn {
   background: transparent;
-  color: var(--tga-text);
+  color: var(--tga-text-invert);
   border-color: var(--tga-bronze);
   outline-color: transparent;
 }

@@ -10,7 +10,7 @@ import {
   handleTransform, handleActivateDomain,
   handleReactYes, handleReactNo,
   enterMoveMode, exitMoveMode,
-  enterAimMode, exitAimMode,
+  enterAimMode, exitAimMode, cancelAim, koAllies,
   addLog, startInitiative,
 } from './combat-logic.js';
 
@@ -18,14 +18,24 @@ import { abilityPreviewHTML, abilityFireLabel, renderCombatScreen, renderSelecti
 
 // ── §13  Event Binding ─────────────────────────────────────────────────────
 
+function saveTeams() {
+  try { localStorage.setItem('combatTeams', JSON.stringify(S.teamNames)); } catch {}
+}
+
+// Esc leaves aim mode from anywhere (bound once; right-click does the same on the canvas)
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && S.phase === 'combat' && S.aimMode) cancelAim();
+});
+
 export function bindSelectionEvents() {
   const root = document.getElementById('combat-root');
   root.querySelectorAll('.add-btn').forEach(btn => {
     btn.addEventListener('click', e => {
       const name = e.currentTarget.dataset.name;
       const team = parseInt(e.currentTarget.dataset.team);
-      if (!S.teamNames[team].includes(name) && S.teamNames[team].length < 4) {
+      if (!S.teamNames[team].includes(name) && S.teamNames[team].length < 5) {
         S.teamNames[team].push(name);
+        saveTeams();
         renderSelectionScreen();
       }
     });
@@ -35,6 +45,7 @@ export function bindSelectionEvents() {
       const name = e.currentTarget.dataset.name;
       const team = parseInt(e.currentTarget.dataset.team);
       S.teamNames[team] = S.teamNames[team].filter(n => n !== name);
+      saveTeams();
       renderSelectionScreen();
     });
   });
@@ -145,7 +156,7 @@ export function bindCombatEvents() {
     const nomapSel = document.getElementById('ability-target-nomap');
     if (nomapSel) {
       const pool = ab.targetKind === 'ally'
-        ? livingCombatants(active.teamIndex)
+        ? (ab.isRevive ? koAllies(active.teamIndex) : livingCombatants(active.teamIndex))
         : livingCombatants(active.teamIndex === 0 ? 1 : 0);
       nomapSel.innerHTML = pool.map(t => `<option value="${t.id}">${t.name} (${t.currentHp}HP)</option>`).join('') || '<option>No targets</option>';
       nomapSel.style.display = (!S.currentMap && !isImmediate) ? '' : 'none';
