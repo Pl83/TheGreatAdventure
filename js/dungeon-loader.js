@@ -33,17 +33,79 @@ export async function loadManifest() {
  * grid   : { walkable, minX, minY, cols, rows, BORDER }
  * starts : { 0: [{x,y},…], 1: [{x,y},…] }  — grid coordinates
  */
-export async function loadMap(slug) {
+export async function loadMap(slug, perTeam = 4) {
   const [data, image] = await Promise.all([
-    fetch(`maps/${slug}/${slug}.json`).then(r => {
-      if (!r.ok) throw new Error(`map JSON fetch failed (${r.status}): ${slug}`);
-      return r.json();
-    }),
+    fetchMapJson(slug),
     loadImage(`maps/${slug}/${slug}.png`),
   ]);
+  return buildMap({ slug, data, image, perTeam });
+}
+
+/** Pure: assemble a map object from parsed JSON + a loaded image. */
+export function buildMap({ slug, data, image, perTeam = 4 }) {
   const grid   = buildWalkableGrid(data.rects);
-  const starts = deriveSpawnPoints(data.rects, grid);
+  const starts = deriveSpawnPoints(data.rects, grid, perTeam);
   return { slug, name: data.title, story: data.story || '', image, grid, starts };
+}
+
+/** True when the image divides into square, whole-pixel cells for this grid. */
+export function alignmentOk(grid, image) {
+  const cw = image.naturalWidth / grid.cols;
+  const ch = image.naturalHeight / grid.rows;
+  return cw === ch && Number.isInteger(cw);
+}
+
+/**
+ * True when each team has >= perTeam walkable cells in one connected
+ * component, and the two teams are at least 6 cells apart (Chebyshev).
+ */
+export function startsOk(starts, grid, perTeam = 5) {
+  const walk = (x, y) =>
+    x >= 0 && y >= 0 && x < grid.cols && y < grid.rows && grid.walkable[y][x] === 1;
+  const teams = [starts[0] || [], starts[1] || []];
+  for (const cells of teams) {
+    if (cells.length < perTeam) return false;
+    if (!cells.every(c => walk(c.x, c.y))) return false;
+    const key = c => `${c.x},${c.y}`;
+    // Connectivity through walkable cells (8-neighbour)
+    {
+      const seen = new Set([key(cells[0])]);
+      const q = [cells[0]];
+      while (q.length) {
+        const { x, y } = q.pop();
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            const nx = x + dx, ny = y + dy, k = `${nx},${ny}`;
+            if (!seen.has(k) && walk(nx, ny)) { seen.add(k); q.push({ x: nx, y: ny }); }
+          }
+        }
+      }
+      if (!cells.every(c => seen.has(key(c)))) return false;
+    }
+  }
+  let min = Infinity;
+  for (const a of teams[0]) for (const b of teams[1]) {
+    min = Math.min(min, Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y)));
+  }
+  return min >= 6;
+}
+
+/** Light metadata for a map picker. Never rejects. */
+export async function loadMapMeta(slug) {
+  const thumb = `maps/${slug}/${slug}.png`;
+  try {
+    const data = await fetchMapJson(slug);
+    return { slug, name: data.title || slug, thumb };
+  } catch {
+    return { slug, name: slug, thumb };
+  }
+}
+
+function fetchMapJson(slug) {
+  return fetch(`maps/${slug}/${slug}.json`).then(r => {
+    if (!r.ok) throw new Error(`map JSON fetch failed (${r.status}): ${slug}`);
+    return r.json();
+  });
 }
 
 /** Pixel size of one grid cell for this map (e.g. 70 for watabou exports). */
@@ -110,9 +172,9 @@ function buildWalkableGrid(rects) {
  *
  * Returns grid coordinates.
  */
-function deriveSpawnPoints(rects, grid) {
+function deriveSpawnPoints(rects, grid, perTeam = 4) {
   let large = rects
-    .filter(r => r.w * r.h >= 9)
+    .filter(r => perTeam > 4 ? (r.w - 1) * (r.h - 1) >= perTeam : r.w * r.h >= 9)
     .sort((a, b) => (a.x + a.w / 2) - (b.x + b.w / 2));
 
   if (large.length < 2) {
@@ -124,8 +186,8 @@ function deriveSpawnPoints(rects, grid) {
 
   function cellsFromRoom(room) {
     const cells = [];
-    for (let dy = 1; dy < room.h && cells.length < 4; dy++) {
-      for (let dx = 1; dx < room.w && cells.length < 4; dx++) {
+    for (let dy = 1; dy < room.h && cells.length < perTeam; dy++) {
+      for (let dx = 1; dx < room.w && cells.length < perTeam; dx++) {
         cells.push({
           x: (room.x + dx) - grid.minX + grid.BORDER,
           y: (room.y + dy) - grid.minY + grid.BORDER,
