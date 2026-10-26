@@ -6,78 +6,78 @@
   ],
   "items": [
     {
-      "id": "bug-status-on-ko", "cat": "bugs", "sev": "high",
+      "id": "bug-status-on-ko", "resolution": "Fixed: applyStatus ignores KO'd targets.", "cat": "bugs", "sev": "high",
       "title": "Statuses land on units killed by the same hit",
       "detail": "applyDamage KOs the unit and wipes its statuses, then the move's effect is applied afterwards. applyStatus has no KO check, so the dead unit keeps Stun / Blind / Para / Silence, and a revive brings it back with that status.",
       "evidence": "Tambours de Kamowakeikazuchi, Scream of the Banshee, Chain Thunder, Solar Flare, Odin's Wrath. Seen in 9 of 14 logged fights.",
       "where": "combat-logic.js · applyStatus, AoE / cone / splash / single-target branches"
     },
     {
-      "id": "bug-shield-no-advance", "cat": "bugs", "sev": "high",
+      "id": "bug-shield-no-advance", "resolution": "Fixed: a pre-armed shield block now ends the turn.", "cat": "bugs", "sev": "high",
       "title": "A pre-armed shield block leaves the turn open",
       "detail": "handleAttack and the single-target cast path set hasActed, re-render and return without advanceTurn(). The player is stuck on an empty turn and has to press Pass. Every other block path advances the turn.",
       "evidence": "Hit 257 times in the 8 domain fights.",
       "where": "combat-logic.js · handleAttack, handleCastAbility (water_shield branch)"
     },
     {
-      "id": "bug-react-vs-proactive", "cat": "bugs", "sev": "med",
+      "id": "bug-react-vs-proactive", "resolution": "Fixed: shared half-physical effect; Dragon Scale Guard now halves physical damage.", "cat": "bugs", "sev": "med",
       "title": "Proactive and react versions of the same move differ",
       "detail": "Dragon Scale Guard says \"reduces physical damage by half\" but fully blocks the next attack, as a react and when pre-armed. Hela's Living Blade Armor halves physical damage as a react, but cast proactively it \"prepares a shield, next attack blocked\".",
       "where": "combat-logic.js · resumePendingAction (half_phys) vs ability branch (water_shield)"
     },
 
     {
-      "id": "odd-hela-resurrection", "cat": "oddities", "sev": "low",
+      "id": "odd-hela-resurrection", "resolution": "Balance patch: Resurrection triggers only once per fight.", "cat": "oddities", "sev": "low",
       "title": "Hela's Resurrection ignores her max HP",
       "detail": "She always comes back with a hard-coded 150 HP out of 450, plus the +2d12 Final Reckoning bonus.",
       "where": "combat-logic.js · applyDamage (Resurrection)"
     },
     {
-      "id": "odd-hela-stalemate", "cat": "oddities", "sev": "med",
+      "id": "odd-hela-stalemate", "resolution": "Balance patch: addressed by capping Resurrection to one use.", "cat": "oddities", "sev": "med",
       "title": "Hela out-sustains everything",
       "detail": "450 HP and 20 HP regen per turn: two Helas never killed each other, and all 8 domain fights stalled for 117 to 231 rounds with only the Helas left.",
       "where": "characters.json · Hela, Goddess of Death"
     },
     {
-      "id": "odd-domain-refinement", "cat": "oddities", "sev": "med",
+      "id": "odd-domain-refinement", "resolution": "Intended behaviour.", "cat": "oddities", "sev": "med",
       "title": "Domain clashes are decided by refinement alone",
       "detail": "Hela's Complet domain (refinement 7) suppresses every other domain. Sensei Lloyd's Incomplet domain (refinement 0) can never win a clash.",
       "where": "combat-logic.js · handleActivateDomain"
     },
     {
-      "id": "odd-domain-free-retry", "cat": "oddities", "sev": "low",
+      "id": "odd-domain-free-retry", "resolution": "Balance patch: a suppressed expansion now costs half the slots (the other half is refunded).", "cat": "oddities", "sev": "low",
       "title": "A suppressed domain activation costs nothing",
       "detail": "When a stronger enemy domain suppresses the attempt, no slot is spent and the action is kept, so it can be retried endlessly.",
       "where": "combat-logic.js · handleActivateDomain"
     },
     {
-      "id": "odd-domain-equal-clash", "cat": "oddities", "sev": "low",
+      "id": "odd-domain-equal-clash", "resolution": "Intended behaviour.", "cat": "oddities", "sev": "low",
       "title": "An equal clash cancels both domains but still costs the action",
       "detail": "Both domains drop; the activator still pays the slots and a charge and loses the turn. Check this is intended."
     },
 
     {
-      "id": "mech-gravity", "cat": "mechanics", "sev": "med",
+      "id": "mech-gravity", "resolution": "Implemented: Gravity Up (failed defense roll gives the enemy disadvantage on its next d20) and Gravity Down (an ally gets advantage on its next d20).", "cat": "mechanics", "sev": "med",
       "title": "Gravity Up / Gravity Down", "who": "Akir",
       "detail": "Target has disadvantage (Up) or advantage (Down) on rolls."
     },
     {
-      "id": "mech-boar", "cat": "mechanics", "sev": "med",
+      "id": "mech-boar", "resolution": "Implemented: full taunt for 1 turn, taunted enemies must target Baal. Baal keeps -10 damage taken.", "cat": "mechanics", "sev": "med",
       "title": "Spirit of the Wild Boar", "who": "Baal",
       "detail": "-10 damage taken, half-taunt."
     },
     {
-      "id": "mech-perfect-reflection", "cat": "mechanics", "sev": "med",
+      "id": "mech-perfect-reflection", "resolution": "Implemented: reflects a spell back with doubled damage, works on area spells, pierced by Authority 8.", "cat": "mechanics", "sev": "med",
       "title": "Perfect Reflection", "who": "Hela, Goddess of Death",
       "detail": "Reflects a spell back at 2x damage. Only bypassed by Authority."
     },
     {
-      "id": "mech-sacrifice", "cat": "mechanics", "sev": "med",
+      "id": "mech-sacrifice", "resolution": "Implemented: a landed hit on a target under 10% HP kills outright (no resurrection); the caster gets 1 slot and 50 HP.", "cat": "mechanics", "sev": "med",
       "title": "Sacrifice", "who": "Huītzilōpōchtli",
       "detail": "Execute target below 10 HP. Restore 1 spell slot and 50 HP."
     },
     {
-      "id": "mech-greater-teleport", "cat": "mechanics", "sev": "med",
+      "id": "mech-greater-teleport", "resolution": "Implemented: the caster and allies within 20 cells teleport to a chosen cell; as a react, they all dodge.", "cat": "mechanics", "sev": "med",
       "title": "Greater Teleportation", "who": "Kadgar",
       "detail": "Teleport all allies."
     },
@@ -107,12 +107,12 @@
       "detail": "Freeze or evaporate water in area."
     },
     {
-      "id": "mech-smoke-screen", "cat": "mechanics", "sev": "med",
+      "id": "mech-smoke-screen", "resolution": "Implemented: everyone within 4 cells except Zed has disadvantage on attack and defense rolls for 3 turns.", "cat": "mechanics", "sev": "med",
       "title": "Smoke Screen", "who": "Zed",
       "detail": "Disadvantage on attack and defense rolls for 4 turns."
     },
     {
-      "id": "mech-puppeteer", "cat": "mechanics", "sev": "med",
+      "id": "mech-puppeteer", "resolution": "Implemented: on a landed hit the target may be pointed at anyone during its next turn.", "cat": "mechanics", "sev": "med",
       "title": "Puppeteer", "who": "Zed",
       "detail": "Take control of a creature via its shadow for 1 turn."
     },

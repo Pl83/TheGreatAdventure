@@ -21,10 +21,13 @@ const state = {
 
 const root = document.getElementById('todo-root');
 
+// An item with a resolution (fixed, patched, intended) counts as done whatever the checkbox says
+const isDone = i => !!i.resolution || state.done.has(i.id);
+
 const pct = (n, total) => total ? Math.round(n / total * 100) : 0;
 
 function stats(items) {
-  const done = items.filter(i => state.done.has(i.id)).length;
+  const done = items.filter(isDone).length;
   return { done, open: items.length - done, total: items.length, pct: pct(done, items.length) };
 }
 
@@ -47,7 +50,7 @@ function render() {
   const visibleCats = categories.filter(c => state.cat === 'all' || state.cat === c.id);
   const sections = visibleCats.map(c => {
     const rows = items
-      .filter(i => i.cat === c.id && !(state.hideDone && state.done.has(i.id)))
+      .filter(i => i.cat === c.id && !(state.hideDone && isDone(i)))
       .map(rowHTML).join('');
     return `
       <section class="todo-section">
@@ -74,15 +77,16 @@ function render() {
 }
 
 function rowHTML(i) {
-  const done = state.done.has(i.id);
+  const done = isDone(i);
   return `
     <article class="todo-item ${done ? 'is-done' : ''}" data-sev="${esc(i.sev)}">
       <label class="todo-item-head">
-        <input type="checkbox" data-id="${esc(i.id)}" ${done ? 'checked' : ''}>
+        <input type="checkbox" data-id="${esc(i.id)}" ${done ? 'checked' : ''} ${i.resolution ? 'disabled' : ''}>
         <span class="todo-item-title">${esc(i.title)}</span>
         ${i.who ? `<span class="todo-who">${esc(i.who)}</span>` : ''}
         <span class="todo-sev todo-sev-${esc(i.sev)}">${esc(i.sev)}</span>
       </label>
+      ${i.resolution ? `<p class="todo-resolution">✔ ${esc(i.resolution)}</p>` : ''}
       <p class="todo-detail">${esc(i.detail)}</p>
       ${i.evidence ? `<p class="todo-meta"><b>Evidence</b> ${esc(i.evidence)}</p>` : ''}
       ${i.where ? `<p class="todo-meta"><b>Where</b> <code>${esc(i.where)}</code></p>` : ''}

@@ -1192,9 +1192,9 @@
     "moveSet": [
       {
         "category": "Art",
-        "base": { "nom": "Spirit of the Wild Boar", "tags": ["buff", "taunt"] },
+        "base": { "nom": "Spirit of the Wild Boar", "tags": ["debuff", "taunt"] },
         "target": "aoe", "range": 5, "radius": 5,
-        "description": "-10 damage taken, half-taunt.",
+        "description": "Every enemy in the area is fully taunted for 1 turn: they must target Baal. Baal takes -10 damage meanwhile.",
         "kiCost": 10
       },
       {
@@ -1282,9 +1282,9 @@
     "moveSet": [
       {
         "category": "spell",
-        "base": { "nom": "Greater Teleportation", "tags": ["magic", "react", "instant"] },
-        "target": "aoe", "range": 20, "radius": 20,
-        "description": "Teleport all allies.",
+        "base": { "nom": "Greater Teleportation", "tags": ["magic", "react", "instant", "teleportation", "group"] },
+        "target": "self", "range": 20, "radius": 20,
+        "description": "Teleports the caster and every ally within 20 cells to a chosen location. As a react, they all escape the attack.",
         "spellCost": 2
       },
       {
@@ -1679,16 +1679,16 @@
     "moveSet": [
       {
         "category": "spell",
-        "base": { "nom": "Gravity Up", "tags": ["magic", "disv"] },
+        "base": { "nom": "Gravity Up", "tags": ["magic", "disv_next"] },
         "target": "mono", "range": 8,
-        "description": "Target has disadvantage on rolls.",
+        "description": "If the target fails its defense roll, its next d20 is rolled with disadvantage.",
         "spellCost": 1
       },
       {
         "category": "spell",
-        "base": { "nom": "Gravity Down", "tags": ["magic", "adv"] },
+        "base": { "nom": "Gravity Down", "tags": ["magic", "buff", "adv_next"] },
         "target": "mono", "range": 8,
-        "description": "Target has advantage on rolls.",
+        "description": "An ally rolls its next d20 with advantage.",
         "spellCost": 1
       }
     ]
@@ -2016,9 +2016,9 @@
     "moveSet": [
       {
         "category": "spell",
-        "base": { "nom": "Sacrifice", "tags": ["magic", "unblockabled"] },
+        "base": { "nom": "Sacrifice", "tags": ["magic", "unblockabled", "execute"] },
         "target": "mono", "range": 3,
-        "description": "Execute target below 10 HP. Restore 1 spell slot and 50 HP. Guardbreak.",
+        "description": "If the attack lands on a target under 10% HP it dies instantly, resurrection included. The caster regains 1 spell slot and 50 HP. Guardbreak.",
         "spellCost": 1
       },
       {
@@ -2119,17 +2119,17 @@
       },
       {
         "category": "Art",
-        "base": { "nom": "Smoke Screen", "tags": ["disv", "debuff"] },
-        "target": "aoe", "range": 4, "radius": 4,
-        "description": "Disadvantage on attack and defense rolls for 4 turns.",
-        "duration": 4,
+        "base": { "nom": "Smoke Screen", "tags": ["disv", "debuff", "smoke"] },
+        "target": "self", "range": 0, "radius": 4,
+        "description": "Everyone within 4 cells except the user rolls attack and defense with disadvantage for 3 turns.",
+        "duration": 3,
         "kiCost": 1
       },
       {
         "category": "Art",
-        "base": { "nom": "Puppeteer", "tags": ["controled", "psy"] },
+        "base": { "nom": "Puppeteer", "tags": ["controled", "psy", "puppet"] },
         "target": "mono", "range": 8,
-        "description": "Take control of a creature via its shadow for 1 turn.",
+        "description": "If the attack lands, the caster decides what the target does during its next turn.",
         "duration": 1,
         "kiCost": 5
       }
@@ -2203,7 +2203,8 @@
         "category": "technique",
         "base": { "nom": "Perfect Reflection", "tags": ["react", "antiMagic", "reflect"] },
         "target": "mono", "range": 20,
-        "description": "Reflects a spell back at 2x damage. Only bypassed by Authority 8.",
+        "bypassAuthority": 8,
+        "description": "React: sends a spell back at its caster with the damage doubled. Only bypassed by Authority 8.",
         "cooldown": 0
       },
       {

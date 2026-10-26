@@ -4,7 +4,7 @@
 
 import {
   S,
-  activeCombatant, livingCombatants, enemies,
+  activeCombatant, livingCombatants, enemies, targetPool,
   hasValidTarget, drawMap,
   handlePass, handleAttack, handleCastAbility,
   handleTransform, handleActivateDomain,
@@ -157,7 +157,7 @@ export function bindCombatEvents() {
     if (nomapSel) {
       const pool = ab.targetKind === 'ally'
         ? (ab.isRevive ? koAllies(active.teamIndex) : livingCombatants(active.teamIndex))
-        : livingCombatants(active.teamIndex === 0 ? 1 : 0);
+        : targetPool(active);
       nomapSel.innerHTML = pool.map(t => `<option value="${t.id}">${t.name} (${t.currentHp}HP)</option>`).join('') || '<option>No targets</option>';
       nomapSel.style.display = (!S.currentMap && !isImmediate) ? '' : 'none';
     }

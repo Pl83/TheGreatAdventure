@@ -62,6 +62,8 @@ export const S = {
   teleportActorId:      null,
   teleportRange:        0,
   pendingTeleportReact: null,
+  teleportGroup:        null,   // the ability when a teleport also carries the caster's allies
+  lastTeleportedIds:    null,   // allies that just followed the caster, read by the react that triggered it
 };
 
 // ── Map constants ──────────────────────────────────────────────────────────
@@ -207,6 +209,11 @@ export function resolveAbilitiesFromList(moveList) {
       isInstant:  tags.includes('instant'),
       isVoid:     tags.includes('void'),
       isGate:     tags.includes('gate'),
+      // Reactions that do nothing when cast proactively
+      reactOnly:  tags.includes('void') || tags.includes('reflect'),
+      // Attack-versus-defense roll with no damage dice (the effect applies when the defense fails)
+      isContest:  tags.some(t => ['disv_next', 'execute', 'puppet'].includes(t)),
+      bypassAuthority: move.bypassAuthority ?? 0,
       isAoe:      move.target === 'aoe',
       isCone:     move.target === 'cone',
       isSplash:   move.target === 'splash',
@@ -274,8 +281,34 @@ export function koAllies(teamIndex) {
 export function activeCombatant() {
   return getCombatant(S.initiativeOrder[S.currentTurnIndex]);
 }
+// A puppeteered unit is steered by its controller, who may point it at anyone but itself
+const isPuppet = c => c.statusEffects.some(e => e.name === 'puppeteered');
+
 export function enemies(c) {
+  if (isPuppet(c)) return S.combatants.filter(x => !x.isKO && x.id !== c.id);
   return livingCombatants(c.teamIndex === 0 ? 1 : 0);
+}
+
+// The living combatant a taunted unit is forced to target, if any (puppets obey their controller instead)
+export function tauntSource(c) {
+  if (isPuppet(c)) return null;
+  const eff = c.statusEffects.find(e => e.name === 'taunted');
+  const src = eff && getCombatant(eff.sourceId);
+  return src && !src.isKO ? src : null;
+}
+
+// Valid single targets for an enemy-kind move
+export function targetPool(c) {
+  const pool = enemies(c);
+  const src  = tauntSource(c);
+  return src && pool.some(x => x.id === src.id) ? [src] : pool;
+}
+
+function tauntViolation(actor, targets) {
+  const src = tauntSource(actor);
+  if (!src || targets.some(t => t.id === src.id)) return false;
+  addLog(`⚠ ${actor.name} is taunted and must target ${src.name}!`, 'info');
+  return true;
 }
 export function allies(c) {
   return livingCombatants(c.teamIndex);
@@ -487,11 +520,12 @@ export function computeAimOverlay(caster, ability) {
       if (hasLos(caster.x, caster.y, gx, gy)) losCells.add(key);
     }
   }
-  const targetTeam = isAlly ? caster.teamIndex : (caster.teamIndex === 0 ? 1 : 0);
   // Revive targets KO'd allies; every other ally spell targets the living
   const candidates = isAny
     ? S.combatants.filter(c => !c.isKO && c.id !== caster.id)
-    : (ability.isRevive ? koAllies(targetTeam) : livingCombatants(targetTeam));
+    : isAlly
+      ? (ability.isRevive ? koAllies(caster.teamIndex) : livingCombatants(caster.teamIndex))
+      : (ability.isAoe || ability.isCone ? enemies(caster) : targetPool(caster));
   const validTargetIds = new Map();
   for (const t of candidates) {
     if (losCells.has(`${t.x},${t.y}`)) validTargetIds.set(t.id, t);
@@ -522,23 +556,20 @@ export function coneCells(caster, ability, dirCell) {
 
 export function coneCellTargets(caster, ability, dirCell) {
   const cells = coneCells(caster, ability, dirCell);
-  const teamIdx = caster.teamIndex === 0 ? 1 : 0;
-  return livingCombatants(teamIdx)
+  return enemies(caster)
     .filter(t => cells.some(c => c.x === t.x && c.y === t.y));
 }
 
 export function aoeCombatantHits(ability, caster, cx, cy) {
   const radius  = ability.radius > 0 ? ability.radius : 1;
   const isAlly  = ability.targetKind === 'ally';
-  const teamIdx = isAlly ? caster.teamIndex : (caster.teamIndex === 0 ? 1 : 0);
-  return livingCombatants(teamIdx)
-    .filter(t => chebyshev({ x: cx, y: cy }, t) <= radius);
+  const pool    = isAlly ? livingCombatants(caster.teamIndex) : enemies(caster);
+  return pool.filter(t => chebyshev({ x: cx, y: cy }, t) <= radius);
 }
 
 export function hasValidTarget(actor, ability) {
   if (!ability) {
-    return livingCombatants(actor.teamIndex === 0 ? 1 : 0)
-      .some(t => targetInRange(actor, t, null).inRange);
+    return targetPool(actor).some(t => targetInRange(actor, t, null).inRange);
   }
   if (ability.isAoe || ability.isCone || ability.isSplash) return true;
   if (ability.targetKind === 'self')  return true;
@@ -546,8 +577,7 @@ export function hasValidTarget(actor, ability) {
   if (ability.targetKind === 'ally')  return livingCombatants(actor.teamIndex).length > 0;
   if (ability.targetKind === 'any')
     return S.combatants.some(t => !t.isKO && t.id !== actor.id && targetInRange(actor, t, ability).inRange);
-  return livingCombatants(actor.teamIndex === 0 ? 1 : 0)
-    .some(t => targetInRange(actor, t, ability).inRange);
+  return targetPool(actor).some(t => targetInRange(actor, t, ability).inRange);
 }
 
 export function clearAimState() {
@@ -578,10 +608,11 @@ export function cancelAim() {
   if (hint) hint.style.display = 'none';
 }
 
-export function enterTeleportMode(c, range) {
+export function enterTeleportMode(c, range, group = null) {
   S.teleportMode    = true;
   S.teleportActorId = c.id;
   S.teleportRange   = range;
+  S.teleportGroup   = group;
   document.getElementById('dungeon-canvas')?.classList.add('teleport-mode');
   drawMap();
 }
@@ -590,6 +621,7 @@ export function exitTeleportMode() {
   S.teleportMode    = false;
   S.teleportActorId = null;
   S.teleportRange   = 0;
+  S.teleportGroup   = null;
   document.getElementById('dungeon-canvas')?.classList.remove('teleport-mode');
   drawMap();
 }
@@ -698,7 +730,10 @@ export function setupCanvasClickHandler() {
           && isWalkableG(S.currentMap, gx, gy) && !isOccupied(gx, gy, actor.id)
           && !teleportBlockedByDomain) {
         addLog(`✦ ${actor.name} teleports to (${gx}, ${gy})!`, 'spell');
+        const origin = { x: actor.x, y: actor.y };
+        const group  = S.teleportGroup;
         actor.x = gx; actor.y = gy;
+        S.lastTeleportedIds = group ? relocateAllies(actor, origin, group.radius || 1) : null;
         const reactAbility = S.pendingTeleportReact;
         S.pendingTeleportReact = null;
         exitTeleportMode();
@@ -860,7 +895,7 @@ export function drawMap() {
       const cells    = dirCell ? coneCells(active, S.aimAbility, dirCell) : [];
       // Reuse cells instead of calling coneCellTargets (avoids a second full grid sweep)
       const cellSet  = new Set(cells.map(cell => `${cell.x},${cell.y}`));
-      const hits     = livingCombatants(active.teamIndex === 0 ? 1 : 0)
+      const hits     = enemies(active)
         .filter(t => cellSet.has(`${t.x},${t.y}`));
       const { losCells } = computeAimOverlay(active, S.aimAbility);
       ctx.fillStyle = 'rgba(255,140,0,0.10)';
@@ -1017,6 +1052,13 @@ export function applyDamage(combatant, amount, damType = null, atkTags = [], ign
     amount = Math.floor(amount / 2);
     combatant.statusEffects = combatant.statusEffects.filter(e => e !== bladeArmor);
     addLog(`⚔ ${combatant.name}'s Living Blade Armor halves the physical hit! (→ ${amount})`, 'spell');
+  }
+  // Defensive stance: flat reduction before any absorption
+  const stance = combatant.statusEffects.find(e => e.name === 'damage_reduction');
+  if (stance && amount > 0 && !ignoreDR) {
+    const before = amount;
+    amount = Math.max(0, amount - stance.amount);
+    addLog(`🐗 ${combatant.name}'s stance shaves ${before - amount} off the hit! (${before} → ${amount})`, 'spell');
   }
   // Damage-absorption shield / chains check (bypassed by unblockabled or antiMagic on spell/art shields)
   const dmgShield = combatant.statusEffects.find(e => e.name === 'damage_shield' || e.name === 'chains_of_apophis');
@@ -1231,17 +1273,114 @@ function passiveConditionMet(p, owner, other, ability) {
   return false;
 }
 
+// ── Status helpers ─────────────────────────────────────────────────────────
+
+// Push a custom status (advantage, taunted, puppeteered...) while honouring immunities. Statuses tick when
+// their owner's turn starts, so turnsLeft = N + 1 lasts through N of the owner's turns.
+function pushStatus(c, eff, beneficial = false) {
+  if (c.isKO) return false;
+  const immune = (c.sourceChar.immunities ?? []).map(i => i.toLowerCase());
+  if (!beneficial && (immune.includes('status') || immune.includes(eff.name))) {
+    addLog(`🛡 ${c.name} is immune to ${eff.name}!`, 'info');
+    return false;
+  }
+  const existing = c.statusEffects.find(e => e.name === eff.name);
+  if (existing) Object.assign(existing, eff, { turnsLeft: Math.max(existing.turnsLeft, eff.turnsLeft) });
+  else c.statusEffects.push({ dice: null, damType: null, notes: '', ...eff });
+  updateCombatantCardDOM(c);
+  return true;
+}
+
+// A d20 for one of the combatant's own attack or defense rolls. Advantage and disadvantage cancel out;
+// Gravity's one-shot statuses are spent by the roll, Smoke Screen's disadvantage lasts.
+function rollD20For(c, baseAdv = false) {
+  const advEff = c.statusEffects.find(e => e.name === 'advantage');
+  const disEff = c.statusEffects.find(e => e.name === 'disadvantage');
+  const adv = baseAdv || !!advEff;
+  const dis = !!disEff || c.statusEffects.some(e => e.name === 'smoke_screen');
+  for (const e of [advEff, disEff]) {
+    if (e && --e.uses <= 0) c.statusEffects = c.statusEffects.filter(x => x !== e);
+  }
+  const r1 = rollD20();
+  if (adv === dis) return r1;
+  const r2   = rollD20();
+  const keep = adv ? (r1.value >= r2.value ? r1 : r2) : (r1.value <= r2.value ? r1 : r2);
+  addLog(`  🎲 ${adv ? 'Advantage' : 'Disadvantage'} (${c.name}): rolled ${r1.value} & ${r2.value}, kept ${keep.value}`, adv ? 'spell' : 'miss');
+  return keep;
+}
+
+// Smoke Screen: everyone near the user except the user fights at disadvantage
+function raiseSmoke(caster, ability) {
+  const radius = ability.radius || 1;
+  const caught = S.combatants.filter(x => !x.isKO && x.id !== caster.id && (!S.currentMap || chebyshev(caster, x) <= radius));
+  addLog(`🌫 ${caster.name} fills the area with smoke!`, 'spell');
+  const turns = (ability.duration > 0 ? ability.duration : 3) + 1;
+  for (const x of caught) {
+    if (pushStatus(x, { name: 'smoke_screen', turnsLeft: turns })) addLog(`  🌫 ${x.name} fights blind — disadvantage on attack and defense rolls.`, 'status');
+  }
+}
+
+// Sacrifice: a landed hit on a target under 10% HP kills outright (no resurrection), and feeds the caster
+function executeStrike(caster, target, ability) {
+  if (target.isKO) return;
+  if (target.currentHp >= target.maxHp * 0.1) {
+    addLog(`${ability.name} lands, but ${target.name} (${target.currentHp}/${target.maxHp}) is too healthy to be executed.`, 'info');
+    return;
+  }
+  target.currentHp = 0;
+  target.isKO = true;
+  target.statusEffects = [];
+  addLog(`💀 ${target.name} is executed by ${ability.name} — not even resurrection can save them!`, 'death');
+  if (target.domainActive) suppressDomain(target);
+  updateCombatantCardDOM(target);
+  if (caster.spellSlots < caster.maxSpellSlots) {
+    caster.spellSlots++;
+    addLog(`  ✦ ${caster.name} recovers 1 spell slot. (${caster.spellSlots}/${caster.maxSpellSlots})`, 'heal');
+  }
+  applyHeal(caster, '50');
+}
+
+// Perfect Reflection: the spell goes back to its caster with its damage doubled; high Authority pierces it.
+// Returns false when the reflection fails and the spell goes through.
+function reflectSpell(reactor, reflectAb, action) {
+  const attacker = getCombatant(action.attackerId ?? action.casterId);
+  const spell    = action.ability;
+  if (!attacker) return false;
+  const authority = (attacker.sourceChar.autority ?? 0) + (attacker.authorityDebuff ?? 0);
+  if (reflectAb.bypassAuthority && authority >= reflectAb.bypassAuthority) {
+    addLog(`🪞 ${attacker.name}'s authority (${authority}) pierces ${reflectAb.name}!`, 'crit');
+    return false;
+  }
+  const rolled = action.result?.damage > 0 ? action.result.damage : parseDice(spell?.dice).total;
+  const damage = rolled * 2;
+  addLog(`🪞 ${reactor.name} sends ${spell?.name ?? 'the spell'} back! ${attacker.name} takes ${damage} (${rolled} ×2)!`, 'crit');
+  if (damage > 0) applyDamage(attacker, damage, damTypeFromTags(spell?.tags ?? []), spell?.tags ?? []);
+  return true;
+}
+
+// Greater Teleportation: allies within the radius follow the caster to the destination
+function relocateAllies(leader, origin, radius) {
+  const moved = [];
+  for (const a of allies(leader)) {
+    if (a.id === leader.id || chebyshev(a, origin) > radius) continue;
+    const cell = freeCellAdjacentTo(leader, leader, a.id);
+    if (!cell) { addLog(`  ${a.name} finds no room at the destination.`, 'info'); continue; }
+    const trap = trappingDomainOwner(a, cell.x, cell.y);
+    if (trap) { addLog(`⛔ ${a.name} is held in place by ${trap.name}'s domain.`, 'status'); continue; }
+    addLog(`  ✦ ${a.name} follows to (${cell.x}, ${cell.y}).`, 'spell');
+    a.x = cell.x; a.y = cell.y;
+    moved.push(a.id);
+  }
+  return moved;
+}
+
 // The attacker's d20 for one move. Advantage / sure-hit come from the owner's domain or the move's own tags.
 function rollAttackD20(attacker, ability) {
   const domainAtkEffs = getDomainEffects(attacker, { applyOn: 'atkRoll', ability });
   const adv     = domainAtkEffs.some(e => e.tags?.includes('adv'))         || !!ability?.tags?.includes('adv');
   const sureHit = domainAtkEffs.some(e => e.tags?.includes('undodgeable')) || !!ability?.tags?.includes('undodgeable');
 
-  const roll1 = rollD20();
-  const roll2 = adv ? rollD20() : null;
-  const roll  = adv ? (roll1.value >= roll2.value ? roll1 : roll2) : roll1;
-  if (adv) addLog(`  🎲 Advantage: rolled ${roll1.value} & ${roll2.value}, kept ${roll.value}`, 'spell');
-  return { roll, sureHit };
+  return { roll: rollD20For(attacker, adv), sureHit };
 }
 
 function defenseBonus(defender, attacker, ability) {
@@ -1288,7 +1427,7 @@ function gateAbility(stored) {
 }
 function areaDefense(atk, target, caster, ability) {
   if (atk.sureHit) return 1;
-  const defRoll = rollD20().value;
+  const defRoll = rollD20For(target).value;
   const bonus   = defenseBonus(target, caster, ability);
   const def     = defRoll + bonus;
   const defStr  = bonus ? `${defRoll}+${bonus}=${def}` : String(defRoll);
@@ -1307,7 +1446,7 @@ function areaDefense(atk, target, caster, ability) {
 export function resolveAttack(attacker, defender, diceExpr, ability = null) {
   const { roll: atkRoll, sureHit: domainSureHit } = rollAttackD20(attacker, ability);
 
-  const defRoll = rollD20();
+  const defRoll = rollD20For(defender);
   const effectiveDefRoll = defRoll.value + defenseBonus(defender, attacker, ability);
 
   const domainForcesHit = domainSureHit && !atkRoll.isNat1;
@@ -1390,7 +1529,9 @@ export function checkVictory() {
   return null;
 }
 
-export function getReacts(target) {
+const isSpellMove = ab => !!ab && (ab.source === 'spell' || ab.source === 'technoSpell' || !!ab.tags?.includes('magic'));
+
+export function getReacts(target, incoming = null) {
   const insideClosedDomain = S.activeDomains.some(d => {
     const owner = getCombatant(d.casterId);
     if (!owner || owner.isKO || owner.teamIndex === target.teamIndex) return false;
@@ -1401,6 +1542,7 @@ export function getReacts(target) {
   return target.abilities.filter(ab => {
     if (!ab.isReact && !ab.isInstant && !ab.isBlock) return false;
     if (ab.isTransform) return false;
+    if (ab.tags?.includes('reflect') && !isSpellMove(incoming)) return false;
     if (insideClosedDomain && ab.tags?.includes('teleportation')) return false;
     return abilityAvailable(target, ab);
   });
@@ -1425,6 +1567,8 @@ export function handleAttack(attackerId, defenderId) {
   const def = getCombatant(defenderId);
   if (!atk || !def || def.isKO) return;
   if (S.hasActed) { addLog('You have already acted this turn!', 'info'); return; }
+
+  if (tauntViolation(atk, [def])) return;
 
   if (S.currentMap) {
     const range = targetInRange(atk, def, null);
@@ -1462,7 +1606,7 @@ export function handleCastAbility(casterId, abilityName, targetIds) {
   const caster  = getCombatant(casterId);
   let ability = caster?.abilities.find(a => a.name === abilityName);
   if (!ability || !abilityAvailable(caster, ability)) return;
-  if (ability.isVoid) { addLog(`⚠ ${ability.name} can only be used as a reaction.`, 'info'); return; }
+  if (ability.reactOnly) { addLog(`⚠ ${ability.name} can only be used as a reaction.`, 'info'); return; }
   if (S.hasActed && !ability.isInstant) { addLog('You have already acted this turn!', 'info'); return; }
 
   let targets = targetIds.map(id => getCombatant(id)).filter(t => t && (ability.isRevive || !t.isKO));
@@ -1475,6 +1619,7 @@ export function handleCastAbility(casterId, abilityName, targetIds) {
       return;
     }
   }
+  if (ability.targetKind === 'enemy' && targets.length > 0 && tauntViolation(caster, targets)) return;
   if (!ability.isAoe && !ability.isCone && ability.targetKind !== 'self' && ability.targetKind !== 'ally' && !ability.isSplash && targets.length === 0) {
     addLog(`No valid target selected.`, 'info');
     return;
@@ -1516,16 +1661,16 @@ export function handleCastAbility(casterId, abilityName, targetIds) {
     addLog(`🌑 The gate opens beside ${focus.name} — ${stored.from}'s ${ability.name} comes out of the void! (${caster.shadowVoid.length} left)`, 'spell');
     if (ability.isAoe || ability.isCone) {
       const area = { ...ability, radius: ability.isCone ? GATE_CONE_RADIUS : ability.radius };
-      targets   = S.currentMap ? aoeCombatantHits(area, caster, focus.x, focus.y) : livingCombatants(caster.teamIndex === 0 ? 1 : 0);
+      targets   = S.currentMap ? aoeCombatantHits(area, caster, focus.x, focus.y) : enemies(caster);
       targetIds = targets.map(t => t.id);
     }
   }
 
   // Effects that never prompt a react: friendly buffs, unblockable moves, and moves that deal no damage or status
-  const noReacts = ability.targetKind === 'ally' || !!ability.tags?.includes('unblockabled');
+  const noReacts = ability.targetKind === 'ally' || !!ability.tags?.some(t => t === 'unblockabled' || t === 'taunt');
   const hasMechanics = ability.dice || ability.effect || ability.precastDice || ability.slotRegen > 0 || ability.isRevive
     || ability.isBlock || ability.targetKind === 'self'
-    || ability.tags?.some(t => ['dash', 'fly', 'teleportation', 'cleans', 'pull'].includes(t));
+    || ability.isContest || ability.tags?.some(t => ['dash', 'fly', 'teleportation', 'cleans', 'pull', 'taunt', 'smoke', 'adv_next'].includes(t));
   if (!hasMechanics) addLog(`  ⚠ ${ability.name} has no mechanical effect in the simulator yet.`, 'info');
 
   // Dash: close the distance to the target before the move resolves
@@ -1533,12 +1678,12 @@ export function handleCastAbility(casterId, abilityName, targetIds) {
 
   if (ability.isAoe) {
     S.pendingAction = { type: 'aoe', casterId, abilityName, targetIds, ability, reactorId: null, reactedIds: [], blockedIds: [] };
-    const firstReactor = noReacts ? null : targets.find(t => getReacts(t).length > 0);
+    const firstReactor = noReacts ? null : targets.find(t => getReacts(t, ability).length > 0);
     if (firstReactor) {
       S.pendingAction.reactorId = firstReactor.id;
       S.pendingAction.reactedIds.push(firstReactor.id);
       S.awaitingReact = true;
-      S.reactOptions  = getReacts(firstReactor).map(ab => ({ combatantId: firstReactor.id, ability: ab }));
+      S.reactOptions  = getReacts(firstReactor, ability).map(ab => ({ combatantId: firstReactor.id, ability: ab }));
       _R.renderReactOverlay();
       return;
     }
@@ -1548,12 +1693,12 @@ export function handleCastAbility(casterId, abilityName, targetIds) {
 
   if (ability.isCone) {
     S.pendingAction = { type: 'cone', casterId, abilityName, targetIds, ability, reactorId: null, reactedIds: [], blockedIds: [] };
-    const firstReactor = noReacts ? null : targets.find(t => getReacts(t).length > 0);
+    const firstReactor = noReacts ? null : targets.find(t => getReacts(t, ability).length > 0);
     if (firstReactor) {
       S.pendingAction.reactorId = firstReactor.id;
       S.pendingAction.reactedIds.push(firstReactor.id);
       S.awaitingReact = true;
-      S.reactOptions  = getReacts(firstReactor).map(ab => ({ combatantId: firstReactor.id, ability: ab }));
+      S.reactOptions  = getReacts(firstReactor, ability).map(ab => ({ combatantId: firstReactor.id, ability: ab }));
       _R.renderReactOverlay();
       return;
     }
@@ -1568,7 +1713,7 @@ export function handleCastAbility(casterId, abilityName, targetIds) {
       ? resolveAttack(caster, target, ability.dice, ability)
       : { hit: true, crit: false, fumble: false, damage: 0, atkRoll: '—', defRoll: '—', effectiveDefRoll: '—', breakdown: '—' };
     S.pendingAction = { type: 'splash', casterId, abilityName, targetIds: [target.id], result, ability };
-    const reacts = noReacts ? [] : getReacts(target);
+    const reacts = noReacts ? [] : getReacts(target, ability);
     if (reacts.length > 0) {
       S.awaitingReact = true;
       S.reactOptions  = reacts.map(ab => ({ combatantId: target.id, ability: ab }));
@@ -1587,9 +1732,10 @@ export function handleCastAbility(casterId, abilityName, targetIds) {
 
   if (ability.targetKind === 'self') {
     if (ability.tags?.includes('teleportation') && S.currentMap) {
-      enterTeleportMode(caster, ability.range ?? SPELL_RANGE);
+      enterTeleportMode(caster, ability.range ?? SPELL_RANGE, ability.tags.includes('group') ? ability : null);
       return;
     }
+    if (ability.tags?.includes('teleportation')) addLog(`✦ ${caster.name} teleports — without a map, position does not matter.`, 'spell');
     S.pendingAction = { type: 'ability', casterId, abilityName, targetIds: [casterId], result: { hit: true, crit: false, fumble: false, damage: 0, atkRoll: '—', defRoll: '—', effectiveDefRoll: '—', breakdown: '—' }, ability };
     resumePendingAction(null);
     return;
@@ -1617,14 +1763,14 @@ export function handleCastAbility(casterId, abilityName, targetIds) {
     return;
   }
 
-  const result = ability.dice
-    ? resolveAttack(caster, target, ability.dice, ability)
+  const result = (ability.dice || ability.isContest)
+    ? resolveAttack(caster, target, ability.dice ?? '0', ability)
     : { hit: true, crit: false, fumble: false, damage: 0, atkRoll: '—', defRoll: '—', effectiveDefRoll: '—', breakdown: '—' };
 
   S.pendingAction = { type: 'ability', casterId, abilityName, targetIds: [target.id], result, ability };
 
   // A move with no damage and no status has nothing to block, so it never prompts a react
-  const reacts = (noReacts || !(ability.dice || ability.effect)) ? [] : getReacts(target);
+  const reacts = (noReacts || !(ability.dice || ability.effect || ability.isContest)) ? [] : getReacts(target, ability);
   if (reacts.length > 0) {
     S.awaitingReact = true;
     S.reactOptions  = reacts.map(ab => ({ combatantId: target.id, ability: ab }));
@@ -1718,7 +1864,12 @@ export function handleActivateDomain(casterId) {
         advanceTurn();
         return;
       } else {
-        addLog(`🌐 ${c.name}'s ${domain.name} is suppressed by ${enemyOwner.name}'s stronger domain!`, 'crit');
+        // A failed expansion still burns half the slots (the other half is refunded); the action is kept
+        const lost = Math.ceil(domain.spellCost / 2);
+        c.spellSlots -= lost;
+        addLog(`🌐 ${c.name}'s ${domain.name} is suppressed by ${enemyOwner.name}'s stronger domain! (${lost} of ${domain.spellCost} slots lost)`, 'crit');
+        updateCombatantCardDOM(c);
+        _R.renderCombatScreen();
         return;
       }
     }
@@ -1764,7 +1915,7 @@ export function handleReactYes() {
     if (reactor) {
       // Cost is paid once, in resumePendingAction, when the teleport has been placed
       S.pendingTeleportReact = reactAbility;
-      enterTeleportMode(reactor, reactAbility.range ?? SPELL_RANGE);
+      enterTeleportMode(reactor, reactAbility.range ?? SPELL_RANGE, reactAbility.tags.includes('group') ? reactAbility : null);
       return;
     }
   }
@@ -1820,21 +1971,24 @@ export function resumePendingAction(reactAbility) {
       }
 
       if (reactAbility.tags?.includes('reflect')) {
-        const attackerId = action.attackerId ?? action.casterId;
-        const attacker   = getCombatant(attackerId);
-        if (attacker && action.result?.damage > 0) {
-          const reflectDmg = action.result.damage * 2;
-          addLog(`🪞 ${reactor.name} reflects the attack! ${attacker.name} takes ${reflectDmg}!`, 'crit');
-          applyDamage(attacker, reflectDmg, damTypeFromTags(reactAbility.tags), reactAbility.tags);
-        } else {
-          addLog(`🪞 ${reactor.name} reflects the attack!`, 'crit');
+        if (reflectSpell(reactor, reactAbility, action)) {
+          blocked = true;
+          if (action.type === 'aoe' || action.type === 'cone') action.blockedIds.push(reactor.id);
         }
-        blocked = true;
       } else if (reactAbility.tags?.includes('half_phys')) {
         raiseBladeArmor(reactor, reactAbility);
       } else if (reactAbility.tags?.includes('teleportation')) {
-        addLog(`✦ ${reactor.name} blinks away — attack misses!`, 'spell');
+        // A group teleport takes the allies who followed along (everyone, without a map) out of the way too
+        const group = reactAbility.tags.includes('group');
+        const gone  = !group ? [reactor.id]
+          : S.currentMap ? [reactor.id, ...(S.lastTeleportedIds ?? [])]
+          : allies(reactor).map(a => a.id);
+        S.lastTeleportedIds = null;
+        addLog(group ? `✦ ${reactor.name} spirits the team away — the attack misses them!` : `✦ ${reactor.name} blinks away — attack misses!`, 'spell');
         blocked = true;
+        if (action.type === 'aoe' || action.type === 'cone') {
+          for (const id of gone) if (!action.blockedIds.includes(id)) action.blockedIds.push(id);
+        }
       } else if (reactAbility.isVoid) {
         addLog(`🌑 ${reactor.name} opens ${reactAbility.name}!`, 'spell');
         absorbIntoVoid(reactor, action);
@@ -1906,13 +2060,13 @@ export function resumePendingAction(reactAbility) {
   // ── AoE/cone: find next un-reacted target, or proceed to damage ──────
   if ((action.type === 'aoe' || action.type === 'cone') && reactAbility) {
     const allT = action.targetIds.map(id => getCombatant(id)).filter(t => t && !t.isKO);
-    const next  = allT.find(t => !action.reactedIds.includes(t.id) && !action.blockedIds.includes(t.id) && getReacts(t).length > 0);
+    const next  = allT.find(t => !action.reactedIds.includes(t.id) && !action.blockedIds.includes(t.id) && getReacts(t, action.ability).length > 0);
     if (next) {
       action.reactorId = next.id;
       action.reactedIds.push(next.id);
       S.pendingAction = action;
       S.awaitingReact = true;
-      S.reactOptions  = getReacts(next).map(ab => ({ combatantId: next.id, ability: ab }));
+      S.reactOptions  = getReacts(next, action.ability).map(ab => ({ combatantId: next.id, ability: ab }));
       _R.renderReactOverlay();
       return;
     }
@@ -1959,10 +2113,21 @@ export function resumePendingAction(reactAbility) {
       }
       const aoeIgnoreDR = ignoresDR(caster, ability);
       addLog(`${caster.name}'s ${ability.name} strikes all ${isPureHeal ? 'allies' : 'enemies'}!`, 'spell');
-      const aoeAtk = isPureHeal ? null : rollAttackD20(caster, ability);
+      // A taunt is not an attack: no roll to land it, no save against it
+      const taunting = !!ability.tags?.includes('taunt');
+      if (taunting && pushStatus(caster, { name: 'damage_reduction', turnsLeft: 1, amount: 10 }, true)) {
+        addLog(`🐗 ${caster.name} braces — -10 damage taken for 1 turn.`, 'spell');
+      }
+      const aoeAtk = (isPureHeal || taunting) ? null : rollAttackD20(caster, ability);
       if (aoeAtk) addLog(`  🎲 ${caster.name} rolls ${aoeAtk.roll.value} to land it`, 'spell');
       for (const target of allTargets) {
         if ((action.blockedIds ?? []).includes(target.id)) continue;
+        if (taunting) {
+          if (pushStatus(target, { name: 'taunted', turnsLeft: 2, sourceId: caster.id })) {
+            addLog(`🐗 ${target.name} is taunted — they must target ${caster.name} for 1 turn!`, 'status');
+          }
+          continue;
+        }
         const fullBlock = target.statusEffects.find(e => e.name.toLowerCase() === 'water_shield');
         if (fullBlock) {
           addLog(`🛡 ${target.name}'s shield blocks the AoE!`, 'spell');
@@ -2084,8 +2249,7 @@ export function resumePendingAction(reactAbility) {
         if (action.result.hit && !action.result.fumble && ability.dice) {
           applyDamage(primary, action.result.damage, damType, ability.tags);
           if (ability.radius > 0) {
-            const splashTeam  = caster.teamIndex === 0 ? 1 : 0;
-            const splashTargets = livingCombatants(splashTeam)
+            const splashTargets = enemies(caster)
               .filter(t => t.id !== primary.id && chebyshev(primary, t) <= ability.radius);
             if (splashTargets.length > 0) {
               addLog(`  Splash radius ${ability.radius} hits ${splashTargets.map(t => t.name).join(', ')}!`, 'spell');
@@ -2138,6 +2302,10 @@ export function resumePendingAction(reactAbility) {
             }
           }
           if (ability.tags?.includes('cleans')) applyCleanse(target);
+          if (ability.tags?.includes('adv_next') && pushStatus(target, { name: 'advantage', turnsLeft: 2, uses: 1 }, true)) {
+            addLog(`🎲 ${target.name} will roll their next d20 with advantage!`, 'spell');
+          }
+          if (ability.tags?.includes('smoke')) raiseSmoke(caster, ability);
           if (ability.isRevive && target.isKO) {
             target.isKO = false;
             target.currentHp = Math.floor(target.maxHp * 0.5);
@@ -2179,6 +2347,13 @@ export function resumePendingAction(reactAbility) {
             }
             if (ability.effect) applyStatus(target, ability.effect);
             if (ability.tags?.includes('pull') && !target.isKO) pullTarget(caster, target);
+            if (ability.tags?.includes('disv_next') && pushStatus(target, { name: 'disadvantage', turnsLeft: 2, uses: 1 })) {
+              addLog(`⬇ ${target.name} is weighed down — next d20 at disadvantage!`, 'status');
+            }
+            if (ability.tags?.includes('puppet') && pushStatus(target, { name: 'puppeteered', turnsLeft: 2, controllerId: caster.id })) {
+              addLog(`🎭 ${caster.name} seizes ${target.name}'s shadow — they decide what ${target.name} does next turn!`, 'spell');
+            }
+            if (ability.tags?.includes('execute')) executeStrike(caster, target, ability);
           } else if (!action.result.hit && !action.result.fumble) {
             const shadowEffs = getDomainEffects(target, { applyOn: 'atkRoll', foeJustMissed: true });
             if (shadowEffs.length > 0 && shadowEffs[0].dices) {
@@ -2355,6 +2530,10 @@ export function beginTurn(c) {
   }
 
   addLog(`— ${c.name}'s turn —`, 'info');
+  const puppet = c.statusEffects.find(e => e.name === 'puppeteered');
+  if (puppet) addLog(`🎭 ${c.name} acts under ${getCombatant(puppet.controllerId)?.name ?? 'a puppeteer'}'s control — any target is fair game.`, 'status');
+  const taunter = tauntSource(c);
+  if (taunter) addLog(`🐗 ${c.name} is taunted — they must target ${taunter.name}.`, 'status');
 
   const ctrl = hasControlEffect(c);
   if (ctrl) {

@@ -715,7 +715,7 @@ export const personnageSheet = [
         kiRegen: 1,
         passives: ["Yokai Blood (+1d6hp/t)"],
         abilities: [
-            { name: "Spirit of the Wild Boar", type: "aoe", cost: "10ki", desc: "-10dam, half-taunt" },
+            { name: "Spirit of the Wild Boar", type: "aoe", cost: "10ki", desc: "-10dam, full taunt" },
             { name: "Breath of Fire", type: "cone", cost: "5ki", dice: "1d12+6" }
         ],
         attack: "Sword 1d8+4"

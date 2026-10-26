@@ -5,7 +5,7 @@
 import {
   _R, S, SPELL_RANGE, allChars,
   activeCombatant, livingCombatants, koAllies, getCombatant,
-  enemies, abilityAvailable, hasSilence, hasValidTarget, hasControlEffect,
+  enemies, targetPool, abilityAvailable, hasSilence, hasValidTarget, hasControlEffect,
   chebyshev, targetInRange,
   drawMap, setupCanvasClickHandler,
   clearAimState, startCombat, startInitiative,
@@ -152,8 +152,7 @@ export function abilityFireLabel(ab) {
 }
 
 export function actionPanelHTML(c) {
-  const enemyTeam  = c.teamIndex === 0 ? 1 : 0;
-  const enemyAlive = livingCombatants(enemyTeam);
+  const enemyAlive = targetPool(c);
   const allyAlive  = livingCombatants(c.teamIndex);
   const silence    = hasSilence(c);
   const hasMap     = !!S.currentMap;
@@ -199,7 +198,7 @@ export function actionPanelHTML(c) {
 
   const abilityList = c.abilities.filter(ab =>
     !ab.isTransform &&
-    !ab.isVoid &&
+    !ab.reactOnly &&
     abilityAvailable(c, ab) &&
     !(silence && ab.cost?.type === 'slots')
   );
