@@ -182,12 +182,22 @@ export function bindCombatEvents() {
 }
 
 export function bindReactEvents() {
-  document.querySelectorAll('.react-ability-option').forEach(opt => {
-    opt.addEventListener('click', () => {
-      document.querySelectorAll('.react-ability-option').forEach(o => o.classList.remove('is-selected'));
-      opt.classList.add('is-selected');
-    });
+  const dialog = document.querySelector('#react-overlay .react-dialog');
+  if (!dialog) return;
+  const yes = document.getElementById('btn-react-yes');
+  dialog.querySelector('.react-ability-list')?.addEventListener('change', e => {
+    if (yes) yes.textContent = `React with ${e.target.value}`;
   });
-  document.getElementById('btn-react-yes')?.addEventListener('click', handleReactYes);
+  yes?.addEventListener('click', handleReactYes);
   document.getElementById('btn-react-no')?.addEventListener('click', handleReactNo);
+
+  // Modal: keyboard focus starts on the chosen reaction and cannot wander behind the overlay
+  dialog.addEventListener('keydown', e => {
+    if (e.key !== 'Tab') return;
+    const stops = [dialog.querySelector('input[name="react"]:checked'), ...dialog.querySelectorAll('button')].filter(Boolean);
+    const first = stops[0], last = stops[stops.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  });
+  if (!dialog.contains(document.activeElement)) dialog.querySelector('input[name="react"]:checked')?.focus();
 }

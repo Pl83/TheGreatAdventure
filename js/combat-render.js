@@ -123,15 +123,25 @@ export function combatantCardHTML(c, isActive) {
     </article>`;
 }
 
+// Turn order as an ordered list: current turn marked "Now", the next living fighter "Next"
 export function initiativeStripHTML() {
-  const chips = S.initiativeOrder.map((id, idx) => {
-    const c        = getCombatant(id);
+  const order  = S.initiativeOrder.map(getCombatant);
+  const n      = order.length;
+  const nextIx = [...Array(n).keys()].map(k => (S.currentTurnIndex + 1 + k) % n)
+    .find(i => i !== S.currentTurnIndex && !order[i].isKO);
+  const chips = order.map((c, idx) => {
     const isActive = idx === S.currentTurnIndex;
-    return `<div class="init-chip${c.isKO ? ' is-ko' : ''}${isActive ? ' active' : ''} ${c.teamIndex === 0 ? 'team-a' : 'team-b'}" title="${c.name} — init ${c.initiativeRoll}">
-              ${c.name}<br><small>${c.initiativeRoll}</small>
-            </div>`;
+    const flag = isActive ? '<span class="init-flag">Now</span>'
+      : idx === nextIx ? '<span class="init-flag init-flag--next">Next</span>'
+      : c.isKO ? '<span class="init-flag init-flag--ko">Fallen</span>' : '';
+    return `
+      <li class="init-chip${c.isKO ? ' is-ko' : ''}${isActive ? ' active' : ''} ${c.teamIndex === 0 ? 'team-a' : 'team-b'}"${isActive ? ' aria-current="step"' : ''}>
+        <span class="init-name" title="${c.name}">${c.name}</span>
+        <span class="init-meta"><span class="init-team">Team ${c.teamIndex === 0 ? 'I' : 'II'}</span> · Init ${c.initiativeRoll}</span>
+        ${flag}
+      </li>`;
   }).join('');
-  return `<div class="initiative-strip">${chips}</div>`;
+  return `<ol class="initiative-strip" aria-label="Turn order">${chips}</ol>`;
 }
 
 const COST_UNIT = { slots: ['slot', 'slots'], ki: ['ki', 'ki'], souls: ['soul', 'souls'] };
@@ -363,21 +373,44 @@ export function reactPromptHTML() {
   const reactor  = getCombatant(S.reactOptions[0].combatantId);
   const action   = S.pendingAction;
   const attacker = getCombatant(action?.attackerId ?? action?.casterId);
-  const abilityOpts = S.reactOptions.map((opt, i) => `
-    <div class="react-ability-option ${i === 0 ? 'is-selected' : ''}" data-ability-name="${opt.ability.name}">
-      <strong>${opt.ability.name}</strong>
-      <span class="react-option-desc">${opt.ability.desc || (opt.ability.isBlock ? 'Block' : 'React')}</span>
-    </div>`).join('');
+  const incoming = action?.ability;
+  const atkDice  = incoming ? incoming.dice : (attacker?.transformedBaseAtk?.dices ?? attacker?.sourceChar.baseAtk?.dices);
+  const moveName = incoming ? incoming.name : 'a basic attack';
+  const moveInfo = [atkDice, incoming && abilityTraits(incoming)[0], incoming?.effect && `applies ${statusName(incoming.effect)}`]
+    .filter(Boolean).join(' · ');
+  const areaNote = action?.type === 'aoe' || action?.type === 'cone'
+    ? `<p class="react-note">Area move: it also hits ${action.targetIds.length - 1} other fighter${action.targetIds.length === 2 ? '' : 's'}.</p>` : '';
+  const options = S.reactOptions.map((opt, i) => {
+    const ab   = opt.ability;
+    const meta = [costText(ab.cost), ...abilityTraits(ab).filter(t => t !== 'Also a react')].join(' · ');
+    return `
+      <label class="react-ability-option">
+        <input type="radio" name="react" value="${ab.name}"${i === 0 ? ' checked' : ''}>
+        <span class="react-option-body">
+          <span class="react-option-name">${ab.name}</span>
+          <span class="react-option-meta">${meta}</span>
+          ${ab.desc ? `<span class="react-option-desc">${ab.desc}</span>` : ''}
+        </span>
+      </label>`;
+  }).join('');
   return `
     <div id="react-overlay" class="react-overlay">
-      <div class="react-dialog">
-        <div class="react-title">React Opportunity</div>
-        <p class="react-desc-text">${attacker ? attacker.name : 'Enemy'} targets ${reactor.name}!</p>
-        <p class="react-sub">${reactor.name} can react with:</p>
-        <div class="react-ability-list">${abilityOpts}</div>
+      <div class="react-dialog ${reactor.teamIndex === 0 ? 'team-a' : 'team-b'}" role="alertdialog" aria-modal="true"
+           aria-labelledby="react-title" aria-describedby="react-desc">
+        <span class="react-eyebrow">Reaction · Team ${reactor.teamIndex === 0 ? 'I' : 'II'}</span>
+        <h2 class="react-title" id="react-title">${reactor.name} can react</h2>
+        <div id="react-desc">
+          <p class="react-desc-text"><strong>${attacker ? attacker.name : 'An enemy'}</strong> uses <strong>${moveName}</strong> on ${reactor.name}.</p>
+          ${moveInfo ? `<p class="react-move-info">${moveInfo}</p>` : ''}
+          ${areaNote}
+        </div>
+        <fieldset class="react-ability-list">
+          <legend class="react-sub">Choose a reaction</legend>
+          ${options}
+        </fieldset>
         <div class="react-buttons">
-          <button class="react-yes-btn" id="btn-react-yes">React</button>
-          <button class="react-no-btn"  id="btn-react-no">Take the Hit</button>
+          <button class="react-yes-btn" id="btn-react-yes">React with ${S.reactOptions[0].ability.name}</button>
+          <button class="react-no-btn"  id="btn-react-no">Take the hit</button>
         </div>
       </div>
     </div>`;
@@ -688,6 +721,11 @@ export function renderCombatScreen() {
   const log = root.querySelector('#combat-log');
   if (log) log.scrollTop = log.scrollHeight;
   bindLogControls();
+
+  // Keep the acting fighter in view on a sideways-scrolling turn order (without moving the page)
+  const strip = root.querySelector('.initiative-strip');
+  const now   = strip?.querySelector('.init-chip.active');
+  if (now) strip.scrollLeft = now.offsetLeft - strip.offsetLeft - (strip.clientWidth - now.offsetWidth) / 2;
 
   bindCombatEvents();
 

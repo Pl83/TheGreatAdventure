@@ -1944,7 +1944,7 @@ export function handleActivateDomain(casterId) {
 }
 
 export function handleReactYes() {
-  const selectedName = document.querySelector('.react-ability-option.is-selected')?.dataset.abilityName
+  const selectedName = document.querySelector('input[name="react"]:checked')?.value
     ?? S.reactOptions[0]?.ability.name;
   const option       = S.reactOptions.find(o => o.ability.name === selectedName) ?? S.reactOptions[0];
   const reactAbility = option?.ability ?? null;
