@@ -31,6 +31,8 @@ export async function runWatabou(seed, signal) {
 
   const blobs = new BlobQueue();
   frame.__watabouSave = blob => blobs.push(blob);
+  // Errors cross as messages: a frame-realm Error is not `instanceof Error` here.
+  frame.__watabouFail = msg => blobs.push(new Error(String(msg)));
   frame.srcdoc = framePage(String(seed));
 
   let onAbort;
@@ -46,7 +48,7 @@ export async function runWatabou(seed, signal) {
     return await Promise.race([aborted, work]);
   } finally {
     signal?.removeEventListener('abort', onAbort);
-    frame.__watabouSave = null;
+    frame.__watabouSave = frame.__watabouFail = null;
     frame.remove();
   }
 }
@@ -100,12 +102,12 @@ URL.createObjectURL = (c => b => { frameElement && frameElement.__watabouSave &&
 HTMLAnchorElement.prototype.click = function () {};
 history.replaceState = history.pushState = function () {};
 for (const k of ['log', 'info', 'warn', 'error', 'debug']) console[k] = function () {};
-addEventListener('error', e => frameElement && frameElement.__watabouSave && frameElement.__watabouSave(new Error(e.message)));
+addEventListener('error', e => frameElement && frameElement.__watabouFail && frameElement.__watabouFail(e.message));
 <\/script>
-<script src="Dungeon.js" crossorigin="anonymous" onerror="frameElement.__watabouSave(new Error('Dungeon.js failed to load'))"><\/script>
+<script src="Dungeon.js" crossorigin="anonymous" onerror="frameElement && frameElement.__watabouFail && frameElement.__watabouFail('Dungeon.js failed to load')"><\/script>
 </head><body style="margin:0">
 <div id="openfl-content" style="width:${W}px;height:${H}px"></div>
-<script>lime.embed("Dungeon", "openfl-content", ${W}, ${H});<\/script>
+<script>window.lime && lime.embed("Dungeon", "openfl-content", ${W}, ${H});<\/script>
 </body></html>`;
 }
 
