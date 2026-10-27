@@ -191,7 +191,7 @@
       },
       {
         "category": "spell",
-        "base": { "nom": "Blink", "tags": ["magic", "dash", "instant", "teleportation"] },
+        "base": { "nom": "Blink", "tags": ["magic", "dash", "teleportation"] },
         "target": "self",
         "range": 10,
         "description": "Teleportation.",

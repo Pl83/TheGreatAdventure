@@ -42,3 +42,24 @@ test('Black Hole costs one slot, however many allies it shields', () => {
   assert.equal(slots - vor.spellSlots, 1);
   assert.equal(L.S.awaitingReact, false);
 });
+
+test('Blink uses the action: no second spell after it, moving still allowed', () => {
+  const thormak = L.buildCombatant(char('Thormak'), 0, 0);
+  const foe     = L.buildCombatant(char('Maraca'), 1, 1);
+  thormak.x = 1; thormak.y = 1; foe.x = 3; foe.y = 1;
+  const walkable = Array.from({ length: 5 }, () => Uint8Array.from([1, 1, 1, 1, 1]));
+  Object.assign(L.S, {
+    combatants: [thormak, foe], initiativeOrder: [0, 1], currentTurnIndex: 0, phase: 'combat', log: [],
+    currentMap: { grid: { walkable, cols: 5, rows: 5 } }, activeDomains: [], pendingAction: null,
+    awaitingReact: false, reactOptions: [], hasActed: false, hasMoved: false,
+  });
+  assert.equal(L.getReacts(thormak).some(a => a.name === 'Blink'), false);
+  L.handleCastAbility(thormak.id, 'Blink', [thormak.id]);
+  assert.equal(L.S.teleportMode, true);
+  assert.equal(L.S.hasActed, true);
+  L.exitTeleportMode();
+  const slots = thormak.spellSlots;
+  L.handleCastAbility(thormak.id, 'Fire Spear', [foe.id]);
+  assert.equal(thormak.spellSlots, slots); // refused
+  assert.equal(L.S.hasMoved, false);
+});
