@@ -3318,54 +3318,92 @@ header.nav-open .nav-toggle span:nth-child(3) { transform: translateY(-9px) rota
   border-radius: calc(var(--tga-r-lg) - 4px);
   pointer-events: none;
 }
+.victory-screen > * { position: relative; z-index: 1; }
 .victory-title {
   font-family: var(--tga-font-display);
   font-weight: 900;
-  font-size: clamp(44px, 7vw, 88px);
-  letter-spacing: .08em;
+  font-size: clamp(36px, 6vw, 76px);
+  letter-spacing: .06em;
+  line-height: 1.1;
   text-transform: uppercase;
   color: #fff;
   margin: 0;
   text-shadow: 0 0 40px rgba(228,177,74,.5);
-  animation: pulsGold 1s ease 2;
 }
-.victory-screen .cx-eyebrow { color: var(--tga-gold-bright); margin-bottom: 14px; position: relative; z-index: 1; }
-.victory-subtitle {
-  font-family: var(--tga-font-script);
-  font-style: italic;
-  font-size: var(--tga-fs-xl);
-  color: rgba(244,236,216,.9);
-  margin: 0;
+.victory-title:focus { outline: none; }   /* focused only so screen readers start here; not a tab stop */
+@media (prefers-reduced-motion: no-preference) {
+  .victory-title { animation: pulsGold 1s ease 2; }
 }
-.victory-subtitle::after {
-  content: '✦';
-  display: block;
-  margin: 18px auto 0;
-  font-family: var(--tga-font-display);
-  font-size: 18px;
-  color: var(--tga-gold);
+.victory-screen .cx-eyebrow { color: #F2C25C; margin-bottom: 0; font-size: 13px; }
+.victory-facts {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 10px;
+  margin: 0; padding: 0; list-style: none;
+  font-family: var(--tga-font-body);
+  font-size: 16px;
+  color: #EDE5D0;
 }
+.victory-facts li + li::before { content: '·'; margin-right: 10px; color: #C9BEA6; }
 .survivor-label {
+  margin: var(--tga-s-4) 0 0;
   font-family: var(--tga-font-display);
-  color: var(--tga-gold-bright);
-  letter-spacing: .2em;
+  color: #F2C25C;
+  letter-spacing: .14em;
   text-transform: uppercase;
-  font-size: 11px;
+  font-size: 15px;
   font-weight: 700;
-  margin-top: var(--tga-s-2);
 }
-.survivor-list { display: flex; flex-wrap: wrap; gap: var(--tga-s-3); justify-content: center; width: 100%; }
+.survivor-list, .fallen-list {
+  display: flex; flex-wrap: wrap; gap: var(--tga-s-3); justify-content: center;
+  width: 100%; margin: 0; padding: 0; list-style: none;
+}
 .survivor-chip {
-  background: rgba(244,236,216,.06);
-  border: 1px solid rgba(228,177,74,.3);
+  display: flex; flex-direction: column; gap: 4px;
+  flex: 1 1 170px;
+  max-width: 280px;
+  text-align: left;
+  background: rgba(22,19,31,.7);
+  border: 1px solid rgba(242,194,92,.45);
   border-radius: var(--tga-r-sm);
   padding: var(--tga-s-3) var(--tga-s-4);
-  backdrop-filter: blur(4px);
 }
-.survivor-name { font-family: var(--tga-font-display); font-weight: 700; color: var(--tga-gold-bright); letter-spacing: .04em; }
-.survivor-chip .hp-text { font-family: var(--tga-font-mono); font-size: 10.5px; color: var(--tga-emerald-soft); margin-top: 5px; display: block; }
-.rematch-actions { display: flex; flex-flow: row wrap; gap: var(--tga-s-4); justify-content: center; margin-top: var(--tga-s-5); position: relative; z-index: 1; }
-.rematch-actions .combat-start-btn { outline: none; padding: 13px 30px; font-size: 13px; }
+.survivor-name { font-family: var(--tga-font-display); font-weight: 700; font-size: 16px; color: #F2C25C; }
+.survivor-hp { font-family: var(--tga-font-body); font-size: 15px; font-weight: 700; color: #EDE5D0; font-variant-numeric: tabular-nums; }
+.survivor-chip .hp-bar-wrap { display: block; margin: 2px 0 0; background: rgba(244,236,216,.12); border-color: rgba(244,236,216,.2); }
+.survivor-chip .hp-bar { display: block; }
+.victory-none { font-size: 16px; color: #C9BEA6; }
+.fallen-chip {
+  padding: 4px 12px;
+  border-radius: var(--tga-r-pill);
+  border: 1px solid #C9BEA6;
+  font-family: var(--tga-font-body);
+  font-size: 14px;
+  font-weight: 600;
+  color: #EDE5D0;
+}
+.fallen-name { text-decoration: line-through; text-decoration-color: rgba(237,229,208,.6); }
+.fallen-chip.team-a { border-color: var(--tga-gold); }
+.fallen-chip.team-b { border-color: #F29A8F; }
+.fallen-team { margin-left: 4px; font-size: 12px; font-weight: 500; color: #C9BEA6; }
+.rematch-actions { display: flex; flex-flow: row wrap; gap: var(--tga-s-4); justify-content: center; margin-top: var(--tga-s-5); }
+.rematch-actions .combat-start-btn { outline: none; padding: 14px 28px; font-size: 14px; max-width: 100%; white-space: normal; }
+.victory-screen .secondary-btn { color: #EDE5D0; border-color: #C9BEA6; }
+.victory-screen .secondary-btn:hover:not(:disabled) { background: var(--tga-vellum-2); color: var(--tga-text); }
+.victory-screen .combat-start-btn:focus-visible { outline: 2px solid #F2C25C; outline-offset: 4px; }
+.victory-log { width: min(100%, 760px); margin-top: var(--tga-s-4); text-align: left; }
+.victory-log summary {
+  cursor: pointer;
+  width: fit-content;
+  margin: 0 auto var(--tga-s-3);
+  padding: 8px 14px;
+  border-radius: var(--tga-r-xs);
+  font-family: var(--tga-font-body);
+  font-size: 15px;
+  font-weight: 600;
+  color: #F2C25C;
+}
+.victory-log summary:hover { background: rgba(242,194,92,.1); }
+.victory-log summary:focus-visible { outline: 2px solid #F2C25C; outline-offset: 2px; }
+.victory-log .log-panel { height: min(60vh, 520px); }
 
 @keyframes pulsGold {
   0%, 100% { transform: scale(1); }

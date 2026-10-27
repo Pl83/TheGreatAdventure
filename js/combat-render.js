@@ -785,25 +785,55 @@ export function renderReactOverlay() {
 
 export function renderVictoryScreen() {
   const winner    = S.winnerTeam;
+  const teamName  = t => `Team ${t === 0 ? 'I' : 'II'}`;
   const survivors = S.combatants.filter(c => c.teamIndex === winner && !c.isKO);
-  const survivorCards = survivors.map(c => `
-    <div class="survivor-chip">
-      <div class="survivor-name">${c.name}</div>
-      <div class="hp-text">${c.currentHp} / ${c.maxHp} HP</div>
-    </div>`).join('');
+  const fallen    = S.combatants.filter(c => c.isKO);
+  const survivorCards = survivors.map(c => {
+    const pct = Math.max(0, (c.currentHp / c.maxHp) * 100);
+    return `
+      <li class="survivor-chip">
+        <span class="survivor-name">${c.name}</span>
+        <span class="survivor-hp">${c.currentHp} / ${c.maxHp} HP</span>
+        <span class="hp-bar-wrap" aria-hidden="true"><span class="hp-bar${pct < 25 ? ' low' : pct < 50 ? ' mid' : ''}" style="width:${pct.toFixed(1)}%"></span></span>
+      </li>`;
+  }).join('');
+  const fallenList = fallen.map(c =>
+    `<li class="fallen-chip ${c.teamIndex === 0 ? 'team-a' : 'team-b'}"><span class="fallen-name">${c.name}</span> <span class="fallen-team">${teamName(c.teamIndex)}</span></li>`
+  ).join('');
+  const facts = [
+    `${S.roundNumber} round${S.roundNumber === 1 ? '' : 's'}`,
+    S.currentMap?.name,
+    `${survivors.length} of ${S.combatants.filter(c => c.teamIndex === winner).length} standing`,
+  ].filter(Boolean);
 
   root.innerHTML = `
-    <div class="victory-screen">
-      <span class="cx-eyebrow">Battle Concluded</span>
-      <div class="victory-title">Victory</div>
-      <div class="victory-subtitle">Team ${winner + 1} wins the battle!</div>
-      <div class="survivor-label">Survivors</div>
-      <div class="survivor-list">${survivorCards || '<p>No survivors.</p>'}</div>
+    <section class="victory-screen" aria-labelledby="victory-title">
+      <span class="cx-eyebrow">Battle concluded</span>
+      <h2 class="victory-title" id="victory-title" tabindex="-1">${teamName(winner)} wins</h2>
+      <ul class="victory-facts" aria-label="Battle summary">${facts.map(f => `<li>${f}</li>`).join('')}</ul>
+
+      <h3 class="survivor-label">Survivors</h3>
+      <ul class="survivor-list">${survivorCards || '<li class="victory-none">No survivors.</li>'}</ul>
+
+      ${fallen.length ? `
+        <h3 class="survivor-label">Fallen</h3>
+        <ul class="fallen-list">${fallenList}</ul>` : ''}
+
       <div class="rematch-actions">
-        <button class="combat-start-btn" id="btn-rematch">Rematch</button>
-        <button class="combat-start-btn secondary-btn" id="btn-new-teams">↩ New Teams</button>
+        <button class="combat-start-btn" id="btn-rematch">Rematch — same teams</button>
+        <button class="combat-start-btn secondary-btn" id="btn-new-teams">New teams</button>
       </div>
-    </div>`;
+
+      ${S.log.length ? `
+        <details class="victory-log">
+          <summary>Read the battle chronicle</summary>
+          ${logPanelHTML()}
+        </details>` : ''}
+    </section>`;
+
+  bindLogControls();
+  // The fight screen is gone: move focus to the result so keyboard and screen-reader users land on it
+  document.getElementById('victory-title')?.focus({ preventScroll: true });
 
   document.getElementById('btn-rematch')?.addEventListener('click', async () => {
     S.combatants = []; S.initiativeOrder = []; S.log = []; S.winnerTeam = null;
