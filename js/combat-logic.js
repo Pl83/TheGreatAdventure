@@ -1036,7 +1036,11 @@ export function updateCombatantCardDOM(c) {
   const text = card.querySelector('.hp-text');
   if (bar)  { bar.style.width = `${pct.toFixed(1)}%`; bar.className = `hp-bar${pct < 25 ? ' low' : pct < 50 ? ' mid' : ''}`; }
   if (text) text.textContent = `${c.currentHp} / ${c.maxHp} HP`;
-  if (c.isKO) card.classList.add('is-ko');
+  if (c.isKO && !card.classList.contains('is-ko')) {
+    card.classList.add('is-ko');
+    card.querySelector('.card-flag')?.remove();
+    card.querySelector('.combat-char-head')?.insertAdjacentHTML('beforeend', '<span class="card-flag card-flag--ko">Fallen</span>');
+  }
 }
 
 export function applyHeal(combatant, diceExpr, label = null) {

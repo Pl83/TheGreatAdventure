@@ -14,7 +14,7 @@ import {
   addLog, goToMapChoice,
 } from './combat-logic.js';
 
-import { abilityPreviewHTML, abilityFireLabel, renderCombatScreen, renderSelectionScreen } from './combat-render.js';
+import { abilityPreviewHTML, abilityFireLabel, pickAbility, renderCombatScreen, renderSelectionScreen } from './combat-render.js';
 
 // ── §13  Event Binding ─────────────────────────────────────────────────────
 
@@ -69,7 +69,7 @@ export function bindCombatEvents() {
 
   // ── Unified ability handler ────────────────────────────────────────────────
   function getSelectedAbility() {
-    return active.abilities.find(a => a.name === document.getElementById('ability-select')?.value);
+    return active.abilities.find(a => a.name === document.querySelector('input[name="ability"]:checked')?.value);
   }
 
   function fireAbilityImmediate(ability) {
@@ -158,7 +158,7 @@ export function bindCombatEvents() {
       const pool = ab.targetKind === 'ally'
         ? (ab.isRevive ? koAllies(active.teamIndex) : livingCombatants(active.teamIndex))
         : targetPool(active);
-      nomapSel.innerHTML = pool.map(t => `<option value="${t.id}">${t.name} (${t.currentHp}HP)</option>`).join('') || '<option>No targets</option>';
+      nomapSel.innerHTML = pool.map(t => `<option value="${t.id}">${t.name} · ${t.currentHp} HP</option>`).join('') || '<option>No targets</option>';
       nomapSel.style.display = (!S.currentMap && !isImmediate) ? '' : 'none';
     }
 
@@ -174,7 +174,11 @@ export function bindCombatEvents() {
   }
   syncAbilityBtn();
 
-  document.getElementById('ability-select')?.addEventListener('change', syncAbilityBtn);
+  document.getElementById('ability-list')?.addEventListener('change', () => {
+    const ab = getSelectedAbility();
+    if (ab) pickAbility(active, ab.name);
+    syncAbilityBtn();
+  });
 }
 
 export function bindReactEvents() {

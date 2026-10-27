@@ -53,40 +53,51 @@ export function statusCssClass(damType) {
 export function hpBarHTML(c) {
   const pct = Math.max(0, (c.currentHp / c.maxHp) * 100);
   const cls = pct < 25 ? ' low' : pct < 50 ? ' mid' : '';
-  return `<div class="hp-bar-wrap"><div class="hp-bar${cls}" style="width:${pct.toFixed(1)}%"></div></div>
+  // The number carries the meaning; the bar is a visual echo of it
+  return `<div class="hp-bar-wrap" aria-hidden="true"><div class="hp-bar${cls}" style="width:${pct.toFixed(1)}%"></div></div>
           <span class="hp-text">${c.currentHp} / ${c.maxHp} HP</span>`;
 }
 
 export function resourceHTML(c) {
-  let out = '';
+  const chips = [];
   if (c.maxSpellSlots > 0) {
     const showMax = Math.min(c.maxSpellSlots, 12);
     const pips = Array.from({ length: showMax }, (_, i) =>
-      `<span class="spell-pip ${i < c.spellSlots ? 'filled' : 'empty'}" title="Slot ${i + 1}"></span>`
+      `<span class="spell-pip ${i < c.spellSlots ? 'filled' : 'empty'}"></span>`
     ).join('');
-    const extra = c.maxSpellSlots > 12 ? `<span class="pip-overflow">+${c.maxSpellSlots - 12}</span>` : '';
-    out += `<div class="spell-pips">${pips}${extra}</div>`;
+    chips.push(`<span class="res-slots"><span class="spell-pips" aria-hidden="true">${pips}</span>`
+      + `<span class="res-count">${c.spellSlots} / ${c.maxSpellSlots} slots</span></span>`);
   }
-  if (c.maxKi > 0) out += `<div class="ki-counter">Ki: ${c.ki}/${c.maxKi}</div>`;
-  if (c.souls > 0 || c.sourceChar.souls) out += `<div class="ki-counter souls-counter">Souls: ${c.souls}</div>`;
-  return out;
+  if (c.maxKi > 0) chips.push(`<span class="res-chip res-ki">Ki ${c.ki} / ${c.maxKi}</span>`);
+  if (c.souls > 0 || c.sourceChar.souls) chips.push(`<span class="res-chip res-souls">Souls ${c.souls}</span>`);
+  return chips.length ? `<div class="res-row">${chips.join('')}</div>` : '';
 }
+
+const STATUS_NAMES = {
+  damage_shield: 'Shield', living_blade_armor: 'Blade armor', chains_of_apophis: 'Chains of Apophis',
+  runik_precast: 'Runic precast', final_reckoning: 'Final reckoning', smoke_screen: 'Smoke screen',
+  para: 'Paralysed', gel: 'Frozen', adv: 'Advantage',
+};
+export const statusName = n => STATUS_NAMES[n] ?? n.replace(/_/g, ' ').replace(/^\w/, ch => ch.toUpperCase());
 
 export function statusBadgesHTML(c) {
   if (!c.statusEffects.length) return '';
   const badges = c.statusEffects.map(e => {
-    const durTxt = e.name === 'damage_shield'
-      ? `${e.shieldHp} HP`
-      : (e.turnsLeft === 999 ? '∞' : e.turnsLeft + 't');
-    return `<span class="status-badge ${statusCssClass(e.damType)}" title="${e.notes}">${e.name} (${durTxt})</span>`;
+    const dur = e.name === 'damage_shield' ? `${e.shieldHp} HP`
+      : e.turnsLeft === 999 ? 'lasting'
+      : `${e.turnsLeft} turn${e.turnsLeft === 1 ? '' : 's'}`;
+    const notes = e.notes ? ` title="${e.notes}"` : '';
+    return `<li class="status-badge ${statusCssClass(e.damType)}"${notes}>${statusName(e.name)} <span class="status-dur">${dur}</span></li>`;
   }).join('');
-  return `<div class="status-badge-row">${badges}</div>`;
+  return `<ul class="status-badge-row" aria-label="Effects">${badges}</ul>`;
 }
 
 export function combatantCardHTML(c, isActive) {
   const koClass      = c.isKO        ? ' is-ko'      : '';
   const activeClass  = isActive      ? ' active-turn' : '';
   const teamClass    = c.teamIndex === 0 ? ' team-a' : ' team-b';
+  const flag = c.isKO ? '<span class="card-flag card-flag--ko">Fallen</span>'
+    : isActive ? '<span class="card-flag card-flag--turn">Acting</span>' : '';
   const tfBadge      = c.isTransformed
     ? `<span class="transform-active-badge">${c.sourceChar.transformation?.base.nom ?? 'Transformed'}</span>`
     : '';
@@ -94,19 +105,22 @@ export function combatantCardHTML(c, isActive) {
     ? `<span class="domain-active-badge">${c.sourceChar.domain?.name ?? 'Domain'}</span>`
     : '';
   const passivesHTML = c.sourceChar.passif?.length
-    ? `<div class="char-passives-mini">${c.sourceChar.passif.slice(0, 2).map(p =>
-        `<span class="passive-mini" title="${p.nom}">${p.nom.length > 40 ? p.nom.slice(0, 40) + '…' : p.nom}</span>`
-      ).join('')}</div>`
+    ? `<ul class="char-passives-mini" aria-label="Passives">${c.sourceChar.passif.slice(0, 2).map(p =>
+        `<li class="passive-mini" title="${p.nom}">${p.nom}</li>`
+      ).join('')}</ul>`
     : '';
   return `
-    <div class="combat-char-card${koClass}${activeClass}${teamClass}" data-id="${c.id}">
-      <div class="combat-char-name">${c.name}</div>
+    <article class="combat-char-card${koClass}${activeClass}${teamClass}" data-id="${c.id}" aria-labelledby="card-name-${c.id}">
+      <div class="combat-char-head">
+        <h4 class="combat-char-name" id="card-name-${c.id}">${c.name}</h4>
+        ${flag}
+      </div>
       ${hpBarHTML(c)}
       ${resourceHTML(c)}
       ${statusBadgesHTML(c)}
-      ${tfBadge}${domainBadge}
+      ${tfBadge || domainBadge ? `<div class="card-badges">${tfBadge}${domainBadge}</div>` : ''}
       ${passivesHTML}
-    </div>`;
+    </article>`;
 }
 
 export function initiativeStripHTML() {
@@ -120,37 +134,58 @@ export function initiativeStripHTML() {
   return `<div class="initiative-strip">${chips}</div>`;
 }
 
+const COST_UNIT = { slots: ['slot', 'slots'], ki: ['ki', 'ki'], souls: ['soul', 'souls'] };
+const costText  = cost => cost ? `${cost.amount} ${COST_UNIT[cost.type]?.[cost.amount === 1 ? 0 : 1] ?? cost.type}` : 'Free';
+
+// Shape / targeting words shared by the ability list and the preview
+function abilityTraits(ability) {
+  const t = [];
+  if (ability.isAoe)     t.push(`Area${ability.radius > 0 ? ` (radius ${ability.radius})` : ''}`);
+  if (ability.isCone)    t.push('Cone');
+  if (ability.isSplash)  t.push(`Splash${ability.radius > 0 ? ` (radius ${ability.radius})` : ''}`);
+  if (ability.maxBounce) t.push(`Bounces ×${ability.maxBounce}`);
+  if (ability.targetKind === 'ally') t.push(ability.isRevive ? 'Revives an ally' : 'Ally');
+  if (ability.targetKind === 'self') t.push('Self');
+  if (ability.isInstant) t.push('Free action');
+  if (ability.isReact || ability.isBlock) t.push('Also a react');
+  return t;
+}
+
 export function abilityPreviewHTML(ability) {
   if (!ability) return '';
-  const tags = [];
-  if (ability.isAoe)     tags.push('AoE');
-  if (ability.isCone)    tags.push('Cone');
-  if (ability.isSplash)  tags.push('Splash');
-  if (ability.isReact)   tags.push('React');
-  if (ability.isInstant) tags.push('Instant');
-  if (ability.isBlock)   tags.push('Block');
-  if (ability.isHeal)    tags.push('Heal');
-  if (ability.maxBounce) tags.push(`Bounce×${ability.maxBounce}`);
-  if (ability.targetKind === 'ally') tags.push('Ally');
-  if (ability.targetKind === 'self') tags.push('Self');
-  if (ability.range && ability.range !== SPELL_RANGE) tags.push(`r${ability.range}`);
-  if (ability.radius > 0) tags.push(`ø${ability.radius}`);
+  const tags = abilityTraits(ability);
+  if (ability.range && ability.range !== SPELL_RANGE) tags.push(`Range ${ability.range}`);
   const tagHTML  = tags.map(t => `<span class="ab-tag">${t}</span>`).join('');
   const diceHTML = ability.dice   ? `<span class="ab-dice">${ability.dice}</span>` : '';
-  const fxHTML   = ability.effect ? `<span class="ab-effect">✦ ${ability.effect}</span>` : '';
-  const descHTML = ability.desc   ? `<span class="ab-desc">${ability.desc}</span>` : '';
-  const costHTML = ability.cost   ? `<span class="ab-cost">${ability.cost.amount} ${ability.cost.type}</span>` : '';
-  return `<div class="ability-preview">${diceHTML}${fxHTML}${costHTML}${tagHTML}${descHTML}</div>`;
+  const fxHTML   = ability.effect ? `<span class="ab-effect">Applies ${statusName(ability.effect)}</span>` : '';
+  const descHTML = ability.desc   ? `<p class="ab-desc">${ability.desc}</p>` : '';
+  return `<div class="ability-preview">${diceHTML}${fxHTML}${tagHTML}${descHTML}</div>`;
 }
 
 export function abilityFireLabel(ab) {
   if (!ab) return 'Aim';
-  if (ab.tags?.includes('teleportation')) return '✦ Teleport';
-  if (ab.isAoe) return 'Aim AoE';
-  if (ab.targetKind === 'self') return 'Use';
-  if (ab.isCone) return 'Aim Cone';
-  return 'Aim';
+  if (ab.tags?.includes('teleportation')) return `Teleport — ${ab.name}`;
+  if (ab.targetKind === 'self') return `Use ${ab.name}`;
+  return `Aim ${ab.name}`;
 }
+
+// The ability picked in the list survives re-renders for as long as it is that combatant's turn
+let pickedAbility = null;
+export function pickAbility(c, name) { pickedAbility = { id: c.id, name }; }
+
+// Why an ability can't be chosen right now, or '' when it can
+function abilityBlockedReason(c, ab, silence) {
+  const cdLeft = c.cooldowns[ab.name] ?? 0;
+  if (silence && ab.cost?.type === 'slots') return 'Silenced';
+  if (abilityAvailable(c, ab)) return '';
+  if (cdLeft > 0) return `Cooldown: ${cdLeft} turn${cdLeft === 1 ? '' : 's'}`;
+  if (ab.isOncePerFight && c.usedThisFight.includes(ab.name)) return 'Already used this fight';
+  if (ab.maxCharges > 0) return 'No uses left';
+  if (ab.cost) return `Needs ${costText(ab.cost)}`;
+  return 'Unavailable';
+}
+
+const SOURCE_LABEL = { spell: 'Spell', technoSpell: 'Techno-spell', technique: 'Technique', Art: 'Art', relic: 'Relic' };
 
 export function actionPanelHTML(c) {
   const enemyAlive = targetPool(c);
@@ -164,18 +199,16 @@ export function actionPanelHTML(c) {
     if (ability?.targetKind === 'ally') {
       const allyPool = ability.isRevive ? koAllies(c.teamIndex) : allyAlive;
       return allyPool.map(t =>
-        `<option value="${t.id}">${t.name} (${t.currentHp}/${t.maxHp}HP)${t.isKO ? ' [KO]' : ''}</option>`
+        `<option value="${t.id}">${t.name} · ${t.currentHp}/${t.maxHp} HP${t.isKO ? ' · fallen' : ''}</option>`
       ).join('');
     }
     if (enemyAlive.length === 0) return '<option>No targets</option>';
     return enemyAlive.map(t => {
-      const dist    = hasMap ? chebyshev(c, t) : 0;
       const range   = hasMap ? targetInRange(c, t, ability) : { inRange: true, reason: '' };
-      const distTxt = hasMap ? ` ${dist}sq` : '';
-      const warnTxt = (hasMap && !range.inRange)
-        ? (range.reason.includes('sight') ? ' ✗' : ' !') : '';
+      const distTxt = hasMap ? ` · ${chebyshev(c, t)} sq` : '';
+      const whyTxt  = hasMap && !range.inRange ? ` · ${range.reason.toLowerCase()}` : '';
       const disabled = (hasMap && !range.inRange && !ability?.isAoe) ? ' disabled' : '';
-      return `<option value="${t.id}"${disabled}>${t.name} (${t.currentHp}HP${distTxt}${warnTxt})</option>`;
+      return `<option value="${t.id}"${disabled}>${t.name} · ${t.currentHp} HP${distTxt}${whyTxt}</option>`;
     }).join('');
   };
 
@@ -183,44 +216,44 @@ export function actionPanelHTML(c) {
   const noEnemies     = enemyAlive.length === 0;
 
   const isRooted = c.statusEffects.some(e => e.name.toLowerCase() === 'root');
-  const moveSection = !S.hasMoved ? `
+  const moveState = S.hasMoved ? 'Moved' : isRooted ? 'Rooted' : 'Move ready';
+  const budget = `
+    <ul class="turn-budget" aria-label="This turn">
+      <li class="budget-chip${acted ? ' is-spent' : ''}">${acted ? 'Action used' : 'Action ready'}</li>
+      <li class="budget-chip${S.hasMoved || isRooted ? ' is-spent' : ''}">${moveState}</li>
+    </ul>`;
+  const moveSection = S.hasMoved || isRooted ? '' : `
     <div class="action-section move-section">
-      ${isRooted
-        ? `<span class="move-done-badge">Rooted — cannot move</span>`
-        : S.moveMode
-          ? `<button class="action-btn map-cancel-move-btn" id="btn-cancel-move">Cancel Move</button>
-             <span class="move-hint">Click a highlighted cell on the map</span>`
-          : `<button class="action-btn map-move-btn" id="btn-move">Move (${c.speed} cells)</button>`
-      }
-    </div>` : `
-    <div class="action-section move-section">
-      <span class="move-done-badge">Moved</span>
+      ${S.moveMode
+        ? `<button class="action-btn map-cancel-move-btn" id="btn-cancel-move">Cancel move</button>
+           <span class="move-hint">Click a highlighted cell on the map</span>`
+        : `<button class="action-btn map-move-btn" id="btn-move">Move <span class="btn-aside">up to ${c.speed} cells</span></button>`}
     </div>`;
 
-  const abilityList = c.abilities.filter(ab =>
-    !ab.isTransform &&
-    !ab.reactOnly &&
-    abilityAvailable(c, ab) &&
-    !(silence && ab.cost?.type === 'slots')
-  );
+  // Every move the panel can fire, unavailable ones included (greyed, with the reason)
+  const abilityList = c.abilities.filter(ab => !ab.isTransform && !ab.reactOnly);
+  const usable = ab => !abilityBlockedReason(c, ab, silence);
+  const picked = pickedAbility?.id === c.id && abilityList.find(ab => ab.name === pickedAbility.name && usable(ab));
+  const firstAbility = picked || abilityList.find(usable);
 
-  const SOURCE_LABEL = { spell: 'Spell', technoSpell: 'T-Spell', technique: 'Tech', Art: 'Art', relic: 'Relic' };
-
-  const abOpt = (ab) => {
-    const cdLeft    = c.cooldowns[ab.name] ?? 0;
-    const cdTxt     = cdLeft > 0 ? ` [${cdLeft}T]` : ab.cooldownTurns > 0 ? ` [${ab.cooldownTurns}T CD]` : '';
-    const costTxt   = ab.cost   ? ` · ${ab.cost.amount}${ab.cost.type === 'slots' ? 'S' : ab.cost.type === 'ki' ? 'Ki' : '♦'}` : '';
-    const srcTxt    = SOURCE_LABEL[ab.source] ? `[${SOURCE_LABEL[ab.source]}] ` : '';
-    const reactTxt  = (ab.isBlock || ab.isReact) ? ' [R]' : '';
-    const chargeTxt = ab.maxCharges > 0 ? ` [${c.remainingCharges[ab.name] ?? ab.maxCharges}/${ab.maxCharges}♦]` : '';
-    return `<option value="${ab.name}">${srcTxt}${ab.name}${reactTxt}${costTxt}${cdTxt}${chargeTxt}</option>`;
+  const abOption = (ab) => {
+    const why    = abilityBlockedReason(c, ab, silence);
+    const cdBase = ab.cooldownTurns > 0 && !why ? `${ab.cooldownTurns}-turn cooldown` : '';
+    const uses   = ab.maxCharges > 0 ? `${c.remainingCharges[ab.name] ?? ab.maxCharges}/${ab.maxCharges} uses` : '';
+    const meta = [SOURCE_LABEL[ab.source], costText(ab.cost), ...abilityTraits(ab), cdBase, uses].filter(Boolean);
+    return `
+      <label class="ability-option${why ? ' is-disabled' : ''}">
+        <input type="radio" name="ability" value="${ab.name}"${ab === firstAbility ? ' checked' : ''}${why ? ' disabled' : ''}>
+        <span class="ability-option-body">
+          <span class="ability-option-name">${ab.name}</span>
+          <span class="ability-option-meta">${meta.map(m => `<span>${m}</span>`).join('')}</span>
+          ${why ? `<span class="ability-option-why">${why}</span>` : ''}
+        </span>
+      </label>`;
   };
 
-  const firstAbility = abilityList[0];
   const atkNoTarget  = !hasValidTarget(c, null);
-  const abNoTarget   = !hasValidTarget(c, firstAbility);
-
-  const fireLabel = abilityFireLabel;
+  const abNoTarget   = !firstAbility || !hasValidTarget(c, firstAbility);
 
   const nomapTargetOpts = () => {
     if (!firstAbility || firstAbility.isAoe || firstAbility.isCone || firstAbility.targetKind === 'self') return '';
@@ -228,94 +261,101 @@ export function actionPanelHTML(c) {
       ? (firstAbility.isRevive ? koAllies(c.teamIndex) : allyAlive)
       : enemyAlive;
     if (!pool.length) return '<option>No targets</option>';
-    return pool.map(t => `<option value="${t.id}">${t.name} (${t.currentHp}HP)</option>`).join('');
+    return pool.map(t => `<option value="${t.id}">${t.name} · ${t.currentHp} HP</option>`).join('');
   };
 
+  const resources = [c.maxSpellSlots > 0 && `${c.spellSlots} slots`, c.maxKi > 0 && `${c.ki} ki`, (c.souls > 0 || c.sourceChar.souls) && `${c.souls} souls`]
+    .filter(Boolean).join(' · ');
   const abilitySection = abilityList.length > 0 ? `
-    <div class="action-section ability-section">
-      <label class="action-label">Abilities${silence ? ' <span class="range-warn">Silenced</span>' : ` (${c.spellSlots}S · ${c.ki}Ki)`}</label>
-      <select id="ability-select" class="target-select">${abilityList.map(abOpt).join('')}</select>
+    <fieldset class="action-section ability-section">
+      <legend class="action-label">Abilities <span class="label-aside">${silence ? '<span class="range-warn">Silenced</span>' : resources}</span></legend>
+      <div class="ability-list" id="ability-list">${abilityList.map(abOption).join('')}</div>
+      <div id="ability-preview" class="ability-preview-wrap"></div>
+      ${!hasMap && nomapTargetOpts() ? `<label class="sr-only" for="ability-target-nomap">Ability target</label><select id="ability-target-nomap" class="target-select nomap-target">${nomapTargetOpts()}</select>` : ''}
       <div class="aim-row">
         <button class="action-btn aim-btn" id="btn-ability-fire" ${abNoTarget || (acted && !firstAbility?.isInstant) ? 'disabled' : ''}>
-          ${fireLabel(firstAbility)}
+          ${abilityFireLabel(firstAbility)}
         </button>
-        <span id="aim-hint-ability" class="aim-hint" style="display:none">↖ Click target on map (Esc / right-click to cancel)</span>
+        <span id="aim-hint-ability" class="aim-hint" style="display:none">Click a target on the map — Esc or right-click cancels</span>
       </div>
-      ${!hasMap && nomapTargetOpts() ? `<select id="ability-target-nomap" class="target-select nomap-target">${nomapTargetOpts()}</select>` : ''}
-      <div id="ability-preview" class="ability-preview-wrap"></div>
-    </div>` : '';
+    </fieldset>` : '';
 
   const tf = c.sourceChar.transformation;
   const tfAbility = c.abilities.find(a => a.isTransform);
   const transformSection = tf && tfAbility && !c.isTransformed ? `
     <div class="action-section">
-      <label class="action-label">Transformation</label>
+      <span class="action-label">Transformation</span>
       <button class="action-btn transform-btn" id="btn-transform" data-caster="${c.id}"
               ${(acted || c.usedThisFight.includes(tf.base.nom) || !abilityAvailable(c, tfAbility)) ? 'disabled' : ''}>
-        ${tf.base.nom} ${tfAbility.cost ? `(${tfAbility.cost.amount} ${tfAbility.cost.type})` : '(free)'}
+        ${tf.base.nom} <span class="btn-aside">${costText(tfAbility.cost)}</span>
       </button>
     </div>` : '';
 
   const domain = c.sourceChar.domain;
   const chargesLeft = c.domainCharges ?? 0;
   const allyDomain  = domain && !c.domainActive ? activeAllyDomain(c) : null;
+  const maxCharges  = Math.max(1, Math.floor((domain?.rafinement ?? 0) / 3));
   const domainSection = domain ? (c.domainActive
-    ? `<div class="action-section"><span class="domain-active-badge">🌐 ${domain.name} — Active (${chargesLeft} charge${chargesLeft !== 1 ? 's' : ''} left)</span></div>`
+    ? `<div class="action-section"><span class="domain-active-badge">${domain.name} — active · ${chargesLeft} charge${chargesLeft !== 1 ? 's' : ''} left</span></div>`
     : chargesLeft > 0
       ? `<div class="action-section">
-          <label class="action-label">Domain Expansion</label>
-          <span class="domain-cost-label">${domain.name} · ${domain.type} · Ref.${domain.rafinement ?? 'N/A'} · ${domain.spellCost}S · ${chargesLeft}/${Math.max(1, Math.floor((domain.rafinement ?? 0) / 3))} charges</span>
+          <span class="action-label">Domain expansion</span>
+          <span class="domain-cost-label">${domain.name} · ${domain.type} · refinement ${domain.rafinement ?? '—'}</span>
           <button class="action-btn domain-btn" id="btn-domain" data-caster="${c.id}"
                   ${(c.spellSlots < domain.spellCost || acted || allyDomain) ? 'disabled' : ''}>
-            Activate Domain
+            Activate domain <span class="btn-aside">${domain.spellCost} slots · ${chargesLeft}/${maxCharges} charges</span>
           </button>
-          ${allyDomain ? `<span class="domain-cost-label">Blocked — ${getCombatant(allyDomain.casterId).name}'s domain is active (one per team)</span>` : ''}
+          ${allyDomain ? `<span class="range-warn">Blocked — ${getCombatant(allyDomain.casterId).name}'s domain is active (one per team)</span>` : ''}
         </div>`
-      : `<div class="action-section"><span class="domain-active-badge" style="opacity:0.5">🌐 ${domain.name} — No charges left</span></div>`) : '';
+      : `<div class="action-section"><span class="domain-active-badge is-spent">${domain.name} — no charges left</span></div>`) : '';
 
   const activeDomainStrip = S.activeDomains.length > 0
-    ? `<div class="active-domain-strip">${S.activeDomains.map(d => {
+    ? `<ul class="active-domain-strip" aria-label="Active domains">${S.activeDomains.map(d => {
         const owner = getCombatant(d.casterId);
         if (!owner) return '';
         const teamClass = owner.teamIndex === 0 ? 'team0' : 'team1';
-        return `<span class="domain-strip-entry ${teamClass}">🌐 ${owner.name}: ${d.domain.name} [${d.domain.type}]</span>`;
-      }).join('')}</div>`
+        return `<li class="domain-strip-entry ${teamClass}">${owner.name}: ${d.domain.name} · ${d.domain.type}</li>`;
+      }).join('')}</ul>`
     : '';
 
   const ctrl = hasControlEffect(c);
   if (ctrl) {
     return `
     ${activeDomainStrip}
-    <div class="action-panel">
-      <div class="action-panel-title">${c.name}'s Turn <span class="acted-badge">${ctrl.name} — cannot act</span></div>
-    </div>`;
+    <section class="action-panel" aria-labelledby="action-title">
+      <h3 class="action-panel-title" id="action-title">${c.name}'s turn</h3>
+      <p class="action-blocked">${statusName(ctrl.name)} — cannot act this turn.</p>
+    </section>`;
   }
 
   const atkNote = hasMap && atkNoTarget && !noEnemies
-    ? '<span class="range-warn">Move closer to attack</span>' : '';
+    ? '<span class="range-warn">No enemy in reach — move closer</span>' : '';
 
   return `
     ${activeDomainStrip}
-    <div class="action-panel">
-      <div class="action-panel-title">${c.name}'s Turn${acted ? ' <span class="acted-badge">Action Used</span>' : ''}</div>
+    <section class="action-panel" aria-labelledby="action-title">
+      <h3 class="action-panel-title" id="action-title">${c.name}'s turn</h3>
+      ${budget}
       <div class="action-section finish-turn-section">
-        <button class="action-btn finish-turn-btn" id="btn-pass">Finish Turn</button>
+        <button class="action-btn finish-turn-btn" id="btn-pass">Finish turn</button>
       </div>
       ${moveSection}
       <div class="action-section">
-        <label class="action-label">Basic Attack ${atkNote}</label>
+        <label class="action-label" for="atk-target">Basic attack</label>
         <select id="atk-target" class="target-select" ${noEnemies ? 'disabled' : ''}>
-          ${noEnemies ? '<option>No targets</option>' : atkTargetOpts}
+          ${noEnemies ? '<option>No targets</option>'
+            : atkNoTarget ? `<option value="" selected disabled>No enemy in reach</option>${atkTargetOpts}` : atkTargetOpts}
         </select>
+        ${atkNote}
         <button class="action-btn confirm-action-btn" id="btn-attack" data-attacker="${c.id}"
                 ${atkNoTarget || noEnemies || acted ? 'disabled' : ''}>
-          Attack <span class="atk-dice">(${c.transformedBaseAtk?.dices ?? c.sourceChar.baseAtk?.dices ?? '1d6'})</span>
+          Attack <span class="btn-aside atk-dice">${c.transformedBaseAtk?.dices ?? c.sourceChar.baseAtk?.dices ?? '1d6'}</span>
         </button>
       </div>
       ${abilitySection}
       ${transformSection}
       ${domainSection}
-    </div>`;
+    </section>`;
 }
 
 export function reactPromptHTML() {
@@ -656,7 +696,7 @@ export function renderCombatScreen() {
   drawMap();
   setupCanvasClickHandler();
 
-  const ab0 = active?.abilities.find(a => a.name === document.getElementById('ability-select')?.value);
+  const ab0 = active?.abilities.find(a => a.name === document.querySelector('input[name="ability"]:checked')?.value);
   const prevEl = document.getElementById('ability-preview');
   if (prevEl) prevEl.innerHTML = abilityPreviewHTML(ab0);
 }
