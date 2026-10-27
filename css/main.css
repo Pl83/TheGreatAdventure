@@ -2049,42 +2049,79 @@ header.nav-open .nav-toggle span:nth-child(3) { transform: translateY(-9px) rota
   z-index: 2;
 }
 
+/* Champion search, shared by both teams */
+.selection-search {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: min(100%, 420px);
+  margin: 0 auto;
+}
+.selection-search label {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--tga-text-soft);
+}
+.selection-search input {
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 1px solid var(--tga-bronze);
+  border-radius: var(--tga-r-xs);
+  background: var(--tga-vellum);
+  color: var(--tga-text);
+  font-family: var(--tga-font-body);
+  font-size: 16px;
+}
+.selection-search input:focus-visible { outline: 2px solid var(--tga-gold-deep); outline-offset: 2px; }
+
 /* Ink header bar with a Roman numeral seal */
 .team-header {
+  margin: 0 0 var(--tga-s-3);
   font-family: var(--tga-font-display);
   font-weight: 700;
-  font-size: 15px;
-  letter-spacing: .14em;
+  font-size: 17px;
+  letter-spacing: .1em;
   text-transform: uppercase;
-  padding: 16px 20px;
+  padding: 14px 20px;
   background: var(--tga-ink);
   color: var(--tga-text-invert);
-  border-bottom: 2px solid var(--tga-gold);
+  border-bottom: 3px solid var(--tga-gold);
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: var(--tga-s-3);
 }
 .team-header::before {
   content: '';
-  width: 26px; height: 26px;
+  width: 28px; height: 28px;
   flex: none;
   border: 1.5px solid currentColor;
   display: grid; place-items: center;
-  font-size: 12px; font-weight: 900;
-  position: relative;
+  font-size: 13px; font-weight: 900;
 }
 .team-a-header { color: var(--tga-gold-bright); }
-.team-b-header { color: var(--tga-crimson-soft); }
+.team-b-header { color: #F29A8F; border-bottom-color: var(--tga-crimson); }
 .team-a-header::before { content: 'I'; }
 .team-b-header::before { content: 'II'; }
+.team-count {
+  margin-left: auto;
+  font-family: var(--tga-font-body);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: #EDE5D0;
+  font-variant-numeric: tabular-nums;
+}
 
 .selected-roster {
   display: flex;
   flex-wrap: wrap;
   gap: var(--tga-s-2);
-  min-height: 30px;
+  min-height: 40px;
+  margin: 0;
   padding: 0 var(--tga-s-4) var(--tga-s-3);
+  list-style: none;
   align-items: center;
 }
 .selected-chip {
@@ -2092,44 +2129,47 @@ header.nav-open .nav-toggle span:nth-child(3) { transform: translateY(-9px) rota
   align-items: center;
   gap: 6px;
   background: var(--tga-ink-2);
-  color: var(--tga-gold-bright);
-  padding: 4px 6px 4px 12px;
+  color: #EDE5D0;
+  padding: 3px 4px 3px 12px;
   border-radius: var(--tga-r-pill);
-  font-family: var(--tga-font-display);
-  font-size: 11px;
-  letter-spacing: .06em;
+  font-family: var(--tga-font-body);
+  font-size: 14px;
+  font-weight: 600;
   border: 1px solid var(--tga-rule-ink);
 }
-.selected-chip::before { content: '✦'; color: var(--tga-gold); font-size: 9px; }
 .chip-remove {
   background: none; border: none; cursor: pointer;
-  color: var(--tga-crimson-soft);
-  font-size: 15px; line-height: 1;
-  width: 18px; height: 18px;
+  color: #F29A8F;
+  font-size: 18px; line-height: 1;
+  width: 30px; height: 30px;
   border-radius: 50%;
   display: grid; place-items: center;
   transition: background var(--tga-dur-fast), color var(--tga-dur-fast);
 }
 .chip-remove:hover { color: #fff; background: var(--tga-crimson); }
+.chip-remove:focus-visible { outline: 2px solid #F2C25C; outline-offset: 1px; }
 .no-selection {
-  color: var(--tga-text-faint);
+  color: var(--tga-text-soft);
   font-family: var(--tga-font-script);
   font-style: italic;
-  font-size: var(--tga-fs-sm);
+  font-size: 16px;
 }
 
 .char-select-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: var(--tga-s-3);
-  max-height: 420px;
+  max-height: 520px;
   overflow-y: auto;
-  padding: 0 var(--tga-s-4);
+  margin: 0;
+  padding: 4px var(--tga-s-4);
+  list-style: none;
   scrollbar-width: thin;
   scrollbar-color: var(--tga-bronze) transparent;
 }
 .char-select-grid::-webkit-scrollbar { width: 8px; }
 .char-select-grid::-webkit-scrollbar-thumb { background: var(--tga-rule); border-radius: 4px; }
+.no-match { margin: 0; padding: var(--tga-s-3) var(--tga-s-4); font-size: 15px; color: var(--tga-text-soft); }
 
 /* A champion dossier card */
 .char-select-card {
@@ -2140,46 +2180,38 @@ header.nav-open .nav-toggle span:nth-child(3) { transform: translateY(-9px) rota
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  transition: transform var(--tga-dur-base) var(--tga-ease),
-              box-shadow var(--tga-dur-base) var(--tga-ease),
-              border-color var(--tga-dur-fast);
+  gap: 10px;
+  font-family: var(--tga-font-body);
+  transition: box-shadow var(--tga-dur-base) var(--tga-ease), border-color var(--tga-dur-fast);
 }
+.char-select-card[hidden] { display: none; }
 .char-select-card::before {
   content: '';
   position: absolute; top: 0; left: 0; right: 0; height: 3px;
   background: var(--tga-bronze);
   border-radius: var(--tga-r-sm) var(--tga-r-sm) 0 0;
 }
-.char-select-card:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--tga-shadow-lift);
-  border-color: var(--tga-bronze);
-}
+.char-select-card:hover { box-shadow: var(--tga-shadow-lift); border-color: var(--tga-bronze); }
 .char-select-card.is-selected {
   border-color: var(--tga-gold);
   background: var(--tga-vellum);
   box-shadow: var(--tga-shadow-glow-gold);
 }
-.char-select-card.is-selected::before { background: var(--tga-gold); }
-.char-select-card.is-selected::after {
-  content: '✦';
-  position: absolute; top: 8px; right: 10px;
-  font-family: var(--tga-font-display);
-  color: var(--tga-gold-deep);
-  font-size: 13px;
-}
-.char-select-card.is-disabled { opacity: .35; pointer-events: none; filter: grayscale(.4); }
+.char-select-card.is-selected::before { background: var(--tga-gold); height: 5px; }
+/* Unavailable: still readable, the button says why */
+.char-select-card.is-disabled { background: transparent; border-style: dashed; box-shadow: none; }
+.char-select-card.is-disabled .select-card-name,
+.char-select-card.is-disabled .select-card-stats dd { color: var(--tga-text-soft); }
 
-/* crest circle with the champion's initial in Cinzel (per system: no invented emblems) */
 .select-card-name {
+  margin: 0;
   font-family: var(--tga-font-display);
   font-weight: 700;
-  font-size: 13px;
-  letter-spacing: .04em;
+  font-size: 15px;
+  letter-spacing: .02em;
   color: var(--tga-text);
   line-height: 1.25;
-  padding-left: 42px;
+  padding-left: 44px;
   min-height: 34px;
   display: flex;
   align-items: center;
@@ -2187,60 +2219,51 @@ header.nav-open .nav-toggle span:nth-child(3) { transform: translateY(-9px) rota
 .crest-initial {
   position: absolute;
   left: 14px; top: 14px;
-  width: 32px; height: 32px;
+  width: 34px; height: 34px;
   border-radius: 50%;
   background: var(--tga-paper);
   border: 1px solid var(--tga-bronze);
   display: grid; place-items: center;
   font-family: var(--tga-font-display);
-  font-size: 15px; font-weight: 900;
+  font-size: 16px; font-weight: 900;
   color: var(--tga-gold-deep);
-  box-shadow: inset 0 0 0 1px var(--tga-vellum);
 }
-.char-select-card.is-selected .crest-initial { border-color: var(--tga-gold); color: var(--tga-gold-deep); }
+.char-select-card.is-selected .crest-initial { border-color: var(--tga-gold); }
 .select-card-stats {
-  font-family: var(--tga-font-mono);
-  font-size: 10.5px;
-  color: var(--tga-text-soft);
-  line-height: 1.5;
-  letter-spacing: -.01em;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 0;
+  font-size: 14px;
 }
-.select-card-count {
-  font-family: var(--tga-font-display);
-  font-size: 9px;
-  letter-spacing: .14em;
-  text-transform: uppercase;
-  color: var(--tga-gold-deep);
-  align-self: flex-start;
-  padding: 2px 8px;
-  border: 1px solid var(--tga-rule);
-  border-radius: var(--tga-r-pill);
-  background: var(--tga-vellum);
-  white-space: nowrap;
-}
+.select-card-stats div { display: flex; gap: 4px; align-items: baseline; }
+.select-card-stats dt { color: var(--tga-text-soft); font-size: 13px; }
+.select-card-stats dd { margin: 0; font-weight: 700; color: var(--tga-text); font-variant-numeric: tabular-nums; }
 
 .select-btn {
   margin-top: auto;
   width: 100%;
-  padding: 7px 8px;
+  min-height: 40px;
+  padding: 8px 10px;
   border-radius: var(--tga-r-xs);
   border: 1px solid var(--tga-bronze);
-  background: transparent;
-  color: var(--tga-gold-deep);
+  background: var(--tga-vellum);
+  color: var(--tga-text);
   cursor: pointer;
-  font-family: var(--tga-font-display);
-  font-size: 10px;
+  font-family: var(--tga-font-body);
+  font-size: 14px;
   font-weight: 700;
-  letter-spacing: .12em;
-  text-transform: uppercase;
   transition: background var(--tga-dur-fast), color var(--tga-dur-fast), border-color var(--tga-dur-fast);
 }
 .select-btn:hover:not(:disabled) { background: var(--tga-ink); color: var(--tga-gold-bright); border-color: var(--tga-ink); }
-.select-btn:disabled { opacity: .4; cursor: not-allowed; }
-.remove-btn { border-color: var(--tga-crimson); color: var(--tga-crimson); }
+.select-btn:focus-visible { outline: 2px solid var(--tga-gold-deep); outline-offset: 2px; }
+.select-btn:disabled { cursor: not-allowed; background: transparent; border-style: dashed; color: var(--tga-text-soft); font-weight: 600; }
+.remove-btn { border-color: var(--tga-crimson); color: var(--tga-crimson-deep); }
 .remove-btn:hover:not(:disabled) { background: var(--tga-crimson); color: #fff; border-color: var(--tga-crimson); }
 
-.selection-footer { display: flex; justify-content: center; padding-top: var(--tga-s-2); }
+.selection-footer { display: flex; flex-direction: column; align-items: center; gap: var(--tga-s-2); padding-top: var(--tga-s-2); }
+.start-hint { margin: 0; font-size: 15px; color: var(--tga-text-soft); }
+.selection-footer .combat-start-btn { max-width: 100%; white-space: normal; }
 
 /* Primary call: ink + gold, bronze double frame */
 .combat-start-btn {
@@ -2270,7 +2293,15 @@ header.nav-open .nav-toggle span:nth-child(3) { transform: translateY(-9px) rota
   transform: translateY(-2px);
   box-shadow: var(--tga-shadow-glow-gold);
 }
-.combat-start-btn:disabled { opacity: .4; cursor: not-allowed; }
+.combat-start-btn:disabled {
+  cursor: not-allowed;
+  background: transparent;
+  color: var(--tga-text-soft);
+  border: 1px dashed var(--tga-text-soft);
+  outline-color: transparent;
+  box-shadow: none;
+}
+.combat-start-btn:focus-visible { outline: 2px solid var(--tga-gold-deep); outline-offset: 4px; }
 .secondary-btn {
   background: transparent;
   color: var(--tga-text-invert);
@@ -3395,7 +3426,7 @@ header.nav-open .nav-toggle span:nth-child(3) { transform: translateY(-9px) rota
   .combat-turn-track { flex-wrap: wrap; }
   .combat-turn-track .initiative-strip { flex-basis: 100%; }
   .selection-teams { grid-template-columns: 1fr; }
-  .char-select-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+  .char-select-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
 }
 
 /* ── Sheet: tag filter row ── */

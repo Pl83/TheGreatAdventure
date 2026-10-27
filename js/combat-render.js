@@ -513,34 +513,53 @@ export function render() {
   else if (S.phase === 'victory')    renderVictoryScreen();
 }
 
-export function renderSelectionScreen() {
+// Name filter typed into the champion search; survives the re-render after each pick
+let charFilter = '';
+const TEAM_NUM = ['I', 'II'];
+
+/**
+ * opts.focus    : { name, team } — after a pick, keyboard focus returns to that card's button
+ * opts.announce : short sentence for screen readers ("Susano added to Team I.")
+ */
+export function renderSelectionScreen(opts = {}) {
   const charGrid = (teamIdx) => allChars.map(c => {
       const inThis  = S.teamNames[teamIdx].includes(c.nom);
       const inOther = S.teamNames[1 - teamIdx].includes(c.nom);
       const full    = S.teamNames[teamIdx].length >= 5;
       const locked  = !inThis && (inOther || full);
-      const abilCount = c.moveSet?.length ?? 0;
+      const why     = inOther ? `In Team ${TEAM_NUM[1 - teamIdx]}` : 'Team full';
+      const stats = [['HP', c.hp], ['Slots', c.spellSlot ?? 0], c.ki ? ['Ki', c.ki] : null, ['Speed', c.speed ?? 6], ['Moves', c.moveSet?.length ?? 0]]
+        .filter(Boolean).map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('');
       return `
-        <div class="char-select-card${inThis ? ' is-selected' : ''}${locked ? ' is-disabled' : ''}">
-          <span class="crest-initial">${(c.nom[0] ?? '?').toUpperCase()}</span>
-          <div class="select-card-name">${c.nom}</div>
-          <div class="select-card-stats">${c.hp} HP · ${c.spellSlot ?? 0} slots · ${c.ki ?? 0} ki · spd ${c.speed ?? 6}</div>
-          <div class="select-card-count">${abilCount} moves</div>
+        <li class="char-select-card${inThis ? ' is-selected' : ''}${locked ? ' is-disabled' : ''}" data-search="${c.nom.toLowerCase()}">
+          <span class="crest-initial" aria-hidden="true">${(c.nom[0] ?? '?').toUpperCase()}</span>
+          <h5 class="select-card-name">${c.nom}</h5>
+          <dl class="select-card-stats">${stats}</dl>
           ${inThis
-            ? `<button class="select-btn remove-btn" data-name="${c.nom}" data-team="${teamIdx}">✕ Remove</button>`
-            : `<button class="select-btn add-btn" data-name="${c.nom}" data-team="${teamIdx}" ${locked ? 'disabled' : ''}>+ Team ${teamIdx + 1}</button>`
+            ? `<button class="select-btn remove-btn" data-name="${c.nom}" data-team="${teamIdx}" aria-label="Remove ${c.nom} from Team ${TEAM_NUM[teamIdx]}">Remove</button>`
+            : `<button class="select-btn add-btn" data-name="${c.nom}" data-team="${teamIdx}" aria-label="${locked ? `${c.nom}: ${why.toLowerCase()}` : `Add ${c.nom} to Team ${TEAM_NUM[teamIdx]}`}" ${locked ? 'disabled' : ''}>${locked ? why : `Add to Team ${TEAM_NUM[teamIdx]}`}</button>`
           }
-        </div>`;
+        </li>`;
   }).join('');
 
   const roster = (teamIdx) => {
-    if (!S.teamNames[teamIdx].length) return '<span class="no-selection">None selected</span>';
+    if (!S.teamNames[teamIdx].length) return '<li class="no-selection">No champions yet</li>';
     return S.teamNames[teamIdx].map(n =>
-      `<span class="selected-chip">● ${n}
-         <button class="chip-remove" data-name="${n}" data-team="${teamIdx}">×</button>
-       </span>`
+      `<li class="selected-chip">${n}
+         <button class="chip-remove" data-name="${n}" data-team="${teamIdx}" aria-label="Remove ${n} from Team ${TEAM_NUM[teamIdx]}">×</button>
+       </li>`
     ).join('');
   };
+
+  const team = (teamIdx) => `
+    <section class="selection-team" aria-labelledby="team-head-${teamIdx}">
+      <h4 class="team-header ${teamIdx === 0 ? 'team-a-header' : 'team-b-header'}" id="team-head-${teamIdx}">
+        Team ${TEAM_NUM[teamIdx]} <span class="team-count">${S.teamNames[teamIdx].length} / 5</span>
+      </h4>
+      <ul class="selected-roster" aria-label="Team ${TEAM_NUM[teamIdx]} roster">${roster(teamIdx)}</ul>
+      <ul class="char-select-grid" aria-label="Champions for Team ${TEAM_NUM[teamIdx]}">${charGrid(teamIdx)}</ul>
+      <p class="no-match" hidden>No champion matches “<span></span>”.</p>
+    </section>`;
 
   const canStart = S.teamNames[0].length > 0 && S.teamNames[1].length > 0;
 
@@ -549,28 +568,45 @@ export function renderSelectionScreen() {
       <div class="selection-header">
         <span class="cx-eyebrow">War Council</span>
         <h3 class="selection-title">Choose Your Champions</h3>
-        <p class="selection-sub">Pick 1–5 characters per team, then roll for initiative.</p>
+        <p class="selection-sub">Pick 1–5 champions per team, then choose the battlefield.</p>
       </div>
-      <div class="selection-teams">
-        <div class="selection-team">
-          <div class="team-header team-a-header">Team I</div>
-          <div class="selected-roster">${roster(0)}</div>
-          <div class="char-select-grid">${charGrid(0)}</div>
-        </div>
-        <div class="selection-team">
-          <div class="team-header team-b-header">Team II</div>
-          <div class="selected-roster">${roster(1)}</div>
-          <div class="char-select-grid">${charGrid(1)}</div>
-        </div>
+      <div class="selection-search">
+        <label for="char-search">Find a champion</label>
+        <input type="search" id="char-search" placeholder="Type a name…" autocomplete="off" value="${charFilter.replace(/"/g, '&quot;')}">
       </div>
+      <div class="selection-teams">${team(0)}${team(1)}</div>
       <div class="selection-footer">
-        <button class="combat-start-btn" id="btn-start" ${canStart ? '' : 'disabled'}>
-          Roll for Initiative
+        <button class="combat-start-btn" id="btn-start" ${canStart ? '' : 'disabled aria-describedby="start-hint"'}>
+          Next: choose the battlefield
         </button>
+        ${canStart ? '' : '<p class="start-hint" id="start-hint">Pick at least one champion for each team.</p>'}
       </div>
+      <p class="sr-only" role="status">${opts.announce ?? ''}</p>
     </div>`;
 
+  const applyFilter = () => {
+    const q = charFilter.trim().toLowerCase();
+    root.querySelectorAll('.selection-team').forEach(sec => {
+      let shown = 0;
+      sec.querySelectorAll('.char-select-card').forEach(card => {
+        const hit = !q || card.dataset.search.includes(q);
+        card.hidden = !hit;
+        if (hit) shown++;
+      });
+      const none = sec.querySelector('.no-match');
+      none.hidden = shown > 0;
+      none.querySelector('span').textContent = charFilter.trim();
+    });
+  };
+  applyFilter();
+  root.querySelector('#char-search').addEventListener('input', e => { charFilter = e.target.value; applyFilter(); });
+
   bindSelectionEvents();
+
+  if (opts.focus) {
+    const sel = `.char-select-grid [data-name="${CSS.escape(opts.focus.name)}"][data-team="${opts.focus.team}"]`;
+    (root.querySelector(sel) ?? root.querySelector('#char-search'))?.focus({ preventScroll: true });
+  }
 }
 
 // Manifest titles + thumbnails, fetched once per page load

@@ -36,7 +36,7 @@ export function bindSelectionEvents() {
       if (!S.teamNames[team].includes(name) && S.teamNames[team].length < 5) {
         S.teamNames[team].push(name);
         saveTeams();
-        renderSelectionScreen();
+        renderSelectionScreen({ focus: { name, team }, announce: `${name} added to Team ${team === 0 ? 'I' : 'II'}.` });
       }
     });
   });
@@ -46,7 +46,7 @@ export function bindSelectionEvents() {
       const team = parseInt(e.currentTarget.dataset.team);
       S.teamNames[team] = S.teamNames[team].filter(n => n !== name);
       saveTeams();
-      renderSelectionScreen();
+      renderSelectionScreen({ focus: { name, team }, announce: `${name} removed from Team ${team === 0 ? 'I' : 'II'}.` });
     });
   });
   document.getElementById('btn-start')?.addEventListener('click', async () => {
