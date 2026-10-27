@@ -128,8 +128,8 @@ export const artifacts = [
     {name: "Souls blade", divinity: "Unknown", power: "The sword can absorb the soul of it's victim. The user can use the soul to increase his power.", slug: "souls-blade", status: "Held by White", authority: 8},
     {name: "Appolo's bow", divinity: "Appolo", power: "The bow can create arrow of light that can pierce anything.", slug: "appolos-bow", status: "Held by Tormak", authority: 4},
     {name: "The Sanjiegun of Shiva", divinity: "Shiva", power: "A three part nunchaku granting it's user small power of creation and detruction.", slug: "sanjiegun", status: "Held by Morrow", authority: 6},
-    {name: "Ifrit's bane", divinity: "Ifrit", power: "Absord and convert fire into mana. Ignite and cut throughmost things", slug: "ifrit-s-bane", status: "held by Kaelgrym", authority: 4},
-    {name: "Chains of Apophis", divinity: "Apophis", power: "Absord damage, bind and drain hp/power from people", slug: "chain-s-of-apophis", status: "destroid", authority: 6},
+    {name: "Ifrit's bane", divinity: "Ifrit", power: "Absorb and convert fire into mana. Ignite and cut throughmost things", slug: "ifrit-s-bane", status: "held by Kaelgrym", authority: 4},
+    {name: "Chains of Apophis", divinity: "Apophis", power: "Absorb damage, bind and drain hp/power from people", slug: "chain-s-of-apophis", status: "destroyed", authority: 6},
     {name: "Masse of Hephaistos", divinity: "Hephaistos", power: "Dense masse of fire that smash ennemi like nail on an enclume", slug: "masse-of-hephaistos", status: "held by Alicia", authority: 5},
     {name: "Sun wukong's Staff", divinity: "Ifrit", power: "Divine staff capable of changing size at the user’s will", slug: "sun-wukong-s-staff", status: "held by Sun wukong", authority: 6},
     {name: "Celestial tower", divinity: "????", power: "Dimensional prison", slug: "celestial-tower", status: "held by Susano", authority: 4},
@@ -845,7 +845,7 @@ export const personnageSheet = [
         passives: ["Each bolt adds 1d10 corruption"],
         spells: [
             { name: "Hat Form", type: "react", desc: "Insta dodge mono, half aoe" },
-            { name: "Chain's of Damnation Wall", dice: "3d20hp", desc: "Create a wall" }
+            { name: "Chains of Damnation Wall", dice: "3d20hp", desc: "Create a wall" }
         ],
         attack: "1d8+4",
         spellSlots: 6

@@ -1594,7 +1594,7 @@
       },
       {
         "category": "spell",
-        "base": { "nom": "Chain's of Damnation Wall", "dices": "3d20", "tags": ["magic", "block"] },
+        "base": { "nom": "Chains of Damnation Wall", "dices": "3d20", "tags": ["magic", "block"] },
         "target": "self", "range": 0,
         "description": "Create a wall with 3d20 HP.",
         "spellCost": 1
