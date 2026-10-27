@@ -802,7 +802,7 @@
       },
       {
         "category": "technique",
-        "base": { "nom": "The Hanvil of War", "dices": "1d10*(1d4+1d4)", "tags": ["physical", "fire"] },
+        "base": { "nom": "The Anvil of War", "dices": "1d10*(1d4+1d4)", "tags": ["physical", "fire"] },
         "target": "mono", "range": 2, "cooldown": 2
       },
       {
@@ -872,7 +872,7 @@
       },
       {
         "category": "technique",
-        "base": { "nom": "Shreder", "dices": "2d6", "tags": ["physical", "dash"] },
+        "base": { "nom": "Shredder", "dices": "2d6", "tags": ["physical", "dash"] },
         "target": "mono", "range": 8, "cooldown": 1
       }
     ],

@@ -343,7 +343,7 @@
                 "Force lighting"
             ],
             "weakness": null,
-            "description": "Even among the sith lord, he is feared and know as the strongest. He wear and armor with a life systeme integrated making is breathing and voice heavy and mechanicle.",
+            "description": "Even among the sith lord, he is feared and know as the strongest. He wear and armor with a life system integrated making is breathing and voice heavy and mechanical.",
             "url": ["Sith/sith_lord_dark_vador.jpg"]
         },
         "Dark Tyranus": {
@@ -358,7 +358,7 @@
                 "Force lighting"
             ],
             "weakness": null,
-            "description": "The man considered as the best duelist in the entire galaxy. His mastery over his ligth saber making him a strong foe.",
+            "description": "The man considered as the best duelist in the entire galaxy. His mastery over his light saber making him a strong foe.",
             "url": ["Sith/sith_lord_dark_tyranus.jpg"]
         },
         "Dark Sidious": {
@@ -381,7 +381,7 @@
             "title": ["Sith Lord"],
             "unique": true,
             "species": "Human",
-            "weapon": "Red light-saber, purple ligth-saber",
+            "weapon": "Red light-saber, purple light-saber",
             "power": [
                 "Force grab",
                 "Force push",
@@ -424,7 +424,7 @@
         "Dark Spyder": {
             "title": ["Sith"],
             "unique": true,
-            "species": "Unknow",
+            "species": "Unknown",
             "weapon": "Red light-halberd",
             "power": [
                 "Force grab",
@@ -478,7 +478,7 @@
             "description": "",
             "url": ["Sith/sith_dark_maul_second_born.jpg"]
         },
-        "Dark Maul Yougest": {
+        "Dark Maul Youngest": {
             "title": ["Sith"],
             "unique": true,
             "species": "Human",
