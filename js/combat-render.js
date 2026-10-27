@@ -343,12 +343,77 @@ export function reactPromptHTML() {
     </div>`;
 }
 
+// ── Battle log ─────────────────────────────────────────────────────────────
+// Rounds are headings, each turn is a section headed by the acting combatant, and every
+// line inside it belongs to that turn. Indented lines ("  …") are details of the line above.
+
+const LOG_KEEP  = 200;
+const LOG_SIZES = ['s', 'm', 'l', 'xl'];
+let logSize = (() => { try { return LOG_SIZES.indexOf(localStorage.getItem('combatLogSize')); } catch { return -1; } })();
+if (logSize < 0) logSize = 1;
+
+const escapeHTML = t => t.replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch]);
+// Icons are decoration (the words already say what happened), so screen readers skip them
+const LOG_ICON = /\p{Extended_Pictographic}(?:\uFE0F|\u200D\p{Extended_Pictographic})*/gu;
+const logText  = t => escapeHTML(t.trim()).replace(LOG_ICON, '<span class="log-icon" aria-hidden="true">$&</span>');
+
+const turnOpenHTML = e => `
+  <section class="log-turn log-turn--${e.team ?? 0}">
+    <h5 class="log-turn-head"><span class="log-turn-name">${escapeHTML(e.text)}</span><span class="log-turn-team">Team ${e.team === 1 ? 'II' : 'I'}</span></h5>`;
+
+function logEntryHTML(e) {
+  if (e.flavor === 'turn')    return `${turnOpenHTML(e)}</section>`;
+  if (e.flavor === 'divider') return `<h4 class="log-round">${escapeHTML(e.text)}</h4>`;
+  const sub = /^\s/.test(e.text) ? ' log-sub' : '';
+  return `<p class="log-entry log-${e.flavor}${sub}">${logText(e.text)}</p>`;
+}
+
 export function logPanelHTML() {
-  const entries = S.log.slice(-80).map(e => {
-    if (e.flavor === 'divider') return `<div class="log-round-divider">${e.text}</div>`;
-    return `<div class="log-entry log-${e.flavor}">${e.text}</div>`;
-  }).join('');
-  return `<div class="combat-log" id="combat-log">${entries}</div>`;
+  let body = '', inTurn = false;
+  for (const e of S.log.slice(-LOG_KEEP)) {
+    const opens = e.flavor === 'turn' || e.flavor === 'divider';
+    if (opens && inTurn) { body += '</section>'; inTurn = false; }
+    if (e.flavor === 'turn') { body += turnOpenHTML(e); inTurn = true; }
+    else body += logEntryHTML(e);
+  }
+  if (inTurn) body += '</section>';
+  return `
+    <section class="log-panel" aria-labelledby="log-title">
+      <div class="log-panel-head">
+        <h3 class="log-title" id="log-title">Battle Chronicle</h3>
+        <div class="log-size" role="group" aria-label="Log text size">
+          <button class="log-size-btn" data-log-size="-1" aria-label="Smaller text" ${logSize === 0 ? 'disabled' : ''}>A−</button>
+          <button class="log-size-btn" data-log-size="1"  aria-label="Larger text"  ${logSize === LOG_SIZES.length - 1 ? 'disabled' : ''}>A+</button>
+        </div>
+      </div>
+      <div class="combat-log" id="combat-log" data-size="${LOG_SIZES[logSize]}"
+           role="log" aria-live="polite" aria-relevant="additions" aria-labelledby="log-title" tabindex="0">${body}</div>
+    </section>`;
+}
+
+// New lines land in the open turn; the view follows them only if the reader was already at the bottom
+function appendLog(e) {
+  const log = document.getElementById('combat-log');
+  if (!log) return;
+  const atBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 48;
+  const tpl = document.createElement('template');
+  tpl.innerHTML = logEntryHTML(e).trim();
+  const last = log.lastElementChild;
+  const into = e.flavor !== 'turn' && e.flavor !== 'divider' && last?.classList.contains('log-turn') ? last : log;
+  into.appendChild(tpl.content.firstElementChild);
+  if (atBottom) log.scrollTop = log.scrollHeight;
+}
+
+function bindLogControls() {
+  root.querySelectorAll('[data-log-size]').forEach(btn => btn.addEventListener('click', () => {
+    logSize = Math.min(LOG_SIZES.length - 1, Math.max(0, logSize + Number(btn.dataset.logSize)));
+    try { localStorage.setItem('combatLogSize', LOG_SIZES[logSize]); } catch {}
+    const log = document.getElementById('combat-log');
+    if (log) { log.dataset.size = LOG_SIZES[logSize]; log.scrollTop = log.scrollHeight; }
+    root.querySelectorAll('[data-log-size]').forEach(b => {
+      b.disabled = b.dataset.logSize === '-1' ? logSize === 0 : logSize === LOG_SIZES.length - 1;
+    });
+  }));
 }
 
 export function renderMapToggleHTML() {
@@ -582,6 +647,7 @@ export function renderCombatScreen() {
 
   const log = root.querySelector('#combat-log');
   if (log) log.scrollTop = log.scrollHeight;
+  bindLogControls();
 
   bindCombatEvents();
 
@@ -653,3 +719,4 @@ _R.render              = render;
 _R.renderCombatScreen  = renderCombatScreen;
 _R.renderReactOverlay  = renderReactOverlay;
 _R.renderVictoryScreen = renderVictoryScreen;
+_R.appendLog           = appendLog;

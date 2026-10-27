@@ -2480,9 +2480,10 @@ header.nav-open .nav-toggle span:nth-child(3) { transform: translateY(-9px) rota
   gap: var(--tga-s-3);
   position: sticky;
   top: 88px;
+  height: calc(100vh - 104px);   /* the log takes whatever the map leaves on screen */
 }
-.combat-center-col .combat-map-pane { position: static; }
-.combat-center-col .combat-log { max-height: 180px; }
+.combat-center-col .combat-map-pane { position: static; flex: none; }
+.combat-center-col .log-panel { flex: 1 1 0; min-height: 260px; }
 
 /* ── Map plate (left) ── */
 .combat-map-pane {
@@ -3007,58 +3008,135 @@ header.nav-open .nav-toggle span:nth-child(3) { transform: translateY(-9px) rota
 /* =============================================================================
    5 · BATTLE CHRONICLE (log)
    ============================================================================= */
-.combat-log {
-  max-height: 240px;
-  overflow-y: auto;
-  background: var(--tga-ink);
+.log-panel {
+  /* Log palette: every colour is at least 7.9:1 on --tga-ink (WCAG AAA) */
+  --log-bg:     var(--tga-ink);
+  --log-text:   #EDE5D0;
+  --log-soft:   #C9BEA6;
+  --log-crit:   #F2C25C;
+  --log-hit:    #F29A8F;
+  --log-spell:  #C3ABF0;
+  --log-tech:   #86CFE0;
+  --log-status: #93D6B0;
+  --log-death:  #FF9A90;
+  --log-team-a: var(--tga-gold-bright);
+  --log-team-b: #F29A8F;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--log-bg);
   border: 1px solid var(--tga-bronze);
   border-radius: var(--tga-r-md);
-  padding: var(--tga-s-3) var(--tga-s-4) var(--tga-s-4);
-  font-family: var(--tga-font-mono);
-  font-size: 11px;
-  line-height: 1.6;
-  scroll-behavior: smooth;
-  position: relative;
+  box-shadow: var(--tga-shadow-card);
+  overflow: hidden;
 }
-.combat-log::before {
-  content: 'Battle Chronicle';
-  display: block;
-  position: sticky; top: 0;
-  background: var(--tga-ink);
-  font-family: var(--tga-font-display);
-  font-size: 9px;
-  letter-spacing: .2em;
-  text-transform: uppercase;
-  color: var(--tga-gold-deep);
-  padding-bottom: 8px;
-  margin-bottom: 4px;
+.log-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--tga-s-3);
+  padding: 10px var(--tga-s-4);
   border-bottom: 1px solid var(--tga-rule-ink);
-  z-index: 1;
 }
-.log-entry { margin-bottom: 3px; color: var(--tga-text-invert-soft); }
-.log-crit { color: var(--tga-gold-bright); font-weight: 700; }
-.log-hit { color: var(--tga-crimson-soft); }
-.log-miss { color: var(--tga-text-invert-soft); opacity: .7; }
-.log-spell { color: var(--tga-violet-soft); }
-.log-tech { color: var(--tga-teal-soft); }
-.log-status { color: var(--tga-emerald-soft); }
-.log-death { color: var(--tga-crimson); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
-.log-info { color: var(--tga-text-invert-soft); font-style: italic; opacity: .8; }
-.log-heal { color: var(--tga-emerald-soft); font-weight: 600; }
-.log-round-divider {
-  text-align: center;
-  color: var(--tga-gold);
-  margin: 10px 0 8px;
+.log-title {
+  margin: 0;
   font-family: var(--tga-font-display);
+  font-size: 13px;
   font-weight: 700;
-  font-size: 10px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--log-crit);
+}
+.log-size { display: flex; gap: 6px; }
+.log-size-btn {
+  min-width: 36px;
+  min-height: 32px;
+  padding: 0 8px;
+  background: transparent;
+  color: var(--log-text);
+  border: 1px solid var(--tga-rule-ink);
+  border-radius: var(--tga-r-sm);
+  font-family: var(--tga-font-body);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.log-size-btn:hover:not(:disabled) { border-color: var(--log-crit); color: var(--log-crit); }
+.log-size-btn:disabled { opacity: .4; cursor: not-allowed; }
+.log-size-btn:focus-visible,
+.combat-log:focus-visible { outline: 2px solid var(--log-crit); outline-offset: -2px; }
+
+.combat-log {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--tga-s-2) var(--tga-s-4) var(--tga-s-4);
+  font-family: var(--tga-font-body);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--log-text);
+  scrollbar-width: thin;
+}
+.combat-log[data-size="s"]  { font-size: 13px; }
+.combat-log[data-size="l"]  { font-size: 17px; }
+.combat-log[data-size="xl"] { font-size: 19px; }
+
+.log-round {
+  display: flex; align-items: center; gap: 10px;
+  margin: var(--tga-s-4) 0 var(--tga-s-2);
+  font-family: var(--tga-font-display);
+  font-size: .8em;
+  font-weight: 700;
   letter-spacing: .16em;
   text-transform: uppercase;
-  display: flex; align-items: center; gap: 10px;
+  color: var(--log-crit);
 }
-.log-round-divider::before, .log-round-divider::after {
-  content: ''; flex: 1; height: 1px; background: currentColor; opacity: .4;
+.log-round::before, .log-round::after { content: ''; flex: 1; height: 1px; background: currentColor; opacity: .5; }
+
+.log-turn {
+  margin: 0 0 var(--tga-s-2);
+  padding: 6px 0 6px var(--tga-s-3);
+  border-left: 3px solid var(--log-team-a);
 }
+.log-turn--1 { border-left-color: var(--log-team-b); }
+.log-turn-head {
+  display: flex; align-items: baseline; gap: 8px;
+  margin: 0 0 4px;
+  font-family: var(--tga-font-display);
+  font-size: 1em;
+  font-weight: 700;
+  letter-spacing: .04em;
+  color: var(--log-team-a);
+}
+.log-turn--1 .log-turn-head { color: var(--log-team-b); }
+.log-turn-team {
+  font-family: var(--tga-font-body);
+  font-size: .72em;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--log-soft);
+}
+
+.log-entry { margin: 0 0 3px; color: var(--log-text); overflow-wrap: anywhere; }
+.log-sub   { margin-left: 1.1em; color: var(--log-soft); font-size: .94em; }
+.log-icon  { display: inline-block; width: 1.3em; text-align: center; }
+.log-crit   { color: var(--log-crit); font-weight: 700; }
+.log-hit    { color: var(--log-hit); }
+.log-miss   { color: var(--log-soft); }
+.log-spell  { color: var(--log-spell); }
+.log-tech   { color: var(--log-tech); }
+.log-status { color: var(--log-status); }
+.log-heal   { color: var(--log-status); font-weight: 600; }
+.log-info   { color: var(--log-soft); font-style: italic; }
+.log-death {
+  color: var(--log-death);
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: var(--tga-r-sm);
+  background: rgba(255, 154, 144, .1);
+}
+.log-crit:not(.log-sub) { padding: 2px 6px; border-radius: var(--tga-r-sm); background: rgba(242, 194, 92, .1); }
 
 /* =============================================================================
    6 · REACT OVERLAY
@@ -3245,7 +3323,8 @@ header.nav-open .nav-toggle span:nth-child(3) { transform: translateY(-9px) rota
   .combat-layout-2col[data-mood="sanctum"] .combat-right-pane { grid-template-columns: 1fr; grid-template-areas: "header" "cards" "command" "log"; }
   .combat-layout-2col[data-mood="sanctum"] .combat-cards-scroll { grid-template-columns: 1fr; }
   .combat-arena { grid-template-columns: 1fr; }
-  .combat-center-col { position: static; }
+  .combat-center-col { position: static; height: auto; }
+  .combat-center-col .log-panel { flex: none; height: min(60vh, 520px); }
   .combat-team-col--0 { order: 1; }
   .combat-center-col  { order: 2; }
   .combat-team-col--1 { order: 3; }

@@ -13,6 +13,7 @@ export const _R = {
   renderCombatScreen:  () => {},
   renderReactOverlay:  () => {},
   renderVictoryScreen: () => {},
+  appendLog:           () => {},
 };
 
 // ── §2  State ──────────────────────────────────────────────────────────────
@@ -1014,19 +1015,15 @@ export function drawMap() {
 
 // ── §8  Log ────────────────────────────────────────────────────────────────
 
-export function addLog(text, flavor = 'info') {
-  S.log.push({ text, flavor });
-  const panel = document.getElementById('combat-log');
-  if (!panel) return;
-  const div = document.createElement('div');
-  div.className = flavor === 'divider' ? 'log-round-divider' : `log-entry log-${flavor}`;
-  div.textContent = text;
-  panel.appendChild(div);
-  panel.scrollTop = panel.scrollHeight;
+// flavor: 'turn' opens a combatant's turn (extra.team), 'divider' a round; the rest style one line
+export function addLog(text, flavor = 'info', extra = {}) {
+  const entry = { text, flavor, ...extra };
+  S.log.push(entry);
+  _R.appendLog(entry);
 }
 
 export function addRoundDivider() {
-  addLog(`─── Round ${S.roundNumber} ───`, 'divider');
+  addLog(`Round ${S.roundNumber}`, 'divider');
 }
 
 // ── §9  Combat Logic ───────────────────────────────────────────────────────
@@ -2551,6 +2548,7 @@ export function advanceTurn() {
 
 export function beginTurn(c) {
   if (!c) return;
+  addLog(c.name, 'turn', { team: c.teamIndex });   // start-of-turn ticks belong to this turn
 
   const survived = tickTurn(c);
   if (!survived) {
@@ -2594,7 +2592,6 @@ export function beginTurn(c) {
     }
   }
 
-  addLog(`— ${c.name}'s turn —`, 'info');
   const puppet = c.statusEffects.find(e => e.name === 'puppeteered');
   if (puppet) addLog(`🎭 ${c.name} acts under ${getCombatant(puppet.controllerId)?.name ?? 'a puppeteer'}'s control — any target is fair game.`, 'status');
   const taunter = tauntSource(c);
