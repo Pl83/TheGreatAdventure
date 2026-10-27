@@ -1411,7 +1411,7 @@
       },
       {
         "category": "relic",
-        "base": { "nom": "Chain's of Apophis", "tags": ["buff", "block", "chains"] },
+        "base": { "nom": "Chains of Apophis", "tags": ["buff", "block", "chains"] },
         "target": "mono", "range": 20,
         "description": "Authority 8. Absorb damage directed toward master.",
         "cooldown": 0
