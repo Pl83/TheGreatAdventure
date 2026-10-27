@@ -1339,7 +1339,7 @@
         "base": { "nom": "Black Hole", "tags": ["magic", "psy", "react", "block", "void"] },
         "target": "aoe", "range": 10, "radius": 5,
         "description": "React: swallows the incoming move for the whole team around Vorrakan and stores it in the shadow void.",
-        "spellCost": 2
+        "spellCost": 1
       },
       {
         "category": "spell",

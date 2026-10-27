@@ -1709,7 +1709,7 @@ export function handleCastAbility(casterId, abilityName, targetIds) {
   if (ability.tags?.includes('dash') && ability.targetKind === 'enemy' && targets[0]) dashToward(caster, targets[0]);
 
   if (ability.isAoe) {
-    S.pendingAction = { type: 'aoe', casterId, abilityName, targetIds, ability, reactorId: null, reactedIds: [], blockedIds: [] };
+    S.pendingAction = { type: 'aoe', casterId, abilityName, targetIds, ability, reactorId: null, reactedIds: [], blockedIds: [], noReacts };
     const firstReactor = noReacts ? null : targets.find(t => getReacts(t, ability).length > 0);
     if (firstReactor) {
       S.pendingAction.reactorId = firstReactor.id;
@@ -1724,7 +1724,7 @@ export function handleCastAbility(casterId, abilityName, targetIds) {
   }
 
   if (ability.isCone) {
-    S.pendingAction = { type: 'cone', casterId, abilityName, targetIds, ability, reactorId: null, reactedIds: [], blockedIds: [] };
+    S.pendingAction = { type: 'cone', casterId, abilityName, targetIds, ability, reactorId: null, reactedIds: [], blockedIds: [], noReacts };
     const firstReactor = noReacts ? null : targets.find(t => getReacts(t, ability).length > 0);
     if (firstReactor) {
       S.pendingAction.reactorId = firstReactor.id;
@@ -2090,7 +2090,8 @@ export function resumePendingAction(reactAbility) {
   }
 
   // ── AoE/cone: find next un-reacted target, or proceed to damage ──────
-  if ((action.type === 'aoe' || action.type === 'cone') && reactAbility) {
+  // Asked after every answer, so one target taking the hit does not skip the others' reacts
+  if ((action.type === 'aoe' || action.type === 'cone') && !action.noReacts) {
     const allT = action.targetIds.map(id => getCombatant(id)).filter(t => t && !t.isKO);
     const next  = allT.find(t => !action.reactedIds.includes(t.id) && !action.blockedIds.includes(t.id) && getReacts(t, action.ability).length > 0);
     if (next) {
