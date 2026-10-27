@@ -29,6 +29,18 @@ test('manor starts and grid are unchanged', () => {
   assert.deepEqual({ cols, rows, minX, minY }, { cols: 23, rows: 32, minX: -14, minY: -11 });
 });
 
+test('entrance door rect outside the rooms does not widen the grid', () => {
+  const data = {
+    title: 't',
+    rects: [{ x: 0, y: 0, w: 4, h: 4 }, { x: -1, y: 1, w: 1, h: 1 }],
+    doors: [{ x: -1, y: 1, dir: { x: -1, y: 0 }, type: 3 }],
+  };
+  const { grid } = buildMap({ slug: 't', data, image: { naturalWidth: 420, naturalHeight: 420 } });
+  assert.deepEqual({ cols: grid.cols, rows: grid.rows, minX: grid.minX }, { cols: 6, rows: 6, minX: 0 });
+  assert.equal(grid.walkable[2][0], 1); // door cell sits in the border ring
+  assert.equal(alignmentOk(grid, { naturalWidth: 420, naturalHeight: 420 }), true);
+});
+
 test('alignmentOk true for exact 70px/cell', () => {
   assert.equal(alignmentOk({ cols: 23, rows: 32 }, { naturalWidth: 23 * 70, naturalHeight: 32 * 70 }), true);
 });

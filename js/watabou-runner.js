@@ -99,6 +99,7 @@ URLSearchParams = (P => class extends P { constructor(s) { super(s === location.
 URL.createObjectURL = (c => b => { frameElement && frameElement.__watabouSave && frameElement.__watabouSave(b); return c(b); })(URL.createObjectURL.bind(URL));
 HTMLAnchorElement.prototype.click = function () {};
 history.replaceState = history.pushState = function () {};
+for (const k of ['log', 'info', 'warn', 'error', 'debug']) console[k] = function () {};
 addEventListener('error', e => frameElement && frameElement.__watabouSave && frameElement.__watabouSave(new Error(e.message)));
 <\/script>
 <script src="Dungeon.js" crossorigin="anonymous" onerror="frameElement.__watabouSave(new Error('Dungeon.js failed to load'))"><\/script>

@@ -43,7 +43,7 @@ export async function loadMap(slug, perTeam = 4) {
 
 /** Pure: assemble a map object from parsed JSON + a loaded image. */
 export function buildMap({ slug, data, image, perTeam = 4 }) {
-  const grid   = buildWalkableGrid(data.rects);
+  const grid   = buildWalkableGrid(data.rects, data.doors);
   const starts = deriveSpawnPoints(data.rects, grid, perTeam);
   return { slug, name: data.title, story: data.story || '', image, grid, starts };
 }
@@ -137,11 +137,18 @@ function loadImage(src) {
  * Each rect covers cells (r.x … r.x+r.w-1, r.y … r.y+r.h-1) in JSON space.
  * Shifted by (-minX+BORDER, -minY+BORDER) to get 0-based grid coordinates.
  *
+ * Bounds come from room rects only. Watabou emits the entrance as its own
+ * 1×1 rect on the outer wall, outside every room; the PNG stops at the room
+ * walls, so that cell lands in the BORDER ring instead of widening the grid.
+ *
  * Returns { walkable, minX, minY, cols, rows, BORDER }.
  */
-function buildWalkableGrid(rects) {
+function buildWalkableGrid(rects, doors = []) {
+  const doorAt = new Set(doors.map(d => `${d.x},${d.y}`));
+  const isDoorRect = r => r.w === 1 && r.h === 1 && doorAt.has(`${r.x},${r.y}`);
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   for (const r of rects) {
+    if (isDoorRect(r)) continue;
     if (r.x       < minX) minX = r.x;
     if (r.y       < minY) minY = r.y;
     if (r.x + r.w > maxX) maxX = r.x + r.w;
@@ -156,7 +163,7 @@ function buildWalkableGrid(rects) {
       for (let dx = 0; dx < r.w; dx++) {
         const gx = (r.x + dx) - minX + BORDER;
         const gy = (r.y + dy) - minY + BORDER;
-        walkable[gy][gx] = 1;
+        if (gx >= 0 && gy >= 0 && gx < cols && gy < rows) walkable[gy][gx] = 1;
       }
     }
   }
