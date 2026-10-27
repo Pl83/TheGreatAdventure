@@ -567,6 +567,7 @@ export function coneCells(caster, ability, dirCell) {
     for (let gx = 0; gx < cols; gx++) {
       if (gx === caster.x && gy === caster.y) continue;
       if (Math.max(Math.abs(gx - caster.x), Math.abs(gy - caster.y)) > (ability.range ?? SPELL_RANGE)) continue;
+      if (!isWalkableG(S.currentMap, gx, gy) || !hasLos(caster.x, caster.y, gx, gy)) continue;
       const angle = Math.atan2(gy - caster.y, gx - caster.x);
       let diff = Math.abs(angle - dirAngle);
       if (diff > Math.PI) diff = 2 * Math.PI - diff;
@@ -582,11 +583,22 @@ export function coneCellTargets(caster, ability, dirCell) {
     .filter(t => cells.some(c => c.x === t.x && c.y === t.y));
 }
 
+// A blast centred on (cx, cy) reaches (x, y) when it is within the radius and no wall stands between them
+export function blastReaches(cx, cy, x, y, radius) {
+  return chebyshev({ x: cx, y: cy }, { x, y }) <= radius && hasLos(cx, cy, x, y);
+}
+
 export function aoeCombatantHits(ability, caster, cx, cy) {
   const radius  = ability.radius > 0 ? ability.radius : 1;
   const isAlly  = ability.targetKind === 'ally';
   const pool    = isAlly ? livingCombatants(caster.teamIndex) : enemies(caster);
-  return pool.filter(t => chebyshev({ x: cx, y: cy }, t) <= radius);
+  return pool.filter(t => blastReaches(cx, cy, t.x, t.y, radius));
+}
+
+// The caster must see the cell an area spell is centred on
+export function aoeCenterValid(caster, ability, gx, gy) {
+  return chebyshev(caster, { x: gx, y: gy }) <= (ability.range ?? SPELL_RANGE)
+    && isWalkableG(S.currentMap, gx, gy) && hasLos(caster.x, caster.y, gx, gy);
 }
 
 export function hasValidTarget(actor, ability) {
@@ -773,8 +785,7 @@ export function setupCanvasClickHandler() {
       const section     = S.aimSection;
 
       if (S.aimAbility.isAoe) {
-        const range = S.aimAbility.range ?? SPELL_RANGE;
-        if (chebyshev(active, { x: gx, y: gy }) <= range) {
+        if (aoeCenterValid(active, S.aimAbility, gx, gy)) {
           const hits = aoeCombatantHits(S.aimAbility, active, gx, gy);
           if (hits.length === 0) { addLog('No valid target in that area — pick another cell.', 'info'); return; }
           exitAimMode();
@@ -887,23 +898,21 @@ export function drawMap() {
   }
   if (S.aimMode && S.aimAbility && active) {
     if (S.aimAbility.isAoe) {
-      const range   = S.aimAbility.range ?? SPELL_RANGE;
       const radius  = S.aimAbility.radius > 0 ? S.aimAbility.radius : 1;
       const { cols, rows } = S.currentMap.grid;
       ctx.fillStyle = 'rgba(255,140,0,0.12)';
       for (let gy = 0; gy < rows; gy++) {
         for (let gx = 0; gx < cols; gx++) {
-          if (!isWalkableG(S.currentMap, gx, gy)) continue;
-          if (chebyshev(active, { x: gx, y: gy }) <= range)
+          if (aoeCenterValid(active, S.aimAbility, gx, gy))
             ctx.fillRect(gx * cp + 1, gy * cp + 1, cp - 2, cp - 2);
         }
       }
-      if (S.aimHover && chebyshev(active, S.aimHover) <= range) {
+      if (S.aimHover && aoeCenterValid(active, S.aimAbility, S.aimHover.x, S.aimHover.y)) {
         const { x: hx, y: hy } = S.aimHover;
         ctx.fillStyle = 'rgba(255,100,0,0.38)';
         for (let gy = 0; gy < rows; gy++) {
           for (let gx = 0; gx < cols; gx++) {
-            if (chebyshev({ x: hx, y: hy }, { x: gx, y: gy }) <= radius)
+            if (isWalkableG(S.currentMap, gx, gy) && blastReaches(hx, hy, gx, gy, radius))
               ctx.fillRect(gx * cp + 1, gy * cp + 1, cp - 2, cp - 2);
           }
         }
@@ -2273,7 +2282,7 @@ export function resumePendingAction(reactAbility) {
           applyDamage(primary, action.result.damage, damType, ability.tags);
           if (ability.radius > 0) {
             const splashTargets = enemies(caster)
-              .filter(t => t.id !== primary.id && chebyshev(primary, t) <= ability.radius);
+              .filter(t => t.id !== primary.id && blastReaches(primary.x, primary.y, t.x, t.y, ability.radius));
             if (splashTargets.length > 0) {
               addLog(`  Splash radius ${ability.radius} hits ${splashTargets.map(t => t.name).join(', ')}!`, 'spell');
               // the primary target's attack roll is the one the bystanders defend against
