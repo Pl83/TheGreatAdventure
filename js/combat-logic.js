@@ -1862,12 +1862,21 @@ export function suppressDomain(ownerCombatant) {
   updateCombatantCardDOM(ownerCombatant);
 }
 
+// One domain per team: a teammate's active domain blocks a new expansion until it ends
+export function activeAllyDomain(c) {
+  return S.activeDomains.find(d => d.casterId !== c.id && getCombatant(d.casterId)?.teamIndex === c.teamIndex) ?? null;
+}
+
 export function handleActivateDomain(casterId) {
   const c      = getCombatant(casterId);
   const domain = c?.sourceChar.domain;
   if (!c || !domain) return;
   if (S.hasActed) { addLog('You have already acted this turn!', 'info'); return; }
   if (c.domainActive)   { addLog(`${c.name}'s domain is already active!`, 'info'); return; }
+  const allyDomain = activeAllyDomain(c);
+  if (allyDomain) {
+    addLog(`⚠ ${getCombatant(allyDomain.casterId).name}'s ${allyDomain.domain.name} is already active — one domain per team.`, 'info'); return;
+  }
   if (c.domainCharges <= 0) { addLog(`⚠ ${c.name} has no more domain charges!`, 'info'); return; }
   if (c.spellSlots < domain.spellCost) {
     addLog(`⚠ ${c.name} needs ${domain.spellCost} spell slots for ${domain.name}!`, 'info'); return;

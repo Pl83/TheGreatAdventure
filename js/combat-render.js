@@ -8,7 +8,7 @@ import {
   enemies, targetPool, abilityAvailable, hasSilence, hasValidTarget, hasControlEffect,
   chebyshev, targetInRange,
   drawMap, setupCanvasClickHandler,
-  clearAimState, startCombat, goToMapChoice, confirmMap,
+  clearAimState, startCombat, goToMapChoice, confirmMap, activeAllyDomain,
 } from './combat-logic.js';
 
 import { loadManifest, loadMapMeta } from './dungeon-loader.js';
@@ -258,6 +258,7 @@ export function actionPanelHTML(c) {
 
   const domain = c.sourceChar.domain;
   const chargesLeft = c.domainCharges ?? 0;
+  const allyDomain  = domain && !c.domainActive ? activeAllyDomain(c) : null;
   const domainSection = domain ? (c.domainActive
     ? `<div class="action-section"><span class="domain-active-badge">🌐 ${domain.name} — Active (${chargesLeft} charge${chargesLeft !== 1 ? 's' : ''} left)</span></div>`
     : chargesLeft > 0
@@ -265,9 +266,10 @@ export function actionPanelHTML(c) {
           <label class="action-label">Domain Expansion</label>
           <span class="domain-cost-label">${domain.name} · ${domain.type} · Ref.${domain.rafinement ?? 'N/A'} · ${domain.spellCost}S · ${chargesLeft}/${Math.max(1, Math.floor((domain.rafinement ?? 0) / 3))} charges</span>
           <button class="action-btn domain-btn" id="btn-domain" data-caster="${c.id}"
-                  ${(c.spellSlots < domain.spellCost || acted) ? 'disabled' : ''}>
+                  ${(c.spellSlots < domain.spellCost || acted || allyDomain) ? 'disabled' : ''}>
             Activate Domain
           </button>
+          ${allyDomain ? `<span class="domain-cost-label">Blocked — ${getCombatant(allyDomain.casterId).name}'s domain is active (one per team)</span>` : ''}
         </div>`
       : `<div class="action-section"><span class="domain-active-badge" style="opacity:0.5">🌐 ${domain.name} — No charges left</span></div>`) : '';
 
