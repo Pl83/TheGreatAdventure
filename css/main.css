@@ -2284,6 +2284,85 @@ header.nav-open .nav-toggle span:nth-child(3) { transform: translateY(-9px) rota
 }
 
 /* =============================================================================
+   1b · MAP CHOICE — "The Field of Battle"
+   ============================================================================= */
+.map-choice-screen {
+  max-width: 620px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--tga-s-5);
+}
+.map-choice-list { display: flex; flex-direction: column; gap: var(--tga-s-3); }
+.map-choice-row {
+  display: flex;
+  align-items: center;
+  gap: var(--tga-s-4);
+  width: 100%;
+  padding: 10px 14px;
+  text-align: left;
+  background: var(--tga-vellum-2);
+  border: 1px solid var(--tga-rule);
+  border-left: 3px solid var(--tga-bronze);
+  border-radius: var(--tga-r-sm);
+  color: var(--tga-text);
+  cursor: pointer;
+  transition: border-color var(--tga-dur-fast), box-shadow var(--tga-dur-base) var(--tga-ease),
+              background var(--tga-dur-base) var(--tga-ease);
+}
+.map-choice-row:hover { border-color: var(--tga-bronze); box-shadow: var(--tga-shadow-lift); }
+.map-choice-row.is-selected {
+  background: var(--tga-vellum);
+  border-color: var(--tga-gold);
+  border-left-color: var(--tga-gold);
+  box-shadow: var(--tga-shadow-glow-gold);
+}
+.map-choice-thumb {
+  flex: none;
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border: 1px solid var(--tga-rule);
+  border-radius: var(--tga-r-sm);
+  background: var(--tga-paper);
+}
+.map-choice-die { display: grid; place-items: center; font-size: 34px; }
+.map-choice-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.map-choice-title {
+  font-family: var(--tga-font-display);
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  font-size: var(--tga-fs-sm);
+}
+.map-choice-sub {
+  font-family: var(--tga-font-script);
+  font-style: italic;
+  color: var(--tga-text-soft);
+}
+.map-choice-screen .secondary-btn { color: var(--tga-text); }
+.map-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--tga-s-4);
+  padding: var(--tga-s-7) 0;
+}
+.map-loading-die { font-size: 52px; animation: map-spin 1.1s linear infinite; }
+.map-loading-text {
+  font-family: var(--tga-font-script);
+  font-style: italic;
+  font-size: var(--tga-fs-md);
+  color: var(--tga-text-soft);
+}
+@keyframes map-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .map-loading-die { animation-duration: 4s; } }
+@media (max-width: 480px) {
+  .map-choice-thumb { width: 56px; height: 56px; }
+  .map-choice-screen .rematch-actions .combat-start-btn { padding: 12px 20px; }
+}
+
+/* =============================================================================
    2 · INITIATIVE — "The Dice Decide"
    ============================================================================= */
 .initiative-screen {

@@ -5,6 +5,7 @@
 // ── §1  Imports ────────────────────────────────────────────────────────────
 import { EFFECTS } from './main.js';
 import { loadManifest, loadMap, cellPxOf, isWalkableG } from './dungeon-loader.js';
+import { loadRandomMapOrManor } from './random-map.js';
 
 // Render functions registered by combat-render.js to break the circular dep.
 export const _R = {
@@ -32,7 +33,7 @@ export async function loadChars() {
 }
 
 export const S = {
-  phase: 'selection',   // 'selection' | 'initiative' | 'combat' | 'victory'
+  phase: 'selection',   // 'selection' | 'mapchoice' | 'initiative' | 'combat' | 'victory'
   teamNames: [[], []],  // up to 5 character names per team
   combatants: [],
   initiativeOrder: [],
@@ -48,6 +49,8 @@ export const S = {
   hasActed:    false,   // active combatant used their action this turn
   // ── Map system ──────────────────────────────────────────────────────────
   currentMap:     null,
+  mapChoice:      null,   // manifest slug or 'random', picked on the map-choice screen
+  mapLoading:     false,  // true while confirmMap resolves the map
   mapViewFilter:  'both',
   hasMoved:       false,
   moveMode:       false,
@@ -2429,6 +2432,32 @@ export function endCombat(winner) {
   setTimeout(() => _R.renderVictoryScreen(), 1200);
 }
 
+const FALLBACK_MAP = 'manor_of_nadargath';
+
+/** Open the map-choice step; the first manifest entry is pre-selected every time. */
+export async function goToMapChoice() {
+  const manifest  = await loadManifest().catch(() => [FALLBACK_MAP]);
+  S.currentMap    = null;
+  S.mapChoice     = manifest[0] ?? FALLBACK_MAP;
+  S.mapLoading    = false;
+  S.phase         = 'mapchoice';
+  _R.render();
+}
+
+/** Resolve the chosen map (falling back to Manor on any failure), then roll initiative. */
+export async function confirmMap(choice) {
+  if (S.mapLoading || S.phase !== 'mapchoice') return;
+  S.mapLoading = true;
+  _R.render();
+  const map = choice === 'random'
+    ? await loadRandomMapOrManor()
+    : await loadMap(choice).catch(() => loadMap(FALLBACK_MAP));
+  S.mapLoading = false;
+  if (S.phase !== 'mapchoice') return; // left the screen while loading
+  S.currentMap = map;
+  await startInitiative();
+}
+
 export async function startInitiative() {
   S.combatants = [];
   let id = 0;
@@ -2450,9 +2479,6 @@ export async function startInitiative() {
     .sort((a, b) => b.initiativeRoll - a.initiativeRoll)
     .map(c => c.id);
 
-  const manifest   = await loadManifest();
-  const slug       = manifest[Math.floor(Math.random() * manifest.length)];
-  S.currentMap     = await loadMap(slug);
   S.mapViewFilter  = 'both';
   S.hasMoved       = false;
   S.hasActed       = false;

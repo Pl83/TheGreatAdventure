@@ -8,9 +8,10 @@ import {
   enemies, targetPool, abilityAvailable, hasSilence, hasValidTarget, hasControlEffect,
   chebyshev, targetInRange,
   drawMap, setupCanvasClickHandler,
-  clearAimState, startCombat, startInitiative,
+  clearAimState, startCombat, goToMapChoice, confirmMap,
 } from './combat-logic.js';
 
+import { loadManifest, loadMapMeta } from './dungeon-loader.js';
 import { bindSelectionEvents, bindCombatEvents, bindReactEvents } from './combat-events.js';
 
 export const root = document.getElementById('combat-root');
@@ -366,6 +367,7 @@ export function renderMapToggleHTML() {
 
 export function render() {
   if (S.phase === 'selection')       renderSelectionScreen();
+  else if (S.phase === 'mapchoice')  renderMapChoiceScreen();
   else if (S.phase === 'initiative') renderInitiativeScreen();
   else if (S.phase === 'combat')     renderCombatScreen();
   else if (S.phase === 'victory')    renderVictoryScreen();
@@ -429,6 +431,70 @@ export function renderSelectionScreen() {
     </div>`;
 
   bindSelectionEvents();
+}
+
+// Manifest titles + thumbnails, fetched once per page load
+let mapMetas = null;
+function permanentMaps() {
+  mapMetas ??= loadManifest()
+    .then(slugs => Promise.all(slugs.map(loadMapMeta)))
+    .catch(() => { mapMetas = null; return []; });
+  return mapMetas;
+}
+
+export async function renderMapChoiceScreen() {
+  const metas = await permanentMaps();
+  if (S.phase !== 'mapchoice') return; // moved on while the manifest loaded
+
+  const row = (choice, thumb, title, sub) => `
+    <button class="map-choice-row${S.mapChoice === choice ? ' is-selected' : ''}"
+            data-choice="${choice}" aria-pressed="${S.mapChoice === choice}">
+      ${thumb}
+      <span class="map-choice-text">
+        <span class="map-choice-title">${title}</span>
+        ${sub ? `<span class="map-choice-sub">${sub}</span>` : ''}
+      </span>
+    </button>`;
+  const rows = metas.map(m => row(m.slug,
+      `<img class="map-choice-thumb" src="${m.thumb}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">`,
+      m.name, '')).join('')
+    + row('random', '<span class="map-choice-thumb map-choice-die" aria-hidden="true">🎲</span>',
+      'Random dungeon', 'Freshly generated each time');
+
+  root.innerHTML = `
+    <div class="map-choice-screen">
+      <div class="selection-header">
+        <span class="cx-eyebrow">The Field of Battle</span>
+        <h3 class="selection-title">Choose Your Battlefield</h3>
+      </div>
+      ${S.mapLoading
+        ? `<div class="map-loading" role="status">
+             <span class="map-loading-die" aria-hidden="true">🎲</span>
+             <span class="map-loading-text">${S.mapChoice === 'random' ? 'Drawing the dungeon…' : 'Unrolling the map…'}</span>
+           </div>`
+        : `<div class="map-choice-list">${rows}</div>
+           <div class="rematch-actions">
+             <button class="combat-start-btn secondary-btn" id="btn-map-back">↩ Back</button>
+             <button class="combat-start-btn" id="btn-map-confirm">Confirm map</button>
+           </div>`}
+    </div>`;
+
+  root.querySelectorAll('.map-choice-row').forEach(btn => {
+    btn.addEventListener('click', () => {
+      S.mapChoice = btn.dataset.choice;
+      root.querySelectorAll('.map-choice-row').forEach(b => {
+        const on = b === btn;
+        b.classList.toggle('is-selected', on);
+        b.setAttribute('aria-pressed', on);
+      });
+    });
+  });
+  document.getElementById('btn-map-back')?.addEventListener('click', () => {
+    if (S.mapLoading) return;
+    S.phase = 'selection';
+    render();
+  });
+  document.getElementById('btn-map-confirm')?.addEventListener('click', () => confirmMap(S.mapChoice));
 }
 
 export function renderInitiativeScreen() {
@@ -564,8 +630,8 @@ export function renderVictoryScreen() {
     S.hasMoved = false; S.hasActed = false; S.moveMode = false; S.reachableCells = new Map();
     clearAimState();
     const btn = document.getElementById('btn-rematch');
-    if (btn) { btn.disabled = true; btn.textContent = '⏳ Loading map…'; }
-    await startInitiative();
+    if (btn) btn.disabled = true;
+    await goToMapChoice();
   });
 
   document.getElementById('btn-new-teams')?.addEventListener('click', () => {
@@ -573,7 +639,7 @@ export function renderVictoryScreen() {
       phase: 'selection', teamNames: [[], []], combatants: [],
       initiativeOrder: [], log: [], winnerTeam: null,
       awaitingReact: false, pendingAction: null, reactOptions: [],
-      currentMap: null, mapViewFilter: 'both',
+      currentMap: null, mapChoice: null, mapLoading: false, mapViewFilter: 'both',
       hasMoved: false, hasActed: false, moveMode: false, reachableCells: new Map(),
     });
     render();

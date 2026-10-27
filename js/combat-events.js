@@ -11,7 +11,7 @@ import {
   handleReactYes, handleReactNo,
   enterMoveMode, exitMoveMode,
   enterAimMode, exitAimMode, cancelAim, koAllies,
-  addLog, startInitiative,
+  addLog, goToMapChoice,
 } from './combat-logic.js';
 
 import { abilityPreviewHTML, abilityFireLabel, renderCombatScreen, renderSelectionScreen } from './combat-render.js';
@@ -51,8 +51,8 @@ export function bindSelectionEvents() {
   });
   document.getElementById('btn-start')?.addEventListener('click', async () => {
     const btn = document.getElementById('btn-start');
-    if (btn) { btn.disabled = true; btn.textContent = '⏳ Loading map…'; }
-    await startInitiative();
+    if (btn) btn.disabled = true;
+    await goToMapChoice();
   });
 }
 
