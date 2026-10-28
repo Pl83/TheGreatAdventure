@@ -53,6 +53,9 @@ test('headless mode never touches render hooks or the DOM', async () => {
     assert.equal(L.isHeadless(), true);
     await newFight({ teamA, teamB, seed: 2 });
     L.handlePass();
+    L.enterAimMode({ name: 'x' }, 'spell');
+    L.exitAimMode();
+    L.cancelAim();
     assert.equal(calls, 0);
   } finally { globalThis.document = doc; Object.assign(L._R, saved); }
 });

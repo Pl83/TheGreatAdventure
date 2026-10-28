@@ -22,7 +22,8 @@ let headless = false;
 export function setHeadless(on) { headless = !!on; }
 export function isHeadless() { return headless; }
 const later = (fn, ms) => { if (headless) fn(); else setTimeout(fn, ms); };
-const R = new Proxy(_R, { get: (hooks, name) => (headless ? () => {} : hooks[name]) });
+const noop = () => {};
+const R = new Proxy(_R, { get: (hooks, name) => (headless ? noop : hooks[name]) });
 
 // ── §2  State ──────────────────────────────────────────────────────────────
 export let allChars = [];
@@ -635,7 +636,7 @@ export function enterAimMode(ability, section) {
   S.aimAbility = ability;
   S.aimSection = section;
   S.aimHover   = null;
-  document.getElementById('dungeon-canvas')?.classList.add('aim-mode');
+  if (!headless) document.getElementById('dungeon-canvas')?.classList.add('aim-mode');
   drawMap();
 }
 
