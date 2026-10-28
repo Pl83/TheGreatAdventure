@@ -11,7 +11,7 @@ import { snapshot, restore } from './snapshot.js';
 import { applyPlan, settleReacts } from './apply.js';
 import { greedyTurn, greedyReact } from './greedy.js';
 import { enumeratePlans } from './candidates.js';
-import { material, engagement } from './evaluate.js';
+import { material, engagement, bounded, livingCounts } from './evaluate.js';
 import { walkDistance } from './paths.js';
 
 export const MAX_MS = 8000;
@@ -19,7 +19,8 @@ const MAX_ACTIONS_PER_TURN = 5;   // as in a real fight: instant casts leave the
 const MIN_HORIZON = 3;            // further unit turns played before scoring: a 1v1 still sees its own next turn
 const MAX_HORIZON = 8;
 const MAX_STEPS = 200;            // hard stop against a simulation that never advances
-const MAX_KEPT = 40;              // plans carried past the first pass (plans whose sample KO'd a foe are kept too)
+const MAX_KEPT = 40;              // plans carried past the first pass
+const MAX_LETHAL = 10;            // plans below the cut kept anyway because a sample KO'd a foe (the best of them)
 
 // Further unit turns a simulation plays after the candidate's own, whichever side they fall to: about half
 // the living units plus one (6 in a 5v5), so an approach is still on the board when the foes have answered
@@ -74,9 +75,9 @@ function playOut(first, teamIndex, horizon = horizonFor(livingCount()), out = nu
     if (!applyPlan(p).accepted) handlePass();
   }
   if (out && !turns) out.ko = livingFoes(teamIndex) < foes;
-  const m = material(teamIndex);
-  if (S.phase !== 'combat') return m;
-  return m + (engaged ?? engagement(teamIndex, targets));
+  const [own, rest] = livingCounts(teamIndex);
+  if (!own || !rest) return material(teamIndex);
+  return bounded(material(teamIndex) + (engaged ?? engagement(teamIndex, targets)));
 }
 
 // One simulation from snap, headless and on the lookahead stream; S is rewound to snap whatever happens
@@ -148,8 +149,8 @@ export function search(teamIndex, budget, seed) {
   const byMean = ids => ids.sort((x, y) => mean(y) - mean(x) || approach[x] - approach[y]);   // stable
 
   // Pass 1: one sample each, two when the budget allows (on a clock, stops once time is up but never before
-  // the first sample). A plan whose sample KO'd a foe survives the cut whatever its mean: a lucky kill is
-  // worth a closer look rather than a single unlucky roll deciding against it.
+  // the first sample). Up to MAX_LETHAL plans whose sample KO'd a foe survive the cut whatever their mean: a
+  // lucky kill is worth a closer look rather than a single unlucky roll deciding against it.
   const firstPass = b.sims !== undefined && b.sims >= 2 * plans.length ? 2 : 1;
   let alive = [];
   for (let i = 0; i < plans.length; i++) {
@@ -158,7 +159,7 @@ export function search(teamIndex, budget, seed) {
     alive.push(i);
   }
   alive = byMean(alive);
-  alive = [...alive.slice(0, MAX_KEPT), ...alive.slice(MAX_KEPT).filter(i => lethal[i])];
+  alive = [...alive.slice(0, MAX_KEPT), ...alive.slice(MAX_KEPT).filter(i => lethal[i]).slice(0, MAX_LETHAL)];
 
   // Successive halving: the survivors share what is left, then the better half goes on. Each round's share is
   // rounded up, so a sims budget is spent to the last simulation by the final pair.

@@ -131,13 +131,21 @@ test('simulate is deterministic for a seed and leaves the fight as it was', asyn
   assert.equal(live(), before);
 });
 
-test('an ms budget is respected', async () => {
+test('an ms budget is respected, on a clock the test controls', async () => {
   await midFight();
-  const t0 = performance.now();
-  const { plan, sims, ms } = search(0, { ms: 300 }, 3);
-  const took = performance.now() - t0;
-  assert.ok(took < 600, `took ${took.toFixed(0)} ms`);
-  assert.ok(ms <= took + 1);
+  // Every reading of the clock advances it 2 ms: the search sees simulations as slow and steady, so where it
+  // stops depends on its deadline logic only, not on the machine's speed or load
+  const real = performance.now;
+  let now = 0;
+  performance.now = () => (now += 2);
+  let result;
+  try {
+    result = search(0, { ms: 300 }, 3);
+  } finally {
+    performance.now = real;
+  }
+  const { plan, sims, ms } = result;
+  assert.ok(ms <= 300, `the search reports ${ms} ms`);
   assert.ok(sims >= 1);
   assert.ok(plan);
 });

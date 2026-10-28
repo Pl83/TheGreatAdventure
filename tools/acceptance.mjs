@@ -1,10 +1,12 @@
 // Development-only: node tools/acceptance.mjs [--quick] [--workers N]
 // The project's acceptance checks, run in order, each printed as PASS or FAIL with its numbers:
-//   1 strength        the ai against greedy on 4 team pairs, the ai playing each team from each seat: >= 80% wins
+//   1 strength        the ai against greedy on 4 team pairs, the ai playing each team from each seat, on seeds
+//                     101-104, which no tuning run used: >= 80% wins
 //   2 violations      200 mixed fights (ai against ai, ai against greedy in both seatings): zero violations,
 //                     a stall (no winner by the round cap) counted as one
 //   3 determinism     one ai-against-ai fight played twice from its seed: identical results, timing aside
-//   4 time            the slowest decision under { ms: 8000 } over 5 fights stays within 8000 ms
+//   4 time            the slowest decision under { ms: 8000 } over 5 fights (4 duels and the spec 5v5) stays
+//                     within 8000 ms
 //   5 demonstrations  over stage 2's ai-against-ai fights, once-per-fight uses, control-then-ally and reacts
 //                     all above zero
 // --quick shrinks every stage to a smoke test (a few fights; a small budget except for strength); the bars stay
@@ -31,18 +33,20 @@ const PAIRS = [SPEC, TRIO, DUO, DUEL];
 // Stage 2 mixes in one more pair, a 2v2 the strength pairs do not cover
 const MIXED = [...PAIRS, [['Vayl-Soran', 'Future Zane'], ['Ronin Lloyd', 'Mira']]];
 
+// The weights were tuned on strength seeds 1-8 (and ai-against-ai seeds 2001-2008); the strength stage plays
+// seeds no tuning run has seen, so its number is held out
 const FULL = {
-  strength:    { pairs: PAIRS, seeds: 4, budget: { sims: DEFAULT_SIMS } },            // 4 x 4 x 4 = 64 fights
+  strength:    { pairs: PAIRS, seeds: [101, 104], budget: { sims: DEFAULT_SIMS } },   // 4 x 4 x 4 = 64 fights
   violations:  { pairs: MIXED, fights: 200, budget: { sims: DEFAULT_SIMS } },
   determinism: { pair: SPEC, budget: { sims: DEFAULT_SIMS } },
-  time:        { pair: DUEL, fights: 5, budget: { ms: MAX_MS } },
+  time:        { pairs: [DUEL, DUEL, DUEL, DUEL, SPEC], budget: { ms: MAX_MS } },
 };
 const QUICK = {
   // Strength at a reduced budget would test a weaker brain than the one shipped: a few fights at the real one
-  strength:    { pairs: [SPEC, DUO], seeds: 1, budget: { sims: DEFAULT_SIMS } },     // 8 fights
+  strength:    { pairs: [SPEC, DUO], seeds: [1, 1], budget: { sims: DEFAULT_SIMS } }, // 8 fights
   violations:  { pairs: [SPEC, DUO], fights: 6, budget: { sims: 60 } },
   determinism: { pair: DUEL, budget: { sims: 60 } },
-  time:        { pair: DUEL, fights: 1, budget: { ms: 150 } },
+  time:        { pairs: [DUEL], budget: { ms: 150 } },
 };
 
 function parseArgs(argv) {
@@ -81,7 +85,7 @@ const t0 = performance.now();
   const { pairs, seeds, budget } = P.strength;
   const fights = [];
   for (const pair of pairs) {
-    for (let seed = 1; seed <= seeds; seed++) {
+    for (let seed = seeds[0]; seed <= seeds[1]; seed++) {
       for (const ai of [0, 1]) {
         for (const seat of [0, 1]) {
           const teams = seat === 0 ? [ai, 1 - ai] : [1 - ai, ai];
@@ -100,7 +104,8 @@ const t0 = performance.now();
       + `stalled ${mine.filter(f => f.stalled).length}`;
   });
   report('strength', won / rs.length >= WIN_BAR,
-    `ai won ${won} of ${rs.length} fights against greedy (${pct(won, rs.length)}, bar ${WIN_BAR * 100}%) at ${describe(budget)}`, perPair);
+    `ai won ${won} of ${rs.length} fights against greedy (${pct(won, rs.length)}, bar ${WIN_BAR * 100}%) at ${describe(budget)}, `
+    + `seeds ${seeds[0]}..${seeds[1]}`, perPair);
 }
 
 // 2. Violations (and the fights stage 5 counts)
@@ -134,13 +139,13 @@ let aiOnly;
 
 // 4. Time: on its own, one fight at a time
 {
-  const { pair, fights: n, budget } = P.time;
-  const jobs = [];
-  for (let i = 0; i < n; i++) jobs.push(job(pair, i % 2 ? [1, 0] : [0, 1], i % 2 ? ['greedy', 'ai'] : ['ai', 'greedy'], 500 + i, budget));
+  const { pairs, budget } = P.time;
+  const jobs = pairs.map((pair, i) => job(pair, i % 2 ? [1, 0] : [0, 1], i % 2 ? ['greedy', 'ai'] : ['ai', 'greedy'], 500 + i, budget));
   const rs = await runFights(jobs, { workers: 1 });
   const slowest = Math.max(...rs.map(r => r.maxDecisionMs));
+  const sizes = pairs.map(p => `${p[0].length}v${p[1].length}`).join(', ');
   report('time', slowest <= MAX_MS,
-    `slowest decision ${slowest.toFixed(0)} ms over ${n} fight(s) at ${describe(budget)} (cap ${MAX_MS} ms)`);
+    `slowest decision ${slowest.toFixed(0)} ms over ${pairs.length} fight(s) (${sizes}) at ${describe(budget)} (cap ${MAX_MS} ms)`);
 }
 
 // 5. Demonstrations, from stage 2's ai-against-ai fights

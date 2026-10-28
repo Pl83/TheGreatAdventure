@@ -7,7 +7,7 @@ const L = await import('../js/combat-logic.js');
 const { applyPlan, settleReacts } = await import('../js/ai/apply.js');
 const { greedyTurn, greedyReact, avgDice } = await import('../js/ai/greedy.js');
 const { snapshot } = await import('../js/ai/snapshot.js');
-const { evaluate, engagement, material, WEIGHTS } = await import('../js/ai/evaluate.js');
+const { evaluate, engagement, material, bounded, WEIGHTS } = await import('../js/ai/evaluate.js');
 
 const { S } = L;
 const teamA = ['Zhuqiao, Vermillion Bird', 'Jay, Azure Dragon', 'Jeagen, White Tiger', 'Black Turtle', 'Meï'];
@@ -99,6 +99,26 @@ test('the win weight is above any material lead short of a win', async () => {
   theirs().slice(1).forEach(ko);
   theirs()[0].currentHp = 1;
   assert.ok(WEIGHTS.win > evaluate(0), `near-won position scores ${evaluate(0)}`);
+});
+
+test('late in a long fight a surviving side, however far and hurt, still scores above a wiped one', async () => {
+  await newFight({ teamA, teamB, seed: 1 });
+  S.roundNumber = 40;
+  mine().forEach(c => { c.currentHp = 1; c.statusEffects.push(status('stun')); });
+  // The teams start far apart: the engagement term is at its cap, a third of a win
+  assert.ok(engagement(0) >= -WEIGHTS.win / 3);
+  assert.ok(evaluate(0) > -WEIGHTS.win, `surviving scores ${evaluate(0)}`);
+  mine().slice(1).forEach(ko);
+  assert.ok(evaluate(0) > -WEIGHTS.win);
+  ko(mine()[0]);
+  assert.equal(evaluate(0), -WEIGHTS.win);
+});
+
+test('any position short of a win scores strictly inside (-win, win), whatever the roster', () => {
+  for (const v of [1e9, 31, 29.5, -29.5, -1e9]) {
+    assert.ok(bounded(v) < WEIGHTS.win && bounded(v) > -WEIGHTS.win, `${v} -> ${bounded(v)}`);
+  }
+  assert.equal(bounded(2.5), 2.5);
 });
 
 test('a symmetric view: the two teams see opposite material scores', async () => {

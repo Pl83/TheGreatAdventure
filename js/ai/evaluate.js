@@ -16,9 +16,24 @@ export const WEIGHTS = Object.freeze({
   damage: 0.005,    // per point of average damage in ready damage abilities (own minus enemy)
   engage: 0.05,     // per step an own unit must still walk before its longest reach covers the nearest foe
   engageRise: 0.25, // the engage weight is multiplied by (1 + engageRise * round)^2, so standoffs get broken
-  win: 30,          // no living enemy left; the same, negated, when no living own unit is left. Above any
-                    // material lead a 5v5 can show, yet small enough that a rare won sample cannot swamp a mean
+  win: 30,          // no living enemy left; the same, negated, when no living own unit is left. Every other
+                    // position scores strictly inside (-win, win) (see bounded), yet win is small enough that a
+                    // rare won sample cannot swamp a mean
 });
+
+// The engagement term never weighs more than a third of a win, at any round
+const ENGAGE_MAX = WEIGHTS.win / 3;
+
+// A position that is not over scores strictly between a loss and a win, whatever the roster or the round:
+// a rollout that wiped a side always ranks beyond every rollout that did not
+export const bounded = v => Math.max(1 - WEIGHTS.win, Math.min(WEIGHTS.win - 1, v));
+
+// Living units of teamIndex and of its foes, as [own, foes]
+export function livingCounts(teamIndex) {
+  let own = 0, foes = 0;
+  for (const c of S.combatants) if (!c.isKO) { if (c.teamIndex === teamIndex) own++; else foes++; }
+  return [own, foes];
+}
 
 const avgCache = new Map();
 const average = expr => {
@@ -65,7 +80,7 @@ export function engagement(teamIndex, foes = null) {
     gaps += Math.min(MAX_GAP, Math.max(0, walk - reach(c)));
   }
   const rise = 1 + WEIGHTS.engageRise * S.roundNumber;
-  return -WEIGHTS.engage * rise * rise * gaps;
+  return -Math.min(ENGAGE_MAX, WEIGHTS.engage * rise * rise * gaps);
 }
 
 // Score of one side's living units, from the point of view of the side that owns them
@@ -92,11 +107,12 @@ export function material(teamIndex) {
   }
   if (!foesAlive) return WEIGHTS.win;
   if (!ownAlive) return -WEIGHTS.win;
-  return mine - theirs;
+  return bounded(mine - theirs);
 }
 
 // The position's score for teamIndex: material, plus the engagement term while the fight goes on
 export function evaluate(teamIndex) {
-  const m = material(teamIndex);
-  return Math.abs(m) === WEIGHTS.win ? m : m + engagement(teamIndex);
+  const [own, foes] = livingCounts(teamIndex);
+  if (!own || !foes) return material(teamIndex);
+  return bounded(material(teamIndex) + engagement(teamIndex));
 }
