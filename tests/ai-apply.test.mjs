@@ -120,3 +120,47 @@ test('handleTeleportClick on an occupied cell returns false and stays in telepor
   assert.equal(L.handleTeleportClick(dest.x, dest.y), true);
   assert.equal(S.teleportMode, false);
 });
+
+// `name`'s turn in a 1v1 against Thormak
+async function turnOf(name, seed = 1) {
+  await newFight({ teamA: [name], teamB: [THORMAK], seed });
+  if (L.activeCombatant().name !== name) L.handlePass();
+  return L.activeCombatant();
+}
+
+test('an instant self-cast as the turn action is accepted and paid for', async () => {
+  const baba = await turnOf('Babacool');
+  const slots = baba.spellSlots, serial = S.turnSerial;
+  const r = applyPlan({ move: null, action: { type: 'cast', ability: 'Tree', targetIds: [baba.id] } });
+  assert.equal(r.accepted, true);
+  assert.equal(r.reason, undefined);
+  assert.equal(baba.spellSlots, slots - 1);
+  assert.equal(S.turnSerial, serial);
+});
+
+test('a proactive Greater Teleportation completed at dest is accepted', async () => {
+  const kadgar = await turnOf(KADGAR);
+  const slots = kadgar.spellSlots;
+  const dest = freeCellNear(kadgar, 5);
+  const r = applyPlan({ move: null, action: { type: 'cast', ability: 'Greater Teleportation', targetIds: [kadgar.id], dest } });
+  assert.equal(r.accepted, true);
+  assert.equal(S.teleportMode, false);
+  assert.deepEqual({ x: kadgar.x, y: kadgar.y }, dest);
+  assert.equal(kadgar.spellSlots, slots - 2);
+});
+
+test('a refused cast (no resource) is still rejected', async () => {
+  const baba = await turnOf('Babacool');
+  baba.spellSlots = 0;
+  const r = applyPlan({ move: null, action: { type: 'cast', ability: 'Tree', targetIds: [baba.id] } });
+  assert.equal(r.accepted, false);
+  assert.ok(r.reason);
+});
+
+test('a plan is refused while a react is pending', async () => {
+  const { kadgar } = await duel();
+  applyPlan({ move: null, action: { type: 'attack', targetId: kadgar.id } });
+  assert.equal(S.awaitingReact, true);
+  assert.deepEqual(applyPlan({ move: null, action: { type: 'pass' } }), { accepted: false, reason: 'react pending' });
+  assert.equal(S.awaitingReact, true);
+});

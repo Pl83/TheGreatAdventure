@@ -45,6 +45,7 @@ function doMove(to) {
 export function applyPlan(plan) {
   const c = activeCombatant();
   if (!c || S.phase !== 'combat') return { accepted: false, reason: 'no fight in progress' };
+  if (S.awaitingReact || S.teleportMode) return { accepted: false, reason: 'react pending' };
   const reasons = [];
   if (plan.move) {
     const moveFail = doMove(plan.move);
@@ -65,7 +66,10 @@ export function applyPlan(plan) {
     default:          reasons.push(`unknown action ${a?.type}`);
   }
 
-  const accepted = S.turnSerial !== serial || (!acted && S.hasActed)
+  // An instant cast keeps the turn open and leaves hasActed alone: its "uses" log line (written only once
+  // every check has passed and the cost is paid) is the proof it happened
+  const cast = a?.type === 'cast' && S.log.slice(logLen).some(e => e.text === `${c.name} uses ${a.ability}!`);
+  const accepted = S.turnSerial !== serial || (!acted && S.hasActed) || cast
     || S.awaitingReact || !!S.pendingAction || S.phase !== 'combat';
   // The engine explains its refusals in the log
   if (!accepted) reasons.push(S.log.slice(logLen).at(-1)?.text ?? `${a?.type} rejected`);
