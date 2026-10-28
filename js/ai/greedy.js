@@ -10,7 +10,7 @@ import { distanceToFoes } from './paths.js';
 const HEAL_BELOW = 0.6;
 
 // Expected value of a dice expression such as "2d6+3" or "1d8*(2d4)"; missingHp terms count as 0
-function avgDice(expr) {
+export function avgDice(expr) {
   if (!expr) return 0;
   let s = String(expr).replace(/[+-]?\s*\d+\s*%\s*missingHp/gi, '')
     .replace(/(\d+)d(\d+)/gi, (_, n, m) => String(n * (+m + 1) / 2)).replace(/\s+/g, '');
