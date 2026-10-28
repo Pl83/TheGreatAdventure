@@ -12,20 +12,22 @@ const { S } = L;
 const teamA = ['Zhuqiao, Vermillion Bird', 'Jay, Azure Dragon', 'Jeagen, White Tiger', 'Black Turtle', 'Meï'];
 const teamB = ['Admiral Jaina', 'Thormak, The Titan Slayer', 'Susano', 'Alicia', 'Sensei Lloyd'];
 
-// Plays both sides with the greedy policy; a rejected plan falls back to a pass
+// Plays both sides with the greedy policy; a rejected plan falls back to a pass. Returns the rejected count
 function playOut() {
+  let rejected = 0;
   while (S.phase === 'combat' && S.roundNumber <= 60) {
     settleReacts(greedyReact);
     if (S.phase !== 'combat') break;
     const unit = L.activeCombatant();
-    if (!applyPlan(greedyTurn(unit)).accepted) applyPlan({ move: null, action: { type: 'pass' } });
+    if (!applyPlan(greedyTurn(unit)).accepted) { rejected++; applyPlan({ move: null, action: { type: 'pass' } }); }
   }
+  return rejected;
 }
 
 for (const seed of [1, 2, 3]) {
   test(`greedy vs greedy finishes within 60 rounds (seed ${seed})`, async () => {
     await newFight({ teamA, teamB, seed });
-    playOut();
+    assert.equal(playOut(), 0, 'the policy emitted a rejected plan');
     assert.equal(S.phase, 'victory');
   });
 }
@@ -70,4 +72,65 @@ test('greedyReact picks the first non-teleport react, else null', async () => {
   S.reactOptions = [{ combatantId: kadgar.id, ability: tele }, { combatantId: kadgar.id, ability: other }];
   assert.deepEqual(greedyReact(), { combatantId: kadgar.id, abilityName: 'Other React' });
   S.reactOptions = [];
+});
+
+// Walking distance from c to its nearest foe
+function walkTo(c) {
+  return Math.min(...L.enemies(c).map(f => {
+    if (L.chebyshev(c, f) === 0) return 0;
+    return L.bfsReachable(f.x, f.y, 999).get(`${c.x},${c.y}`) ?? Infinity;
+  }));
+}
+
+// A 1v1 on `name`'s turn, speed 5, with the foe placed `gap` walking steps away
+async function duelAt(name, gap) {
+  await newFight({ teamA: [name], teamB: ['Alicia'], seed: 1 });
+  if (L.activeCombatant().name !== name) L.handlePass();
+  const c = L.activeCombatant();
+  c.speed = 5;
+  const foe = L.enemies(c)[0];
+  const cell = [...L.bfsReachable(c.x, c.y, gap)].find(([k, d]) => d === gap && !L.isOccupied(...k.split(',').map(Number)));
+  [foe.x, foe.y] = cell[0].split(',').map(Number);
+  return { c, foe };
+}
+
+test('a unit out of reach of every foe walks strictly closer', async () => {
+  const { c } = await duelAt('Susano', 12);
+  c.abilities = [];
+  const before = walkTo(c);
+  const plan = greedyTurn(c);
+  assert.ok(plan.move, 'expected a move');
+  const from = { x: c.x, y: c.y };
+  c.x = plan.move.x; c.y = plan.move.y;
+  assert.ok(walkTo(c) < before);
+  c.x = from.x; c.y = from.y;
+});
+
+for (const [label, name, strip] of [['melee-only', 'Susano', true], ['ranged', 'Kadgar', false]]) {
+  test(`a ${label} unit with a foe in walking range ends in reach and the plan is accepted`, async () => {
+    const { c } = await duelAt(name, 4);
+    if (strip) c.abilities = [];
+    const plan = greedyTurn(c);
+    assert.notEqual(plan.action.type, 'pass');
+    assert.equal(applyPlan(plan).accepted, true);
+  });
+}
+
+test('a heal is not chosen for an out-of-range ally', async () => {
+  await newFight({ teamA: ['Susano', 'Alicia'], teamB: ['Sensei Lloyd', 'Admiral Jaina'], seed: 1 });
+  const c = L.activeCombatant();
+  const friend = L.allies(c).find(a => a.id !== c.id);
+  const heal = { name: 'Test Heal', dice: '1d6', cost: null, tags: ['heal'], target: 'mono', targetKind: 'ally',
+    range: 3, radius: 0, isHeal: true, cooldownTurns: 0 };
+  c.abilities = [heal];
+  c.speed = 0;
+  friend.currentHp = 1;
+  const far = [...L.bfsReachable(c.x, c.y, 30)].map(([k]) => k.split(',').map(Number))
+    .find(([x, y]) => L.chebyshev(c, { x, y }) > 3 && !L.isOccupied(x, y));
+  [friend.x, friend.y] = far;
+  assert.notEqual(greedyTurn(c).action.ability, 'Test Heal');
+  const near = [...L.bfsReachable(c.x, c.y, 2)].map(([k]) => k.split(',').map(Number))
+    .find(([x, y]) => !L.isOccupied(x, y) && L.targetInRange(c, { x, y }, heal).inRange);
+  [friend.x, friend.y] = near;
+  assert.deepEqual(greedyTurn(c).action, { type: 'cast', ability: 'Test Heal', targetIds: [friend.id] });
 });

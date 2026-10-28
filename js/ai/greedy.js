@@ -22,6 +22,7 @@ function avgDice(expr) {
   return sum(s);
 }
 
+// Instant abilities are skipped: they leave the turn open, so a loop asking the policy again could chain them
 const usable = (c, ab) => abilityAvailable(c, ab) && !ab.reactOnly && !ab.isReact && !ab.isBlock
   && !ab.isGate && !ab.isTransform && !ab.isRevive && !ab.isInstant && !ab.tags?.includes('teleportation');
 
@@ -78,27 +79,29 @@ function bestCast(c) {
   return best;
 }
 
-// A heal on the most wounded ally under the threshold, or null
+// A heal on the most wounded ally under the threshold that the heal can reach (self is always reachable), or null
 function healCast(c) {
   const hurt = allies(c).filter(a => a.currentHp / a.maxHp < HEAL_BELOW)
     .sort((a, b) => a.currentHp / a.maxHp - b.currentHp / b.maxHp);
   for (const ab of c.abilities) {
     if (!usable(c, ab) || !ab.isHeal || !hasValidTarget(c, ab)) continue;
-    const patient = ab.targetKind === 'self' ? hurt.find(a => a.id === c.id) : hurt[0];
+    const patient = ab.targetKind === 'self' ? hurt.find(a => a.id === c.id)
+      : hurt.find(a => a.id === c.id || targetInRange(c, a, ab).inRange);
     if (patient) return { type: 'cast', ability: ab.name, targetIds: [patient.id] };
   }
   return null;
 }
 
-// What c does with its action from where it stands, or null when nothing is legal
-function chooseAction(c) {
-  const heal = healCast(c);
-  if (heal) return heal;
+// The damaging action c can take on a foe from where it stands, or null when no foe is within its reach
+function offence(c) {
   const cast = bestCast(c);
   if (cast) return cast.action;
   const foe = targetPool(c).filter(t => targetInRange(c, t, null).inRange).sort((a, b) => a.currentHp - b.currentHp)[0];
   return foe ? { type: 'attack', targetId: foe.id } : null;
 }
+
+// What c does with its action from where it stands, or null when nothing is legal
+const chooseAction = c => healCast(c) ?? offence(c);
 
 // Walking distance from every cell to the nearest foe (foe cells themselves are 0)
 function distanceToFoes(foes) {
@@ -126,12 +129,13 @@ function approachCell(c, foes) {
 
 export function greedyTurn(c) {
   try {
-    const stay = chooseAction(c);
-    if (stay) return { move: null, action: stay };
+    // Already within reach of a foe: hold position and act
+    if (offence(c)) return { move: null, action: chooseAction(c) };
     const foes = targetPool(c);
     const rooted = c.statusEffects.some(e => e.name.toLowerCase() === 'root');
     const move = foes.length && !rooted && c.speed > 0 ? approachCell(c, foes) : null;
-    if (!move) return { move: null, action: { type: 'pass' } };
+    // Cannot get closer to any foe (stalled): a heal is still worth casting, else pass
+    if (!move) return { move: null, action: healCast(c) ?? { type: 'pass' } };
     // Judge the action from the cell the unit is about to stand on
     const from = { x: c.x, y: c.y };
     c.x = move.x; c.y = move.y;
