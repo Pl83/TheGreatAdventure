@@ -11,7 +11,7 @@ import { snapshot, restore } from './snapshot.js';
 import { applyPlan, settleReacts } from './apply.js';
 import { greedyTurn, greedyReact } from './greedy.js';
 import { enumeratePlans } from './candidates.js';
-import { evaluate } from './evaluate.js';
+import { material, engagement } from './evaluate.js';
 import { walkDistance } from './paths.js';
 
 export const MAX_MS = 8000;
@@ -47,15 +47,22 @@ export const sampleSeed = (base, j) => (base + Math.imul(j + 1, 0x9E3779B9)) >>>
 
 // Plays on from the current state for `horizon` further unit turns or until the fight ends, driving each turn
 // as a real fight does; `first` is the active unit's opening plan (null: the greedy policy's). Returns the score
-// of the position reached for teamIndex; `out.ko` tells whether a foe fell before the opening turn ended.
+// for teamIndex: the material of the position reached, plus the engagement term read when the opening turn
+// ended (against the foes alive when it began). Read at the horizon instead, the engagement would be the greedy rollout's (it walks everyone in),
+// the same for a hold and an approach, and two brains would wait for each other forever.
+// `out.ko` tells whether a foe fell before the opening turn ended.
 function playOut(first, teamIndex, horizon = horizonFor(livingCount()), out = null) {
-  let plan = first, turns = 0, actions = 0, lastTurn = S.turnSerial;
+  let plan = first, turns = 0, actions = 0, lastTurn = S.turnSerial, engaged = null;
+  const targets = S.combatants.filter(f => !f.isKO && f.teamIndex !== teamIndex);
   const foes = out ? livingFoes(teamIndex) : 0;
   if (out) out.ko = false;
   for (let steps = 0; S.phase === 'combat' && steps < MAX_STEPS; steps++) {
     if (S.awaitingReact) { settleReacts(greedyReact); continue; }
     if (S.turnSerial !== lastTurn) {
-      if (out && !turns) out.ko = livingFoes(teamIndex) < foes;
+      if (!turns) {
+        engaged = engagement(teamIndex, targets);
+        if (out) out.ko = livingFoes(teamIndex) < foes;
+      }
       // A controlled unit's turn is skipped inside the same step: the serial still counts it as played
       turns += S.turnSerial - lastTurn;
       if (turns > horizon) break;
@@ -67,7 +74,9 @@ function playOut(first, teamIndex, horizon = horizonFor(livingCount()), out = nu
     if (!applyPlan(p).accepted) handlePass();
   }
   if (out && !turns) out.ko = livingFoes(teamIndex) < foes;
-  return evaluate(teamIndex);
+  const m = material(teamIndex);
+  if (S.phase !== 'combat') return m;
+  return m + (engaged ?? engagement(teamIndex, targets));
 }
 
 // One simulation from snap, headless and on the lookahead stream; S is rewound to snap whatever happens

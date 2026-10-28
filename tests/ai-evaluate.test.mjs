@@ -7,7 +7,7 @@ const L = await import('../js/combat-logic.js');
 const { applyPlan, settleReacts } = await import('../js/ai/apply.js');
 const { greedyTurn, greedyReact, avgDice } = await import('../js/ai/greedy.js');
 const { snapshot } = await import('../js/ai/snapshot.js');
-const { evaluate, engagement, WEIGHTS } = await import('../js/ai/evaluate.js');
+const { evaluate, engagement, material, WEIGHTS } = await import('../js/ai/evaluate.js');
 
 const { S } = L;
 const teamA = ['Zhuqiao, Vermillion Bird', 'Jay, Azure Dragon', 'Jeagen, White Tiger', 'Black Turtle', 'Meï'];
@@ -17,8 +17,6 @@ const mine = () => S.combatants.filter(c => c.teamIndex === 0);
 const theirs = () => S.combatants.filter(c => c.teamIndex === 1);
 const ko = c => { c.isKO = true; c.currentHp = 0; };
 const status = name => ({ name, turnsLeft: 2, dice: null, damType: null, notes: '' });
-// The part of the score that both sides see with opposite signs (the engagement term is one-sided)
-const material = t => evaluate(t) - engagement(t);
 
 test('weights are a frozen object', () => {
   assert.ok(Object.isFrozen(WEIGHTS));
@@ -174,8 +172,15 @@ test('engagement: a unit that walks toward the foes raises its own team score, m
   u.x = from.x; u.y = from.y;
   S.roundNumber = 20;
   assert.ok(engagement(0) < far, 'the same gap weighs more in round 20');
-  // The term counts against the scored side only
+  // The term counts against the scored side only, and evaluate is material plus engagement
   assert.ok(engagement(1) <= 0);
+  assert.ok(Math.abs(evaluate(0) - material(0) - engagement(0)) < 1e-9);
+  // Measured against a fixed foe list, a fallen foe still counts where it fell
+  u.x = cell.x; u.y = cell.y;
+  const listed = theirs();
+  const before = engagement(0, listed);
+  ko(near);
+  assert.equal(engagement(0, listed), before);
 });
 
 test('evaluation is deterministic, pure, and fast on a mid-fight 5v5', async () => {

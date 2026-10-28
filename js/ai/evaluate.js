@@ -13,8 +13,8 @@ export const WEIGHTS = Object.freeze({
   hinder: 0.3,      // per enemy that is silenced or rooted (own cost the same)
   unspent: 0.15,    // per unspent once-per-fight or charged ability on a living unit (own bonus, enemy malus)
   damage: 0.005,    // per point of average damage in ready damage abilities (own minus enemy)
-  engage: 0.03,     // per step an own unit must still walk before its longest reach covers the nearest foe
-  engageRise: 0.1,  // the engage weight grows by this fraction per round, so late standoffs get broken
+  engage: 0.05,     // per step an own unit must still walk before its longest reach covers the nearest foe
+  engageRise: 0.25, // the engage weight is multiplied by (1 + engageRise * round)^2, so standoffs get broken
   win: 30,          // no living enemy left; the same, negated, when no living own unit is left. Above any
                     // material lead a 5v5 can show, yet small enough that a rare won sample cannot swamp a mean
 });
@@ -51,17 +51,20 @@ function reach(c) {
 // The engagement penalty of teamIndex: the steps its living units must still walk to bring the nearest foe
 // within reach, summed. It only ever counts against the side being scored, so a hold that keeps every foe
 // out of reach never ties an approach (this one term is not symmetric between the two sides).
-export function engagement(teamIndex) {
+// `foes`, when given, are the foes to measure against, fallen or not: a search passes the foes alive when its
+// plan began, so knocking out the foe nearest some units never reads as those units falling behind.
+export function engagement(teamIndex, foes = null) {
   let gaps = 0;
   for (const c of S.combatants) {
     if (c.isKO || c.teamIndex !== teamIndex) continue;
     let walk = Infinity;
-    for (const f of S.combatants) {
-      if (!f.isKO && f.teamIndex !== teamIndex) walk = Math.min(walk, walkDistance(f.x, f.y, c.x, c.y));
+    for (const f of foes ?? S.combatants) {
+      if (foes || (!f.isKO && f.teamIndex !== teamIndex)) walk = Math.min(walk, walkDistance(f.x, f.y, c.x, c.y));
     }
     gaps += Math.min(MAX_GAP, Math.max(0, walk - reach(c)));
   }
-  return -WEIGHTS.engage * (1 + WEIGHTS.engageRise * S.roundNumber) * gaps;
+  const rise = 1 + WEIGHTS.engageRise * S.roundNumber;
+  return -WEIGHTS.engage * rise * rise * gaps;
 }
 
 // Score of one side's living units, from the point of view of the side that owns them
@@ -78,7 +81,8 @@ function side(c) {
   return v;
 }
 
-export function evaluate(teamIndex) {
+// Everything but the engagement term: what both sides see with opposite signs
+export function material(teamIndex) {
   let mine = 0, theirs = 0, ownAlive = 0, foesAlive = 0;
   for (const c of S.combatants) {
     if (c.isKO) continue;
@@ -87,5 +91,11 @@ export function evaluate(teamIndex) {
   }
   if (!foesAlive) return WEIGHTS.win;
   if (!ownAlive) return -WEIGHTS.win;
-  return mine - theirs + engagement(teamIndex);
+  return mine - theirs;
+}
+
+// The position's score for teamIndex: material, plus the engagement term while the fight goes on
+export function evaluate(teamIndex) {
+  const m = material(teamIndex);
+  return Math.abs(m) === WEIGHTS.win ? m : m + engagement(teamIndex);
 }
