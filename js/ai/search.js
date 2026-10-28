@@ -24,7 +24,7 @@ export function resolveBudget(b) {
 }
 
 // Seed of a plan's j-th sample: the same for every plan, so plans are compared under the same dice
-const sampleSeed = (base, j) => (base + Math.imul(j + 1, 0x9E3779B9)) >>> 0;
+export const sampleSeed = (base, j) => (base + Math.imul(j + 1, 0x9E3779B9)) >>> 0;
 
 // Plays on from the current state until teamIndex has the turn again, the fight ends or MAX_TURNS more unit
 // turns have been played, driving each turn as a real fight does; `first` is the active unit's opening plan

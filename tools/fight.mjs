@@ -1,5 +1,5 @@
 // Development-only: plays one complete fight headlessly between two brains and reports what happened.
-//   Brain = { chooseTurn(teamIndex): TurnPlan, chooseReact(): ReactChoice }
+//   Brain = { chooseTurn(teamIndex): TurnPlan, chooseReact(): ReactChoice, takeErrors?(): Error[] }
 import { readFile } from 'node:fs/promises';
 import { installShims, newFight } from './headless.mjs';
 import { createChecker } from './checks.mjs';
@@ -29,6 +29,14 @@ export async function playFight({ teamA, teamB, seed, map, brains, maxRounds = 4
     const t0 = performance.now();
     try { return fn(); } finally { result.maxDecisionMs = Math.max(result.maxDecisionMs, performance.now() - t0); }
   };
+  // Asks a brain for a decision; errors it recovered from (it has already fallen back) are filed as exceptions
+  const ask = (brain, decide) => {
+    const decision = timed(decide);
+    for (const err of brain.takeErrors?.() ?? []) {
+      result.violations.push(makeViolation('exception', `brain fallback: ${err.message}`, seed, S.roundNumber));
+    }
+    return decision;
+  };
   const noteKos = () => {
     for (const c of S.combatants) if (c.isKO && !result.kos.includes(c.name)) result.kos.push(c.name);
   };
@@ -49,7 +57,7 @@ export async function playFight({ teamA, teamB, seed, map, brains, maxRounds = 4
       if (S.awaitingReact) {
         // The first option's owner decides for the whole prompt
         const reactor = () => brains[L.getCombatant(S.reactOptions[0].combatantId).teamIndex];
-        result.reactsPlayed += settleReacts(() => timed(() => reactor().chooseReact()));
+        result.reactsPlayed += settleReacts(() => { const brain = reactor(); return ask(brain, () => brain.chooseReact()); });
         noteKos();
         continue;
       }
@@ -59,7 +67,8 @@ export async function playFight({ teamA, teamB, seed, map, brains, maxRounds = 4
       if (actions >= MAX_ACTIONS_PER_TURN) { L.handlePass(); continue; }
       actions++;
 
-      const plan = timed(() => brains[unit.teamIndex].chooseTurn(unit.teamIndex));
+      const brain = brains[unit.teamIndex];
+      const plan = ask(brain, () => brain.chooseTurn(unit.teamIndex));
       const ability = plan.action?.type === 'cast' ? unit.abilities.find(a => a.name === plan.action.ability) : null;
       const before = new Map(S.combatants.map(c => [c.id, controlsOn(c)]));
       const pending = controls.filter(k => !k.counted && k.controller.teamIndex === unit.teamIndex && k.controller.id !== unit.id);

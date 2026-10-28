@@ -1,15 +1,17 @@
-// Development-only: node tools/sim.mjs "A1; A2" "B1; B2" --fights 50 [--budget 200] [--map slug]
+// Development-only: node tools/sim.mjs "A1; A2" "B1; B2" --fights 50 [--budget SIMS] [--map slug]
 //   [--brain-a ai|greedy] [--brain-b ai|greedy] [--swap] [--seed 1]
 // Plays the two teams against each other and prints win rates, first KOs and move use.
+// --budget is the ai brain's simulations per decision.
 // Exit code: 0 clean, 2 when any rule violation was recorded, 1 on bad arguments.
 import { playFight } from './fight.mjs';
 import { greedyBrain } from '../js/ai/greedy.js';
+import { createBrain, DEFAULT_SIMS } from '../js/ai/brain.js';
 
-const USAGE = 'usage: node tools/sim.mjs "A1; A2" "B1; B2" [--fights N] [--budget MS] [--map SLUG] [--brain-a ai|greedy] [--brain-b ai|greedy] [--swap] [--seed N]';
+const USAGE = 'usage: node tools/sim.mjs "A1; A2" "B1; B2" [--fights N] [--budget SIMS] [--map SLUG] [--brain-a ai|greedy] [--brain-b ai|greedy] [--swap] [--seed N]';
 const fail = msg => { console.error(msg); process.exit(1); };
 
 function parseArgs(argv) {
-  const o = { fights: 50, budget: 200, map: undefined, brainA: 'greedy', brainB: 'greedy', swap: false, seed: 1, teams: [] };
+  const o = { fights: 50, budget: DEFAULT_SIMS, map: undefined, brainA: 'greedy', brainB: 'greedy', swap: false, seed: 1, teams: [] };
   const intArg = (name, v, min) => {
     const n = Number(v);
     if (!Number.isInteger(n) || n < min) fail(`${name} needs an integer >= ${min}, got "${v}"\n${USAGE}`);
@@ -39,12 +41,9 @@ function parseArgs(argv) {
 const o = parseArgs(process.argv.slice(2));
 const [teamI, teamII] = o.teams;
 
-// Until a real search brain exists, ai plays as greedy
-function brainFor(kind) {
-  if (kind === 'ai') console.error('note: the ai brain is not available yet; falling back to greedy');
-  return greedyBrain;
-}
-const brainI = brainFor(o.brainA), brainII = brainFor(o.brainB);
+// An ai brain is made fresh for every fight and seeded by it, so each fight's decisions replay from its seed
+const brainFor = (kind, seed) => (kind === 'ai' ? createBrain({ budget: { sims: o.budget }, seed }) : greedyBrain);
+const label = kind => (kind === 'ai' ? `ai, ${o.budget} sims/decision` : kind);
 
 // Each entry is one fight, with results attributed to the named teams rather than the seats
 const fights = [];
@@ -52,10 +51,10 @@ try {
   for (let i = 0; i < o.fights; i++) {
     const seed = o.seed + i;
     const base = { seed, map: o.map };
-    const r = await playFight({ ...base, teamA: teamI, teamB: teamII, brains: [brainI, brainII] });
+    const r = await playFight({ ...base, teamA: teamI, teamB: teamII, brains: [brainFor(o.brainA, seed), brainFor(o.brainB, seed)] });
     fights.push({ ...r, winnerTeam: r.winner === null ? null : r.winner });
     if (o.swap) {
-      const s = await playFight({ ...base, teamA: teamII, teamB: teamI, brains: [brainII, brainI] });
+      const s = await playFight({ ...base, teamA: teamII, teamB: teamI, brains: [brainFor(o.brainB, seed), brainFor(o.brainA, seed)] });
       fights.push({ ...s, winnerTeam: s.winner === null ? null : 1 - s.winner });
     }
   }
@@ -71,8 +70,8 @@ const wins = [0, 1].map(t => fights.filter(f => f.winnerTeam === t).length);
 const stalled = fights.filter(f => f.stalled).length;
 const violations = fights.flatMap(f => f.violations);
 
-console.log(`Team I:  ${teamI.join('; ')}  [${o.brainA}]`);
-console.log(`Team II: ${teamII.join('; ')}  [${o.brainB}]`);
+console.log(`Team I:  ${teamI.join('; ')}  [${label(o.brainA)}]`);
+console.log(`Team II: ${teamII.join('; ')}  [${label(o.brainB)}]`);
 console.log(`${fights.length} fights, seeds ${o.seed}..${o.seed + o.fights - 1}${o.swap ? ', seats swapped' : ''}, map ${o.map ?? 'manor_of_nadargath'}`);
 console.log('');
 console.log(`Team I wins:  ${wins[0]} (${pct(wins[0])})`);
@@ -88,7 +87,7 @@ console.log('move uses:');
 for (const [move, n] of Object.entries(tally(f => f.moveUses)).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))) console.log(`  ${move}: ${n}`);
 console.log('');
 console.log(`once-per-fight uses: ${sum('oncePerFightUses')}   reacts played: ${sum('reactsPlayed')}   control-then-ally: ${sum('controlThenAlly')}`);
-console.log(`slowest decision: ${Math.max(...fights.map(f => f.maxDecisionMs)).toFixed(1)} ms (budget ${o.budget} ms)`);
+console.log(`slowest decision: ${Math.max(...fights.map(f => f.maxDecisionMs)).toFixed(1)} ms (ai budget ${o.budget} sims)`);
 console.log('');
 console.log(`violations: ${violations.length}`);
 for (const v of violations) console.log(`  [${v.kind}] seed ${v.seed} round ${v.round}: ${v.detail}`);
