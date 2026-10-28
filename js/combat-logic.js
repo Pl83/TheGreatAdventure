@@ -1290,6 +1290,7 @@ function passiveConditionMet(p, owner, other, ability) {
   if (cond.allyKO)         return S.combatants.some(c => c.teamIndex === owner.teamIndex && c.isKO);
   if (cond.selfBelow50pct) return owner.currentHp <= owner.maxHp * 0.5;
   if (cond.is1v1)          return livingCombatants(0).length === 1 && livingCombatants(1).length === 1;
+  if (cond.targetArmored)  return (other.sourceChar.passif ?? []).some(q => /armou?r/i.test(q.nom) && q.applyOn?.includes('defRoll'));
   if (cond.targetHasTag) {
     // a character `tags` list (when the data provides one) or a status the target is under (e.g. "stun")
     const tag = cond.targetHasTag.toLowerCase();
@@ -1350,6 +1351,26 @@ function raiseSmoke(caster, ability) {
   for (const x of caught) {
     if (pushStatus(x, { name: 'smoke_screen', turnsLeft: turns })) addLog(`  🌫 ${x.name} fights blind — disadvantage on attack and defense rolls.`, 'status');
   }
+}
+
+// Self Destruct: everyone within the radius takes remaining HP × the move's dice, then the caster falls
+function selfDestruct(caster, ability) {
+  const hp = caster.currentHp;
+  const r  = parseDice(ability.dice);
+  const dmg = hp * r.total;
+  addLog(`💥 ${caster.name} self-destructs! ${hp} HP × ${r.breakdown} = ${dmg}`, 'crit');
+  const radius = ability.radius || 1;
+  const caught = S.combatants.filter(x => !x.isKO && x.id !== caster.id && (!S.currentMap || chebyshev(caster, x) <= radius));
+  for (const x of caught) {
+    applyDamage(x, dmg, damTypeFromTags(ability.tags), ability.tags);
+    if (ability.effect) applyStatus(x, ability.effect);
+  }
+  caster.currentHp = 0;
+  caster.isKO = true;
+  caster.statusEffects = [];
+  addLog(`💀 ${caster.name} is KO!`, 'death');
+  if (caster.domainActive) suppressDomain(caster);
+  updateCombatantCardDOM(caster);
 }
 
 // Sacrifice: a landed hit on a target under 10% HP kills outright (no resurrection), and feeds the caster
@@ -1417,6 +1438,7 @@ function rollAttackD20(attacker, ability) {
 }
 
 function defenseBonus(defender, attacker, ability) {
+  if (ability?.tags?.includes('arPen')) return 0;   // armour piercing: defense-roll passives (armour) do not count
   let bonus = 0;
   for (const p of defender.sourceChar.passif ?? []) {
     if (!p.applyOn?.includes('defRoll') || !p.dices) continue;
@@ -2321,7 +2343,9 @@ export function resumePendingAction(reactAbility) {
         const isPureHeal = ability.targetKind === 'ally';
         const isSelf     = ability.targetKind === 'self';
 
-        if (isSelf || isPureHeal) {
+        if (isSelf && ability.tags?.includes('selfDestruct')) {
+          selfDestruct(caster, ability);
+        } else if (isSelf || isPureHeal) {
           if (ability.tags?.includes('half_phys')) {
             raiseBladeArmor(target, ability);
           } else if (ability.isBlock) {
@@ -2559,6 +2583,15 @@ export function beginTurn(c) {
     const w = checkVictory();
     if (w !== null) { endCombat(w); return; }
     advanceTurn(); return;   // died to damage-over-time: no turn to play
+  }
+
+  // Absorb shield refreshed every turn (grantDamageShield keeps the larger value, so it never stacks)
+  for (const p of c.sourceChar.passif ?? []) {
+    if (!p.applyOn?.includes('shieldPerTurn') || !p.dices) continue;
+    const shieldHp = Math.max(0, parseDice(p.dices).total);
+    grantDamageShield(c, shieldHp, 'passif');
+    addLog(`🛡 ${c.name}'s ${p.nom} — ${shieldHp} HP absorb shield.`, 'spell');
+    updateCombatantCardDOM(c);
   }
 
   for (const p of c.sourceChar.passif ?? []) {

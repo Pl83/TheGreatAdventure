@@ -3083,5 +3083,697 @@
         "cooldown": 5
       }
     ]
+  },
+  {
+    "nom": "Ronin Lloyd",
+    "hp": 80,
+    "spellSlot": 6,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [],
+    "baseAtk": {
+      "nom": "Katana",
+      "dices": "1d6+1d4+2",
+      "tags": [
+        "physical",
+        "sword"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Master of the Ninja's Art",
+        "dices": "+2",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "constRoll",
+          "percepRoll",
+          "deceptionRoll",
+          "defRoll"
+        ]
+      },
+      {
+        "nom": "Master of the Ninja's Art",
+        "dices": "+1d6+2",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ],
+        "description": "+2 attack and +1d6 damage."
+      },
+      {
+        "nom": "Advanced Aincrad Style",
+        "dices": "+1d6",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ]
+      },
+      {
+        "nom": "Oni Slayer",
+        "dices": "+1d8+4",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ],
+        "condition": {
+          "targetHasTag": "oni"
+        }
+      },
+      {
+        "nom": "Dragon Slayer",
+        "dices": "+1d8+4",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ],
+        "condition": {
+          "targetHasTag": "dragon"
+        }
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Spinzutsu",
+          "dices": "1d8",
+          "tags": [
+            "physical"
+          ]
+        },
+        "target": "bounce",
+        "range": 2,
+        "maxBounce": 5,
+        "cooldown": 1
+      },
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Chain Thunder",
+          "dices": "2d8+4",
+          "tags": [
+            "magic",
+            "lightning"
+          ]
+        },
+        "target": "bounce",
+        "range": 8,
+        "maxBounce": 3,
+        "effect": "1d2 para",
+        "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Energie Shield",
+          "tags": [
+            "magic",
+            "block",
+            "react"
+          ]
+        },
+        "target": "self",
+        "range": 0,
+        "description": "Block an incoming attack.",
+        "spellCost": 1
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Armor Pierce",
+          "dices": "1d6+2",
+          "tags": [
+            "physical",
+            "sword",
+            "arPen"
+          ]
+        },
+        "target": "mono",
+        "range": 3,
+        "effect": "1d2 bleed",
+        "cooldown": 1
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Rapid Bite",
+          "dices": "2d6+4",
+          "tags": [
+            "physical",
+            "sword",
+            "arPen"
+          ]
+        },
+        "target": "mono",
+        "range": 3,
+        "cooldown": 2
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Starlight Splash",
+          "dices": "8d6+16",
+          "tags": [
+            "physical",
+            "sword",
+            "arPen",
+            "bleed"
+          ]
+        },
+        "target": "mono",
+        "range": 3,
+        "cooldown": 3
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Sonic Leap",
+          "dices": "1d8+2",
+          "tags": [
+            "physical",
+            "sword",
+            "dash"
+          ]
+        },
+        "target": "mono",
+        "range": 8,
+        "cooldown": 2
+      }
+    ]
+  },
+  {
+    "nom": "Mira",
+    "hp": 65,
+    "spellSlot": 4,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [],
+    "baseAtk": {
+      "nom": "Sword",
+      "dices": "1d8+2",
+      "tags": [
+        "physical",
+        "sword"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Aincrad Student",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [],
+        "description": "Trained in the Aincrad sword style."
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Spinzutsu",
+          "dices": "1d8",
+          "tags": [
+            "physical"
+          ]
+        },
+        "target": "bounce",
+        "range": 2,
+        "maxBounce": 5,
+        "cooldown": 1
+      },
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Lightning Chain",
+          "dices": "1d12+2",
+          "tags": [
+            "magic",
+            "lightning"
+          ]
+        },
+        "target": "bounce",
+        "range": 8,
+        "maxBounce": 3,
+        "spellCost": 1
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Sonic Charge",
+          "dices": "1d6+4",
+          "tags": [
+            "physical",
+            "sword",
+            "dash"
+          ]
+        },
+        "target": "mono",
+        "range": 8,
+        "cooldown": 2
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Hellical Twice",
+          "tags": [
+            "buff",
+            "block",
+            "react"
+          ]
+        },
+        "target": "aoe",
+        "range": 0,
+        "radius": 2,
+        "description": "Blocks an area attack for the whole team.",
+        "cooldown": 2
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Dimension Stampede",
+          "dices": "4d6+8+1d12+4",
+          "tags": [
+            "physical",
+            "sword"
+          ]
+        },
+        "target": "cone",
+        "range": 5,
+        "cooldown": 3
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Imperial Southern Cross",
+          "dices": "5d6+10+1d12+6",
+          "tags": [
+            "physical",
+            "sword",
+            "dash"
+          ]
+        },
+        "target": "mono",
+        "range": 8,
+        "description": "Ultimate.",
+        "cooldown": 5
+      }
+    ]
+  },
+  {
+    "nom": "Nate",
+    "hp": 65,
+    "spellSlot": 4,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [
+      "status"
+    ],
+    "baseAtk": {
+      "nom": "Hammer",
+      "dices": "1d8+2",
+      "tags": [
+        "physical",
+        "heavy"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Armored",
+        "dices": "+2",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "defRoll"
+        ]
+      },
+      {
+        "nom": "Aincrad Student",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [],
+        "description": "Trained in the Aincrad sword style."
+      },
+      {
+        "nom": "Heavy Striker",
+        "dices": "+1d4+1",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ],
+        "condition": {
+          "weaponType": "heavy"
+        }
+      },
+      {
+        "nom": "Seismic Sense",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "percepRoll"
+        ],
+        "description": "Advantage on all perception checks."
+      },
+      {
+        "nom": "Stone Skin",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [],
+        "description": "Immune to status effects (in immunities[])."
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Spinzutsu",
+          "dices": "1d8",
+          "tags": [
+            "physical"
+          ]
+        },
+        "target": "bounce",
+        "range": 2,
+        "maxBounce": 5,
+        "cooldown": 1
+      },
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Earth Drill",
+          "dices": "2d8",
+          "tags": [
+            "magic",
+            "earth",
+            "adv"
+          ]
+        },
+        "target": "mono",
+        "range": 8,
+        "spellCost": 1
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Megaton Swing",
+          "dices": "1d12+4",
+          "tags": [
+            "physical",
+            "heavy"
+          ]
+        },
+        "target": "aoe",
+        "range": 3,
+        "radius": 2,
+        "cooldown": 2
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Colossus Crusher",
+          "dices": "3d8+12",
+          "tags": [
+            "physical",
+            "heavy"
+          ]
+        },
+        "target": "mono",
+        "range": 3,
+        "effect": "1d2 stun",
+        "cooldown": 5
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Speedy Hammer",
+          "dices": "3d6+3",
+          "tags": [
+            "physical",
+            "heavy"
+          ]
+        },
+        "target": "mono",
+        "range": 3,
+        "cooldown": 2
+      }
+    ]
+  },
+  {
+    "nom": "Jhin",
+    "hp": 65,
+    "spellSlot": 4,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [],
+    "baseAtk": {
+      "nom": "Sword",
+      "dices": "1d6+2",
+      "tags": [
+        "physical",
+        "sword"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Aincrad Student",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [],
+        "description": "Trained in the Aincrad sword style."
+      },
+      {
+        "nom": "Armor Breaker",
+        "dices": "+1d4+2",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ],
+        "condition": {
+          "targetArmored": true
+        }
+      },
+      {
+        "nom": "Sword Master",
+        "tags": [
+          "buff",
+          "adv"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ],
+        "condition": {
+          "weaponType": "sword"
+        },
+        "description": "Advantage on sword rolls."
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Spinzutsu",
+          "dices": "1d8",
+          "tags": [
+            "physical"
+          ]
+        },
+        "target": "bounce",
+        "range": 2,
+        "maxBounce": 5,
+        "cooldown": 1
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Sonic Leap",
+          "dices": "1d8+2",
+          "tags": [
+            "physical",
+            "sword",
+            "dash"
+          ]
+        },
+        "target": "mono",
+        "range": 8,
+        "cooldown": 2
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Vorpal Slash",
+          "dices": "1d12+12",
+          "tags": [
+            "physical",
+            "sword",
+            "heal"
+          ]
+        },
+        "target": "mono",
+        "range": 3,
+        "description": "100% lifesteal on damage dealt.",
+        "cooldown": 4
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Deadly Sins",
+          "dices": "7d6+14",
+          "tags": [
+            "physical",
+            "sword",
+            "dash"
+          ]
+        },
+        "target": "mono",
+        "range": 8,
+        "cooldown": 4
+      }
+    ]
+  },
+  {
+    "nom": "Future Zane",
+    "hp": 70,
+    "spellSlot": 6,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [],
+    "baseAtk": {
+      "nom": "Shurikens",
+      "dices": "1d4+3",
+      "tags": [
+        "physical",
+        "ranged"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Ice Shell",
+        "dices": "10",
+        "tags": [
+          "buff",
+          "ice"
+        ],
+        "applyOn": [
+          "shieldPerTurn"
+        ],
+        "description": "Gain a 10 HP shield each turn (not stackable)."
+      },
+      {
+        "nom": "Battle Tactician",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [],
+        "description": "+2 to allies' attack rolls when giving orders."
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Spinzutsu",
+          "dices": "1d8",
+          "tags": [
+            "physical"
+          ]
+        },
+        "target": "bounce",
+        "range": 2,
+        "maxBounce": 5,
+        "cooldown": 1
+      },
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Cryo Beam",
+          "dices": "1d12+6",
+          "tags": [
+            "magic",
+            "ice"
+          ]
+        },
+        "target": "aoe",
+        "range": 8,
+        "radius": 3,
+        "effect": "1d2 gel",
+        "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Ice Cone",
+          "dices": "1d12+4",
+          "tags": [
+            "magic",
+            "ice"
+          ]
+        },
+        "target": "cone",
+        "range": 5,
+        "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Ice Arrow",
+          "dices": "1d10+4",
+          "tags": [
+            "magic",
+            "ice",
+            "adv"
+          ]
+        },
+        "target": "mono",
+        "range": 12,
+        "spellCost": 1
+      },
+      {
+        "category": "technoSpell",
+        "base": {
+          "nom": "Self Destruct",
+          "dices": "1d10",
+          "tags": [
+            "magic",
+            "ice",
+            "selfDestruct"
+          ]
+        },
+        "target": "self",
+        "range": 0,
+        "radius": 3,
+        "effect": "1d2 gel",
+        "description": "Explodes for remaining HP × 1d10 on everyone around, then falls KO.",
+        "spellCost": 1,
+        "cooldown": 99
+      }
+    ]
   }
 ]
