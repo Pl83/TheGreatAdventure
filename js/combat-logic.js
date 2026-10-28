@@ -6,6 +6,7 @@
 import { EFFECTS } from './main.js';
 import { loadManifest, loadMap, cellPxOf, isWalkableG } from './dungeon-loader.js';
 import { loadRandomMapOrManor } from './random-map.js';
+import { random } from './rng.js';
 
 // Render functions registered by combat-render.js to break the circular dep.
 export const _R = {
@@ -78,7 +79,7 @@ export const SPELL_RANGE = 6;
 // ── §3  Data Helpers ───────────────────────────────────────────────────────
 
 export function rollDie(sides) {
-  return Math.floor(Math.random() * sides) + 1;
+  return Math.floor(random() * sides) + 1;
 }
 
 export function rollD20() {
@@ -1131,7 +1132,7 @@ export function applyDamage(combatant, amount, damType = null, atkTags = [], ign
   for (const p of combatant.sourceChar.passif ?? []) {
     if (!p.applyOn?.includes('incomingDam') || !p.condition?.incomingIsLethal || p.chance == null) continue;
     if (amount < combatant.currentHp) continue;
-    if (Math.random() < p.chance) {
+    if (random() < p.chance) {
       amount = combatant.currentHp - 1;
       addLog(`🛡 ${combatant.name}'s "${p.nom}" holds — survives the lethal hit on 1 HP!`, 'crit');
     } else {
@@ -1190,7 +1191,7 @@ export function applyStatus(combatant, effectStr, defaultTurns = 2) {
     }
     if (probMatch) {
       const sides = parseInt(probMatch[1]);
-      const roll  = Math.floor(Math.random() * sides) + 1;
+      const roll  = Math.floor(random() * sides) + 1;
       if (roll < sides) {
         addLog(`${combatant.name} resists ${effName}. (${roll}/${sides})`, 'info');
         continue;
@@ -1710,7 +1711,7 @@ export function handleCastAbility(casterId, abilityName, targetIds) {
   // Shadow Gate: a random stored move is launched in place of the gate itself. The gate opens beside the
   // target, so the stored move's own range does not matter; area moves burst around the target.
   if (ability.isGate) {
-    const [stored] = caster.shadowVoid.splice(Math.floor(Math.random() * caster.shadowVoid.length), 1);
+    const [stored] = caster.shadowVoid.splice(Math.floor(random() * caster.shadowVoid.length), 1);
     const focus = targets[0];
     ability = gateAbility(stored);
     addLog(`🌑 The gate opens beside ${focus.name} — ${stored.from}'s ${ability.name} comes out of the void! (${caster.shadowVoid.length} left)`, 'spell');
