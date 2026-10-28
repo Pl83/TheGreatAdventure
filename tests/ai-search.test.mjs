@@ -9,7 +9,8 @@ const { applyPlan, settleReacts } = await import('../js/ai/apply.js');
 const { greedyTurn, greedyReact } = await import('../js/ai/greedy.js');
 const { snapshot, restore } = await import('../js/ai/snapshot.js');
 const { enumeratePlans, enumerateReacts } = await import('../js/ai/candidates.js');
-const { search, simulate, simulateReact, resolveBudget, MAX_MS } = await import('../js/ai/search.js');
+const { search, simulate, simulateReact, resolveBudget, horizonFor, MAX_MS } = await import('../js/ai/search.js');
+const { walkDistance } = await import('../js/ai/paths.js');
 
 const { S } = L;
 const teamA = ['Zhuqiao, Vermillion Bird', 'Jay, Azure Dragon', 'Jeagen, White Tiger', 'Black Turtle', 'Meï'];
@@ -189,4 +190,31 @@ test('simulateReact scores each react choice on a real pending react without cha
   assert.equal(random(), mulberry32(9)());
   settleReacts(() => null);
   assert.throws(() => simulateReact(null, kadgar.teamIndex, 1), /react/);
+});
+
+test('a sims budget that covers the first pass is spent exactly', async () => {
+  const c = await midFight(2);
+  const plans = enumeratePlans(c).length;
+  assert.ok(plans > 1, 'fixture needs a choice');
+  // One sample per plan in the first pass, then two per plan once the budget allows it
+  for (const n of [plans, plans + 7, 2 * plans, 3 * plans + 1]) assert.equal(search(0, { sims: n }, 1).sims, n, `budget ${n}`);
+});
+
+test('the horizon covers about half the living units, never less than a 1v1 needs', () => {
+  assert.equal(horizonFor(2), 3);
+  assert.equal(horizonFor(4), 3);
+  assert.equal(horizonFor(10), 6);
+  assert.ok(horizonFor(40) <= 8);
+});
+
+test('a duel opening with the foe out of reach: the search closes in rather than holding', async () => {
+  for (const seed of [1, 2, 3]) {
+    await newFight({ teamA: ['Susano'], teamB: ['Alicia'], seed });
+    const c = toTeam0();
+    const foe = S.combatants.find(f => f.teamIndex !== 0);
+    const { plan } = search(0, { sims: 60 }, seed);
+    const end = plan.move ?? c;
+    assert.ok(walkDistance(foe.x, foe.y, end.x, end.y) < walkDistance(foe.x, foe.y, c.x, c.y),
+      `seed ${seed}: ${c.name} held with ${JSON.stringify(plan.action)}`);
+  }
 });

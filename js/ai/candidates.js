@@ -172,7 +172,12 @@ function allyAreaSets(c, at, ab) {
 // Every sensible targetIds list for ab cast by c from the cell `at` stands on
 function targetSets(c, at, ab, ctx) {
   const reach = t => t.id === c.id || targetInRange(at, t, ab).inRange;
-  if (ab.isRevive) return koAllies(c.teamIndex).filter(reach).map(t => [t.id]);
+  // The engine revives a unit on the cell it fell on without checking it is free (a known engine bug, left for
+  // the owner): a fallen ally whose cell someone now stands on is not offered, so the brain never stacks units
+  if (ab.isRevive) {
+    const free = t => !(t.x === at.x && t.y === at.y) && !isOccupied(t.x, t.y, c.id);
+    return koAllies(c.teamIndex).filter(t => reach(t) && free(t)).map(t => [t.id]);
+  }
   if (ab.isAoe && ab.targetKind === 'ally') return allyAreaSets(c, at, ab);
   if (ab.isAoe) {
     if (!S.currentMap) return enemySets([enemies(c).map(t => t.id)], ctx.taunter);

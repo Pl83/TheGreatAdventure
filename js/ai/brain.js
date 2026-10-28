@@ -3,7 +3,7 @@
 // error: when the search throws, the greedy policy answers instead and the error is kept for the caller.
 //   Brain = { chooseTurn(teamIndex): TurnPlan, chooseReact(): ReactChoice, takeErrors?(): Error[] }
 import { S, activeCombatant, getCombatant } from '../combat-logic.js';
-import { search, simulateReact, resolveBudget, sampleSeed } from './search.js';
+import { search, simulateReact, resolveBudget, sampleSeed, deadlineOf } from './search.js';
 import { greedyTurn, greedyReact } from './greedy.js';
 import { enumerateReacts } from './candidates.js';
 
@@ -25,11 +25,13 @@ export function chooseReact(teamIndex, budget = { sims: DEFAULT_SIMS }, seed) {
   if (choices.length === 1) return choices[0];
 
   const base = (seed ?? Date.now()) >>> 0;
-  const deadline = b.ms !== undefined ? t0 + b.ms : Infinity;
+  const deadline = deadlineOf(b, t0);
   const rounds = b.sims !== undefined ? Math.max(1, Math.floor(b.sims / choices.length)) : Infinity;
   const sums = new Float64Array(choices.length);
-  // The first round always completes, so every choice has a mean
-  for (let j = 0; j < rounds && (!j || performance.now() < deadline); j++) {
+  // The first round always completes, so every choice has a mean; a later one starts only when, at the mean
+  // pace so far, it ends before the deadline
+  const r0 = performance.now();
+  for (let j = 0; j < rounds && (!j || performance.now() + (performance.now() - r0) / j < deadline); j++) {
     for (let i = 0; i < choices.length; i++) sums[i] += simulateReact(choices[i], teamIndex, sampleSeed(base, j));
   }
   let best = 0;
