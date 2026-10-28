@@ -5,7 +5,7 @@
 //   Budget = { sims: number } | { ms: number }
 // A { sims: n } search spends exactly n simulations once n covers the first pass (one sample per plan, two
 // when n is at least twice the plan count); below that the first pass still samples every plan once.
-import { S, activeCombatant, handlePass, setHeadless, isHeadless } from '../combat-logic.js';
+import { S, activeCombatant, getCombatant, handlePass, setHeadless, isHeadless, resolveAttack } from '../combat-logic.js';
 import { withRandom, mulberry32 } from '../rng.js';
 import { snapshot, restore } from './snapshot.js';
 import { applyPlan, settleReacts } from './apply.js';
@@ -41,6 +41,13 @@ export function resolveBudget(b) {
   if (b && 'sims' in b) return { sims: Math.max(1, Math.floor(b.sims)) };
   if (b && 'ms' in b) return { ms: Math.max(1, Math.min(MAX_MS, b.ms)) };
   throw new Error(`invalid search budget ${JSON.stringify(b)}`);
+}
+
+// The team that decides c's turn: a puppeteered unit is steered by its (living) controller's side
+export function decidingTeam(c) {
+  const puppet = c.statusEffects.find(e => e.name === 'puppeteered');
+  const controller = puppet && getCombatant(puppet.controllerId);
+  return controller && !controller.isKO ? controller.teamIndex : c.teamIndex;
 }
 
 // Seed of a plan's j-th sample: the same for every plan, so plans are compared under the same dice
@@ -96,11 +103,30 @@ export function simulate(plan, teamIndex, seed) {
   return run(snapshot(), seed, () => playOut(plan, teamIndex));
 }
 
-// Scores a react choice on the pending react prompt: the choice answers the first react, the greedy policy
-// any that follow, then the fight is played on as in simulate
+// The engine rolls a pending attack before the react prompt and keeps the result (hit, crit, damage) hidden
+// from a human defender. A simulation must not read it either: it rolls the attack again with the engine's own
+// resolveAttack, on the lookahead stream. The statuses and bonus the real roll already spent are put back as
+// the real roll left them, so the re-roll does not spend them twice.
+function rerollPending() {
+  const p = S.pendingAction;
+  if (!p?.result || p.result.atkRoll === '—') return;   // nothing was rolled (an effect-only move)
+  const attacker = getCombatant(p.attackerId ?? p.casterId);
+  const defender = getCombatant(p.defenderId ?? p.targetIds?.[0]);
+  if (!attacker || !defender) return;
+  const kept = [attacker, defender].map(c => [c, c.statusEffects.map(e => ({ ...e })), c.shadowCounterBonus]);
+  p.result = p.type === 'attack'
+    ? resolveAttack(attacker, defender, null)
+    : resolveAttack(attacker, defender, p.ability?.dice ?? '0', p.ability);
+  for (const [c, effects, bonus] of kept) { c.statusEffects = effects; c.shadowCounterBonus = bonus; }
+}
+
+// Scores a react choice on the pending react prompt: the pending attack is rolled again on the lookahead stream,
+// the choice answers the first react, the greedy policy any that follow, then the fight is played on as in
+// simulate
 export function simulateReact(choice, teamIndex, seed) {
   if (!S.awaitingReact || !S.pendingAction) throw new Error('simulateReact needs a pending react');
   return run(snapshot(), seed, () => {
+    rerollPending();
     let firstAsk = true;
     settleReacts(() => {
       if (!firstAsk) return greedyReact();
@@ -116,7 +142,7 @@ export function search(teamIndex, budget, seed) {
   const b = resolveBudget(budget);
   const c = activeCombatant();
   if (S.phase !== 'combat' || !c) throw new Error('search needs a fight in progress');
-  if (c.teamIndex !== teamIndex) throw new Error(`search for team ${teamIndex}, but the active unit ${c.name} is on team ${c.teamIndex}`);
+  if (decidingTeam(c) !== teamIndex) throw new Error(`search for team ${teamIndex}, but the active unit ${c.name} is decided by team ${decidingTeam(c)}`);
   if (S.awaitingReact) throw new Error('search cannot plan a turn while a react is pending');
 
   const plans = enumeratePlans(c);

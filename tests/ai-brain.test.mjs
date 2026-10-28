@@ -10,7 +10,8 @@ const { random, setRandom, mulberry32 } = await import('../js/rng.js');
 const { applyPlan } = await import('../js/ai/apply.js');
 const { greedyTurn, greedyReact, greedyBrain } = await import('../js/ai/greedy.js');
 const { snapshot, restore } = await import('../js/ai/snapshot.js');
-const { search } = await import('../js/ai/search.js');
+const { search, simulateReact, decidingTeam } = await import('../js/ai/search.js');
+const { enumerateReacts } = await import('../js/ai/candidates.js');
 const { chooseTurn, chooseReact, createBrain, DEFAULT_SIMS } = await import('../js/ai/brain.js');
 const { playFight, makeBrain } = await import('../tools/fight.mjs');
 
@@ -81,6 +82,20 @@ test('chooseReact returns null or one of the pending react options, and leaves t
     `chose ${JSON.stringify(choice)}`);
   assert.equal(live(), before);
   assert.deepEqual(chooseReact(1, { sims: 20 }, 1), choice);
+});
+
+test('a react is decided without the real attack roll: a hidden hit or miss changes nothing', async () => {
+  const kadgar = await pendingReact();
+  const snap = snapshot();
+  const roll = hit => ({ ...S.pendingAction.result, hit, crit: false, fumble: false, damage: hit ? 40 : 0 });
+  const scores = hit => {
+    restore(snap);
+    S.pendingAction.result = roll(hit);
+    return enumerateReacts().map(choice => [1, 2, 3].map(seed => simulateReact(choice, kadgar.teamIndex, seed)));
+  };
+  assert.deepEqual(scores(true), scores(false));
+  const choose = hit => { restore(snap); S.pendingAction.result = roll(hit); return chooseReact(kadgar.teamIndex, { sims: 20 }, 4); };
+  assert.deepEqual(choose(true), choose(false));
 });
 
 test('chooseReact refuses to run without a pending react', async () => {
@@ -199,6 +214,41 @@ test('makeBrain gives greedy for greedy and a fresh ai brain per seat', () => {
   const a = makeBrain('ai', { sims: 5 }, 1, 0), b = makeBrain('ai', { sims: 5 }, 1, 1);
   assert.notEqual(a, b);
   assert.equal(typeof a.chooseTurn, 'function');
+});
+
+test('a puppeteered unit is decided by its controller’s side, in search and in a fight', async () => {
+  await newFight({ teamA: ['Zed', 'Susano'], teamB: ['Alicia', 'Sensei Lloyd'], seed: 2 });
+  const zed = byName('Zed');
+  while (L.activeCombatant().teamIndex !== 1) L.handlePass();
+  const puppet = L.activeCombatant();
+  puppet.statusEffects.push({ name: 'puppeteered', turnsLeft: 2, controllerId: zed.id, dice: null, damType: null, notes: '' });
+  assert.equal(decidingTeam(puppet), 0);
+  assert.throws(() => search(1, { sims: 10 }, 1), /decided by team 0/);
+  assert.ok(search(0, { sims: 10 }, 1).plan);
+  // A KO'd controller hands the unit back to its own side
+  zed.isKO = true;
+  assert.equal(decidingTeam(puppet), 1);
+
+  // In a fight: the first team-0 decision puppets a team-1 unit; its next turn must be asked of brain 0
+  const asked = [];
+  let puppeted = null, from = 0;
+  const logging = team => ({
+    ...greedyBrain,
+    chooseTurn: t => {
+      const unit = L.activeCombatant();
+      asked.push({ brain: team, team: t, unitTeam: unit.teamIndex, unit: unit.id });
+      if (team === 0 && !puppeted) {
+        puppeted = S.combatants.find(c => c.teamIndex === 1 && !c.isKO);
+        from = asked.length;
+        puppeted.statusEffects.push({ name: 'puppeteered', turnsLeft: 2, controllerId: unit.id, dice: null, damType: null, notes: '' });
+      }
+      return greedyBrain.chooseTurn(t);
+    },
+  });
+  await playFight({ teamA: ['Zed', 'Susano'], teamB: ['Alicia', 'Sensei Lloyd'], seed: 2, brains: [logging(0), logging(1)], maxRounds: 2 });
+  const puppetTurn = asked.slice(from).find(a => a.unit === puppeted.id);
+  assert.ok(puppetTurn, 'the puppeted unit must get a turn');
+  assert.deepEqual({ brain: puppetTurn.brain, team: puppetTurn.team }, { brain: 0, team: 0 });
 });
 
 test('sim.mjs plays the ai brain and names it in the header', () => {

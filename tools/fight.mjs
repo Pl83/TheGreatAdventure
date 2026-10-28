@@ -10,6 +10,7 @@ const L = await import('../js/combat-logic.js');
 const { applyPlan, settleReacts } = await import('../js/ai/apply.js');
 const { greedyBrain } = await import('../js/ai/greedy.js');
 const { createBrain } = await import('../js/ai/brain.js');
+const { decidingTeam } = await import('../js/ai/search.js');
 
 const { S } = L;
 const CONTROLS = ['stun', 'para', 'gel', 'freeze', 'fear'];
@@ -80,8 +81,10 @@ export async function playFight({ teamA, teamB, seed, map, brains, maxRounds = 4
       if (actions >= MAX_ACTIONS_PER_TURN) { L.handlePass(); continue; }
       actions++;
 
-      const brain = brains[unit.teamIndex];
-      const plan = ask(brain, () => brain.chooseTurn(unit.teamIndex));
+      // A puppeteered unit's turn is decided by its controller's side
+      const team = decidingTeam(unit);
+      const brain = brains[team];
+      const plan = ask(brain, () => brain.chooseTurn(team));
       const ability = plan.action?.type === 'cast' ? unit.abilities.find(a => a.name === plan.action.ability) : null;
       const before = new Map(S.combatants.map(c => [c.id, controlsOn(c)]));
       const pending = controls.filter(k => !k.counted && k.controller.teamIndex === unit.teamIndex && k.controller.id !== unit.id);
