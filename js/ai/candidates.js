@@ -8,7 +8,7 @@ import {
   MELEE_RANGE, SPELL_RANGE,
 } from '../combat-logic.js';
 import { isWalkableG } from '../dungeon-loader.js';
-import { walkMap } from './paths.js';
+import { walkDistance } from './paths.js';
 
 const LOW_HP = 0.3;
 const MAX_MOVES = 6;
@@ -71,12 +71,13 @@ function moveChoices(c, maxMoves, silenced) {
   if (!cells.size) return moves;
 
   const here = keyOf(c.x, c.y);
-  const maps = new Map(threats.map(f => [f.id, walkMap(f.x, f.y)]));
-  const toThreats = k => Math.min(...threats.map(f => maps.get(f.id).get(k) ?? Infinity));
+  // Walking distances from a foe to cell key k (cached per map: terrain only)
+  const walkTo = (f, k) => { const { x, y } = cellOf(k); return walkDistance(f.x, f.y, x, y); };
+  const toThreats = k => Math.min(...threats.map(f => walkTo(f, k)));
   const pool = targetPool(c);
-  const nearest = pool.reduce((a, f) => ((maps.get(f.id).get(here) ?? Infinity) < (maps.get(a.id).get(here) ?? Infinity) ? f : a));
+  const nearest = pool.reduce((a, f) => (walkTo(f, here) < walkTo(a, here) ? f : a));
   const weakest = pool.reduce((a, f) => (f.currentHp < a.currentHp ? f : a));
-  const toNearest = maps.get(nearest.id);
+  const toNearest = k => walkTo(nearest, k);
 
   const add = k => {
     if (k && moves.length < maxMoves && !moves.some(m => m && keyOf(m.x, m.y) === k)) moves.push(cellOf(k));
@@ -92,8 +93,8 @@ function moveChoices(c, maxMoves, silenced) {
     return d <= r && seesNearest(k) ? -d : Infinity;
   });
 
-  const hereD = toNearest.get(here) ?? Infinity;
-  add(bestCell(cells, k => { const d = toNearest.get(k) ?? Infinity; return d < hereD ? d : Infinity; }));
+  const hereD = toNearest(here);
+  add(bestCell(cells, k => { const d = toNearest(k); return d < hereD ? d : Infinity; }));
   const [longest, ...shorter] = attackRanges(c, silenced);
   add(atRange(longest));
   add(bestCell(cells, k => {

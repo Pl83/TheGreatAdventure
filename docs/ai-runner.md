@@ -18,7 +18,7 @@ node tools/sim.mjs "Zhuqiao, Vermillion Bird; Jay, Azure Dragon; Jeagen, White T
 ```
 
 - Team members are separated by `;` and must match a `nom` in `js/characters.json` exactly (an unknown name
-  is refused with the three closest names).
+  is refused with the three closest names; an empty team is refused too).
 - `--fights` (default 50): fights number `--seed`, `--seed + 1`, ... (default seed 1). One seed decides the
   whole fight: initiative, placement and every die.
 - `--brain-a`, `--brain-b` (default `greedy`): who plays each team. `ai` is the look-ahead brain, `greedy`
@@ -26,7 +26,8 @@ node tools/sim.mjs "Zhuqiao, Vermillion Bird; Jay, Azure Dragon; Jeagen, White T
 - `--budget` (default `DEFAULT_SIMS` from `js/ai/brain.js`): the ai brain's simulations per decision. A fixed
   count, not a clock, so the same seed replays the same fight on any machine.
 - `--swap`: each seed is also played with the two teams' seats exchanged (both seatings reuse the seed).
-- `--map` (default `manor_of_nadargath`): a slug from `maps/manifest.json`.
+- `--map` (default `manor_of_nadargath`): a slug from `maps/manifest.json` (an unknown slug is refused with
+  the list of known ones).
 - Exit code: 0 clean, 2 when any violation was recorded, 1 on bad arguments.
 
 A 50-fight batch of the spec matchup at the default budget (`DEFAULT_SIMS = 500`) took 15.6 minutes (see below).
@@ -65,7 +66,8 @@ fight before and after every action.
 | `cell-conflict` | Two living units share a cell. |
 | `stalled` | The fight reached the round cap with no winner. It is a result of play, not a rule breach, but the acceptance run counts it: a brain that lets fights stall is not good enough. |
 
-Each breach is filed once per fight even if it keeps standing.
+Each breach is filed once per fight even if it keeps standing. Reacts that are played go through the same
+ledger as turn casts, so a once-per-fight or charged react used too often is caught too.
 
 ## Acceptance: `tools/acceptance.mjs`
 
@@ -132,6 +134,12 @@ under the same sample seeds (common random numbers). The first pass samples ever
 budget allows); the best 40, plus up to 10 more whose sample KO'd a foe, go on to successive halving: the
 survivors share what is left of the budget, the better half goes on, until one remains. Ties go to the plan
 ending nearest a foe. Reacts (`chooseReact`) score every react choice the same way over shared sample seeds.
+The engine rolls a pending attack before the react prompt and hides the result from a human defender, so each
+react simulation rolls that attack again with the engine's own `resolveAttack` on the lookahead stream: the
+brain decides a react without knowing whether the real attack hit.
+
+**Puppets.** A unit puppeteered by a living controller is played by the controller's side: the runner asks
+that side's brain, and `search` accepts the controller's team (`decidingTeam` in `search.js`).
 
 **Budgets.** `{ sims: n }`: exactly n simulations per decision once n covers the first pass (the runner's
 default, `DEFAULT_SIMS` = 500: a 50-fight spec batch measured 15.6 minutes, under the owner's 20). `{ ms: t }`: a clock, capped at
@@ -161,7 +169,7 @@ settleReacts(() => brain.chooseReact());
   chooseReact(), takeErrors() }`. It never throws: when the search fails it answers with the greedy plan or
   react, keeps the error and calls `onError(err, 'chooseTurn' | 'chooseReact')`.
 - `chooseTurn(teamIndex)`: a whole turn plan `{ move: {x, y} | null, action }` for the active unit, which must
-  be on `teamIndex`. Play it with `applyPlan` (the same handlers a click reaches).
+  be decided by `teamIndex` (its own team, or its puppeteer's: use `decidingTeam(unit)`). Play it with `applyPlan` (the same handlers a click reaches).
 - `chooseReact()`: the choice for the pending react prompt, `{ combatantId, abilityName, dest? } | null`
   (decline), decided for the team that owns the first react option.
 - `takeErrors()`: the errors recovered from since the last call, then clears them.
@@ -215,11 +223,16 @@ PASS  demonstrations: over 70 ai vs ai fights: once-per-fight uses 78, control-t
 | 5-8 | tuning | 49/64, 76.6% (review) |
 | 9-12 | not tuned on (review) | 45/64, 70.3% |
 | 101-104 | not tuned on (this run) | 47/64, 73.4% |
+| 101-104 | after the react re-roll fix (stage 1 replayed alone, not a full run) | 46/64, 71.9% |
 
 The weights were picked as the best of five variants on seeds 1-8, so the 85.9% was in-sample. On seeds the
 tuning never saw, the brain wins about 70-74% against greedy: clearly stronger than greedy (which wins 20-70%
 of these pairings against itself, depending on the side), but below the 80% bar. Per pair it wins nearly every
 5v5, and loses ground with the weaker side of the uneven small pairs (Jhin in the duel, Nate and Jhin in the 2v2).
+
+Since this run, react simulations no longer read the real (hidden) attack roll. That fix changes react
+decisions and therefore fights: stage 1 on seeds 101-104 replayed alone gave 46/64 (71.9%, 16/12/9/9 per pair,
+1 stall). Stage 2 was not re-run after it, so its 8 stalls below predate the fix.
 
 The 8 stalls are the same fights as before the score bound: 6 in the Kadgar, Baal, Eragon vs Akir, Future
 Zane, Vayl-Soran 3v3 (seeds 1001, 1136, 1166 ai vs ai; 1006, 1021, 1066 ai vs greedy) and 2 in the spec 5v5

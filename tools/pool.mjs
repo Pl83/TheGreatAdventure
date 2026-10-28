@@ -10,9 +10,9 @@ const WORKER = new URL('./fight-worker.mjs', import.meta.url);
 // Half the logical cores: the fights are CPU-bound and hyper-threads add little
 export const defaultWorkers = () => Math.max(1, Math.floor(availableParallelism() / 2));
 
-export async function runFights(jobs, { workers = defaultWorkers(), onResult } = {}) {
+export async function runFights(jobs, { workers = defaultWorkers() } = {}) {
   const results = new Array(jobs.length);
-  let next = 0, done = 0;
+  let next = 0;
   const n = Math.max(1, Math.min(workers, jobs.length));
   await Promise.all(Array.from({ length: n }, () => new Promise((resolve, reject) => {
     const w = new Worker(WORKER);
@@ -24,7 +24,6 @@ export async function runFights(jobs, { workers = defaultWorkers(), onResult } =
     w.on('message', ({ id, result, error }) => {
       if (error) { w.terminate(); reject(new Error(`fight ${JSON.stringify(jobs[id])} crashed: ${error}`)); return; }
       results[id] = result;
-      onResult?.(result, jobs[id], ++done, jobs.length);
       feed();
     });
     w.on('error', reject);
