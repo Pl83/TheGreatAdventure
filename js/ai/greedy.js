@@ -1,7 +1,7 @@
 // Greedy policy: close in along the true walking path, then cast the best damage ability, heal a hurt ally,
 // or attack. Baseline opponent and rollout policy; it never teleports and never throws.
 import {
-  S, bfsReachable, isOccupied, abilityAvailable, hasValidTarget, targetInRange,
+  S, activeCombatant, bfsReachable, isOccupied, abilityAvailable, hasValidTarget, targetInRange,
   aoeCenterValid, aoeCombatantHits, blastReaches, coneCells, coneCellTargets, tauntSource, targetPool,
   allies, trappingDomainOwner, SPELL_RANGE,
 } from '../combat-logic.js';
@@ -152,3 +152,6 @@ export function greedyReact() {
   const option = S.reactOptions.find(o => !o.ability.tags?.includes('teleportation'));
   return option ? { combatantId: option.combatantId, abilityName: option.ability.name } : null;
 }
+
+// The greedy policy as a Brain: plans for whoever's turn it is
+export const greedyBrain = { chooseTurn: () => greedyTurn(activeCombatant()), chooseReact: greedyReact };

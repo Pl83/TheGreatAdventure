@@ -134,3 +134,10 @@ test('a heal is not chosen for an out-of-range ally', async () => {
   [friend.x, friend.y] = near;
   assert.deepEqual(greedyTurn(c).action, { type: 'cast', ability: 'Test Heal', targetIds: [friend.id] });
 });
+
+test('greedyBrain plans for the active unit and reacts like greedyReact', async () => {
+  const { greedyBrain } = await import('../js/ai/greedy.js');
+  await newFight({ teamA: ['Susano'], teamB: ['Alicia'], seed: 1 });
+  assert.deepEqual(greedyBrain.chooseTurn(L.activeCombatant().teamIndex), greedyTurn(L.activeCombatant()));
+  assert.equal(greedyBrain.chooseReact, greedyReact);
+});
