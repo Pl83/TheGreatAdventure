@@ -136,6 +136,25 @@ test('an active cooldown-waiving domain suppresses cooldown-ignored', async () =
   assert.deepEqual(kinds(checker.afterAction(plan, ok, a.id, 3)), ['cooldown-ignored']);
 });
 
+test('a 3-charge move may be cast 3 times; the 4th is exactly one charges-exceeded', async () => {
+  const { checker, a } = await setup('Thormak, The Titan Slayer', 'Alicia');
+  const bow = cast("Apolo's Bow");
+  for (const t of [1, 2, 3]) assert.deepEqual(checker.afterAction(bow, ok, a.id, t), []);
+  const vs = checker.afterAction(bow, ok, a.id, 4);
+  assert.deepEqual(kinds(vs), ['charges-exceeded']);
+  assert.match(vs[0].detail, /Thormak/);
+  assert.match(vs[0].detail, /Apolo's Bow/);
+  assert.match(vs[0].detail, /3 charges/);
+  assert.match(vs[0].detail, /use 4/);
+});
+
+test('a move without charges is unaffected by the charge check', async () => {
+  const { checker, a } = await setup('Thormak, The Titan Slayer', 'Alicia');
+  const m = a.sourceChar.moveSet.find(x => !x.charges && !x.cooldown && x.base?.nom);
+  assert.ok(m);
+  for (const t of [1, 2, 3, 4, 5]) assert.deepEqual(checker.afterAction(cast(m.base.nom), ok, a.id, t), []);
+});
+
 test('finish reports a fight that hit maxRounds without a winner as stalled', async () => {
   const { checker } = await setup();
   const vs = checker.finish({ winner: null, rounds: 40, maxRounds: 40 });

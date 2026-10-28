@@ -64,7 +64,11 @@ export function createChecker(chars, seed) {
     } else if (entry && move.cooldown > 0 && move.cooldown < 99 && round - entry.lastTurn < move.cooldown + 1 && !cooldownWaived(unit)) {
       file(out, 'cooldown-ignored', `${unit.name} cast ${ability} on turn ${round}, locked until turn ${entry.lastTurn + move.cooldown + 1} (cooldown ${move.cooldown})`, round);
     }
-    ledger.set(key, { uses: (entry?.uses ?? 0) + 1, lastTurn: round });
+    const uses = (entry?.uses ?? 0) + 1;
+    if (move.charges > 0 && uses > move.charges) {
+      file(out, 'charges-exceeded', `${unit.name} cast ${ability} for use ${uses} but the sheet allows ${move.charges} charges`, round);
+    }
+    ledger.set(key, { uses, lastTurn: round });
   }
 
   return {
