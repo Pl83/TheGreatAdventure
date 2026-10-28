@@ -17,6 +17,13 @@ export const _R = {
   appendLog:           () => {},
 };
 
+// Headless mode (simulations): no timers, no DOM, no render hooks
+let headless = false;
+export function setHeadless(on) { headless = !!on; }
+export function isHeadless() { return headless; }
+const later = (fn, ms) => { if (headless) fn(); else setTimeout(fn, ms); };
+const R = new Proxy(_R, { get: (hooks, name) => (headless ? () => {} : hooks[name]) });
+
 // ── §2  State ──────────────────────────────────────────────────────────────
 export let allChars = [];
 
@@ -618,6 +625,7 @@ export function hasValidTarget(actor, ability) {
 
 export function clearAimState() {
   S.aimMode = false; S.aimAbility = null; S.aimSection = null; S.aimHover = null;
+  if (headless) return;
   document.getElementById('dungeon-canvas')?.classList.remove('aim-mode');
 }
 
@@ -640,6 +648,7 @@ export function exitAimMode() {
 export function cancelAim() {
   if (!S.aimMode) return;
   exitAimMode();
+  if (headless) return;
   const hint = document.getElementById('aim-hint-ability');
   if (hint) hint.style.display = 'none';
 }
@@ -649,7 +658,7 @@ export function enterTeleportMode(c, range, group = null) {
   S.teleportActorId = c.id;
   S.teleportRange   = range;
   S.teleportGroup   = group;
-  document.getElementById('dungeon-canvas')?.classList.add('teleport-mode');
+  if (!headless) document.getElementById('dungeon-canvas')?.classList.add('teleport-mode');
   drawMap();
 }
 
@@ -658,7 +667,7 @@ export function exitTeleportMode() {
   S.teleportActorId = null;
   S.teleportRange   = 0;
   S.teleportGroup   = null;
-  document.getElementById('dungeon-canvas')?.classList.remove('teleport-mode');
+  if (!headless) document.getElementById('dungeon-canvas')?.classList.remove('teleport-mode');
   drawMap();
 }
 
@@ -688,7 +697,7 @@ export function enterMoveMode() {
     for (const key of toDelete) S.reachableCells.delete(key);
   }
 
-  const canvas = document.getElementById('dungeon-canvas');
+  const canvas = headless ? null : document.getElementById('dungeon-canvas');
   if (canvas) canvas.classList.add('move-mode');
   drawMap();
 }
@@ -696,7 +705,7 @@ export function enterMoveMode() {
 export function exitMoveMode() {
   S.moveMode = false;
   S.reachableCells = new Map();
-  const canvas = document.getElementById('dungeon-canvas');
+  const canvas = headless ? null : document.getElementById('dungeon-canvas');
   if (canvas) canvas.classList.remove('move-mode');
   drawMap();
 }
@@ -724,10 +733,11 @@ export function handleMoveClick(gx, gy) {
   c.x = gx; c.y = gy;
   S.hasMoved = true;
   exitMoveMode();
-  _R.renderCombatScreen();
+  R.renderCombatScreen();
 }
 
 export function setupCanvasClickHandler() {
+  if (headless) return;
   const canvas = document.getElementById('dungeon-canvas');
   if (!canvas) return;
 
@@ -776,7 +786,7 @@ export function setupCanvasClickHandler() {
         if (reactAbility) {
           resumePendingAction(reactAbility);
         } else {
-          _R.renderCombatScreen();
+          R.renderCombatScreen();
         }
       }
       return;
@@ -846,6 +856,7 @@ export function setupCanvasClickHandler() {
 }
 
 export function drawMap() {
+  if (headless) return;
   const canvas = document.getElementById('dungeon-canvas');
   if (!canvas || !S.currentMap) return;
   const { image } = S.currentMap;
@@ -1020,7 +1031,7 @@ export function drawMap() {
 export function addLog(text, flavor = 'info', extra = {}) {
   const entry = { text, flavor, ...extra };
   S.log.push(entry);
-  _R.appendLog(entry);
+  R.appendLog(entry);
 }
 
 export function addRoundDivider() {
@@ -1030,6 +1041,7 @@ export function addRoundDivider() {
 // ── §9  Combat Logic ───────────────────────────────────────────────────────
 
 export function updateCombatantCardDOM(c) {
+  if (headless) return;
   const card = document.querySelector(`.combat-char-card[data-id="${c.id}"]`);
   if (!card) return;
   const pct  = Math.max(0, (c.currentHp / c.maxHp) * 100);
@@ -1652,7 +1664,7 @@ export function handleAttack(attackerId, defenderId) {
   if (reacts.length > 0) {
     S.awaitingReact = true;
     S.reactOptions  = reacts.map(ab => ({ combatantId: def.id, ability: ab }));
-    _R.renderReactOverlay();
+    R.renderReactOverlay();
     return;
   }
   resumePendingAction(null);
@@ -1740,7 +1752,7 @@ export function handleCastAbility(casterId, abilityName, targetIds) {
       S.pendingAction.reactedIds.push(firstReactor.id);
       S.awaitingReact = true;
       S.reactOptions  = getReacts(firstReactor, ability).map(ab => ({ combatantId: firstReactor.id, ability: ab }));
-      _R.renderReactOverlay();
+      R.renderReactOverlay();
       return;
     }
     resumePendingAction(null);
@@ -1755,7 +1767,7 @@ export function handleCastAbility(casterId, abilityName, targetIds) {
       S.pendingAction.reactedIds.push(firstReactor.id);
       S.awaitingReact = true;
       S.reactOptions  = getReacts(firstReactor, ability).map(ab => ({ combatantId: firstReactor.id, ability: ab }));
-      _R.renderReactOverlay();
+      R.renderReactOverlay();
       return;
     }
     resumePendingAction(null);
@@ -1773,7 +1785,7 @@ export function handleCastAbility(casterId, abilityName, targetIds) {
     if (reacts.length > 0) {
       S.awaitingReact = true;
       S.reactOptions  = reacts.map(ab => ({ combatantId: target.id, ability: ab }));
-      _R.renderReactOverlay();
+      R.renderReactOverlay();
       return;
     }
     resumePendingAction(null);
@@ -1815,7 +1827,7 @@ export function handleCastAbility(casterId, abilityName, targetIds) {
     target.statusEffects = target.statusEffects.filter(e => e !== preShieldSpell);
     updateCombatantCardDOM(target);
     // Instant moves do not use the action: the turn stays open
-    if (ability.isInstant) _R.renderCombatScreen(); else advanceTurn();
+    if (ability.isInstant) R.renderCombatScreen(); else advanceTurn();
     return;
   }
 
@@ -1830,7 +1842,7 @@ export function handleCastAbility(casterId, abilityName, targetIds) {
   if (reacts.length > 0) {
     S.awaitingReact = true;
     S.reactOptions  = reacts.map(ab => ({ combatantId: target.id, ability: ab }));
-    _R.renderReactOverlay();
+    R.renderReactOverlay();
     return;
   }
   resumePendingAction(null);
@@ -1934,7 +1946,7 @@ export function handleActivateDomain(casterId) {
         c.spellSlots -= lost;
         addLog(`🌐 ${c.name}'s ${domain.name} is suppressed by ${enemyOwner.name}'s stronger domain! (${lost} of ${domain.spellCost} slots lost)`, 'crit');
         updateCombatantCardDOM(c);
-        _R.renderCombatScreen();
+        R.renderCombatScreen();
         return;
       }
     }
@@ -1967,11 +1979,11 @@ export function handleActivateDomain(casterId) {
 }
 
 export function handleReactYes() {
-  const selectedName = document.querySelector('input[name="react"]:checked')?.value
+  const selectedName = (headless ? null : document.querySelector('input[name="react"]:checked')?.value)
     ?? S.reactOptions[0]?.ability.name;
   const option       = S.reactOptions.find(o => o.ability.name === selectedName) ?? S.reactOptions[0];
   const reactAbility = option?.ability ?? null;
-  document.getElementById('react-overlay')?.remove();
+  if (!headless) document.getElementById('react-overlay')?.remove();
   S.awaitingReact = false;
   S.reactOptions  = [];
 
@@ -1988,7 +2000,7 @@ export function handleReactYes() {
 }
 
 export function handleReactNo() {
-  document.getElementById('react-overlay')?.remove();
+  if (!headless) document.getElementById('react-overlay')?.remove();
   S.awaitingReact = false;
   S.reactOptions  = [];
   resumePendingAction(null);
@@ -2133,7 +2145,7 @@ export function resumePendingAction(reactAbility) {
       S.pendingAction = action;
       S.awaitingReact = true;
       S.reactOptions  = getReacts(next, action.ability).map(ab => ({ combatantId: next.id, ability: ab }));
-      _R.renderReactOverlay();
+      R.renderReactOverlay();
       return;
     }
     blocked = false;
@@ -2464,7 +2476,7 @@ export function resumePendingAction(reactAbility) {
   }
 
   // Instant moves (e.g. Fire Shield) do not use the action: the turn stays open
-  if (action.ability?.isInstant && !S.hasActed) { _R.renderCombatScreen(); return; }
+  if (action.ability?.isInstant && !S.hasActed) { R.renderCombatScreen(); return; }
   advanceTurn();
 }
 
@@ -2473,8 +2485,8 @@ export function resumePendingAction(reactAbility) {
 export function endCombat(winner) {
   S.winnerTeam = winner;
   S.phase = 'victory';
-  _R.renderCombatScreen();
-  setTimeout(() => _R.renderVictoryScreen(), 1200);
+  R.renderCombatScreen();
+  later(() => R.renderVictoryScreen(), 1200);
 }
 
 const FALLBACK_MAP = 'manor_of_nadargath';
@@ -2486,14 +2498,14 @@ export async function goToMapChoice() {
   S.mapChoice     = manifest[0] ?? FALLBACK_MAP;
   S.mapLoading    = false;
   S.phase         = 'mapchoice';
-  _R.render();
+  R.render();
 }
 
 /** Resolve the chosen map (falling back to Manor on any failure), then roll initiative. */
 export async function confirmMap(choice) {
   if (S.mapLoading || S.phase !== 'mapchoice') return;
   S.mapLoading = true;
-  _R.render();
+  R.render();
   const map = choice === 'random'
     ? await loadRandomMapOrManor()
     : await loadMap(choice).catch(() => loadMap(FALLBACK_MAP));
@@ -2532,7 +2544,7 @@ export async function startInitiative() {
 
   S.activeDomains  = [];
   S.phase = 'initiative';
-  _R.render();
+  R.render();
 }
 
 export function startCombat() {
@@ -2545,7 +2557,7 @@ export function startCombat() {
   if (S.currentMap) placeCharacters(S.currentMap);
   S.hasMoved = false;
   addRoundDivider();
-  _R.render();
+  R.render();
   beginTurn(activeCombatant());
 }
 
@@ -2638,11 +2650,11 @@ export function beginTurn(c) {
   const ctrl = hasControlEffect(c);
   if (ctrl) {
     addLog(`${c.name} is ${ctrl.name} and cannot act!`, 'status');
-    _R.renderCombatScreen();
+    R.renderCombatScreen();
     const serial = S.turnSerial;
-    setTimeout(() => { if (S.phase === 'combat' && S.turnSerial === serial) advanceTurn(); }, 1000);
+    later(() => { if (S.phase === 'combat' && S.turnSerial === serial) advanceTurn(); }, 1000);
     return;
   }
 
-  _R.renderCombatScreen();
+  R.renderCombatScreen();
 }
