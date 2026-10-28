@@ -8,11 +8,11 @@ installShims();
 const L = await import('../js/combat-logic.js');
 const { random, setRandom, mulberry32 } = await import('../js/rng.js');
 const { applyPlan } = await import('../js/ai/apply.js');
-const { greedyTurn, greedyBrain } = await import('../js/ai/greedy.js');
+const { greedyTurn, greedyReact, greedyBrain } = await import('../js/ai/greedy.js');
 const { snapshot, restore } = await import('../js/ai/snapshot.js');
 const { search } = await import('../js/ai/search.js');
 const { chooseTurn, chooseReact, createBrain, DEFAULT_SIMS } = await import('../js/ai/brain.js');
-const { playFight } = await import('../tools/fight.mjs');
+const { playFight, makeBrain } = await import('../tools/fight.mjs');
 
 const { S } = L;
 const teamA = ['Zhuqiao, Vermillion Bird', 'Jay, Azure Dragon', 'Jeagen, White Tiger', 'Black Turtle', 'Meï'];
@@ -154,6 +154,51 @@ test('a brain fallback is filed as an exception violation and the fight goes on'
   assert.match(ex[0].detail, /brain fallback/);
   assert.match(ex[0].detail, /lost the thread/);
   assert.ok(Object.keys(r.moveUses).length > 0);
+});
+
+test('a brain fallback on the react path is filed as an exception violation', async () => {
+  let pending = [];
+  const flaky = {
+    ...greedyBrain,
+    chooseReact: () => { pending.push(new Error('react went astray')); return greedyReact(); },
+    takeErrors: () => { const e = pending; pending = []; return e; },
+  };
+  const r = await playFight({ teamA, teamB, seed: 1, brains: [flaky, flaky], maxRounds: 4 });
+  assert.ok(r.reactsPlayed > 0, 'fixture needs a react prompt');
+  const ex = r.violations.filter(v => v.kind === 'exception');
+  assert.ok(ex.length > 0);
+  for (const v of ex) assert.match(v.detail, /brain fallback: react went astray/);
+  assert.equal(r.violations.length, ex.length + (r.stalled ? 1 : 0));
+});
+
+test('errors a brain recorded are filed even when its decision then throws', async () => {
+  const broken = {
+    ...greedyBrain,
+    chooseTurn: () => { throw new Error('gave up'); },
+    takeErrors: () => [new Error('noted first')],
+  };
+  const r = await playFight({ teamA: ['Susano'], teamB: ['Alicia'], seed: 1, brains: [broken, broken], maxRounds: 2 });
+  const details = r.violations.filter(v => v.kind === 'exception').map(v => v.detail);
+  assert.ok(details.some(d => /brain fallback: noted first/.test(d)));
+  assert.ok(details.some(d => /gave up/.test(d)));
+});
+
+test('a short ai-against-ai fight replays identically from its seed', async () => {
+  const fight = () => playFight({ teamA: ['Susano', 'Meï'], teamB: ['Alicia', 'Sensei Lloyd'], seed: 7, maxRounds: 4,
+    brains: [makeBrain('ai', { sims: 12 }, 7, 0), makeBrain('ai', { sims: 12 }, 7, 1)] });
+  const strip = ({ maxDecisionMs, ...rest }) => rest;
+  const a = await fight(), b = await fight();
+  assert.deepEqual(b.moveUses, a.moveUses);
+  assert.deepEqual(b.kos, a.kos);
+  assert.deepEqual(strip(b), strip(a));
+  assert.ok(Object.keys(a.moveUses).length > 0);
+});
+
+test('makeBrain gives greedy for greedy and a fresh ai brain per seat', () => {
+  assert.equal(makeBrain('greedy', { sims: 5 }, 1, 0), greedyBrain);
+  const a = makeBrain('ai', { sims: 5 }, 1, 0), b = makeBrain('ai', { sims: 5 }, 1, 1);
+  assert.notEqual(a, b);
+  assert.equal(typeof a.chooseTurn, 'function');
 });
 
 test('sim.mjs plays the ai brain and names it in the header', () => {

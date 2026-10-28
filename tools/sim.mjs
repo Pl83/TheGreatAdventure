@@ -3,9 +3,8 @@
 // Plays the two teams against each other and prints win rates, first KOs and move use.
 // --budget is the ai brain's simulations per decision.
 // Exit code: 0 clean, 2 when any rule violation was recorded, 1 on bad arguments.
-import { playFight } from './fight.mjs';
-import { greedyBrain } from '../js/ai/greedy.js';
-import { createBrain, DEFAULT_SIMS } from '../js/ai/brain.js';
+import { playFight, makeBrain } from './fight.mjs';
+import { DEFAULT_SIMS } from '../js/ai/brain.js';
 
 const USAGE = 'usage: node tools/sim.mjs "A1; A2" "B1; B2" [--fights N] [--budget SIMS] [--map SLUG] [--brain-a ai|greedy] [--brain-b ai|greedy] [--swap] [--seed N]';
 const fail = msg => { console.error(msg); process.exit(1); };
@@ -41,8 +40,8 @@ function parseArgs(argv) {
 const o = parseArgs(process.argv.slice(2));
 const [teamI, teamII] = o.teams;
 
-// An ai brain is made fresh for every fight and seeded by it, so each fight's decisions replay from its seed
-const brainFor = (kind, seed) => (kind === 'ai' ? createBrain({ budget: { sims: o.budget }, seed }) : greedyBrain);
+// An ai brain is made fresh for every fight and seat, seeded by the fight and the named team it plays for
+const brainFor = (kind, seed, team) => makeBrain(kind, { sims: o.budget }, seed, team);
 const label = kind => (kind === 'ai' ? `ai, ${o.budget} sims/decision` : kind);
 
 // Each entry is one fight, with results attributed to the named teams rather than the seats
@@ -51,10 +50,10 @@ try {
   for (let i = 0; i < o.fights; i++) {
     const seed = o.seed + i;
     const base = { seed, map: o.map };
-    const r = await playFight({ ...base, teamA: teamI, teamB: teamII, brains: [brainFor(o.brainA, seed), brainFor(o.brainB, seed)] });
+    const r = await playFight({ ...base, teamA: teamI, teamB: teamII, brains: [brainFor(o.brainA, seed, 0), brainFor(o.brainB, seed, 1)] });
     fights.push({ ...r, winnerTeam: r.winner === null ? null : r.winner });
     if (o.swap) {
-      const s = await playFight({ ...base, teamA: teamII, teamB: teamI, brains: [brainFor(o.brainB, seed), brainFor(o.brainA, seed)] });
+      const s = await playFight({ ...base, teamA: teamII, teamB: teamI, brains: [brainFor(o.brainB, seed, 1), brainFor(o.brainA, seed, 0)] });
       fights.push({ ...s, winnerTeam: s.winner === null ? null : 1 - s.winner });
     }
   }

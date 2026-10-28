@@ -8,6 +8,8 @@ import { makeViolation } from './violations.mjs';
 installShims();
 const L = await import('../js/combat-logic.js');
 const { applyPlan, settleReacts } = await import('../js/ai/apply.js');
+const { greedyBrain } = await import('../js/ai/greedy.js');
+const { createBrain } = await import('../js/ai/brain.js');
 
 const { S } = L;
 const CONTROLS = ['stun', 'para', 'gel', 'freeze', 'fear'];
@@ -17,6 +19,14 @@ const CHARS = JSON.parse(await readFile(new URL('../js/characters.json', import.
 
 const controlsOn = c => new Set(c.statusEffects.map(e => e.name.toLowerCase()).filter(n => CONTROLS.includes(n)));
 const bump = (counts, key) => { counts[key] = (counts[key] ?? 0) + 1; };
+
+// The brain for one seat of one fight: 'greedy', or a fresh 'ai' brain with the given budget. Its seed mixes the
+// fight's seed with the team it plays for, so each fight's decisions replay from its seed and two ai seats in
+// the same fight never share a lookahead stream.
+export function makeBrain(kind, budget, seed, team) {
+  if (kind !== 'ai') return greedyBrain;
+  return createBrain({ budget, seed: (Math.imul(seed, 0x9E3779B1) ^ Math.imul(team + 1, 0x85EBCA77)) >>> 0 });
+}
 
 export async function playFight({ teamA, teamB, seed, map, brains, maxRounds = 40 }) {
   await newFight({ teamA, teamB, seed, map });
@@ -29,13 +39,16 @@ export async function playFight({ teamA, teamB, seed, map, brains, maxRounds = 4
     const t0 = performance.now();
     try { return fn(); } finally { result.maxDecisionMs = Math.max(result.maxDecisionMs, performance.now() - t0); }
   };
-  // Asks a brain for a decision; errors it recovered from (it has already fallen back) are filed as exceptions
+  // Asks a brain for a decision; errors it recovered from (it has already fallen back) are filed as exceptions,
+  // and so are errors it recorded before failing outright
   const ask = (brain, decide) => {
-    const decision = timed(decide);
-    for (const err of brain.takeErrors?.() ?? []) {
-      result.violations.push(makeViolation('exception', `brain fallback: ${err.message}`, seed, S.roundNumber));
+    try {
+      return timed(decide);
+    } finally {
+      for (const err of brain.takeErrors?.() ?? []) {
+        result.violations.push(makeViolation('exception', `brain fallback: ${err.message}`, seed, S.roundNumber));
+      }
     }
-    return decision;
   };
   const noteKos = () => {
     for (const c of S.combatants) if (c.isKO && !result.kos.includes(c.name)) result.kos.push(c.name);
