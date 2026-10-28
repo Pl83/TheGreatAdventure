@@ -38,6 +38,9 @@ function checkNames(names, known) {
 }
 
 export async function newFight({ teamA, teamB, seed, map = 'manor_of_nadargath' }) {
+  if (!teamA?.length || !teamB?.length) throw new Error('Empty team: both teams need at least one character');
+  const maps = JSON.parse(await readFile(`${ROOT}maps/manifest.json`, 'utf8'));
+  if (!maps.includes(map)) throw new Error(`Unknown map "${map}". Known: ${maps.join(' | ')}`);
   installShims();
   const L = await import('../js/combat-logic.js');
   const { buildMap } = await import('../js/dungeon-loader.js');

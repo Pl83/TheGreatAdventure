@@ -103,6 +103,38 @@ test('a second accepted cast of a cooldown-99 move is once-per-fight-reuse', asy
   assert.match(vs[0].detail, /Dominion of the Seven Sea/);
 });
 
+test('a react cast enters the same ledger: a cooldown-99 move played twice as a react is once-per-fight-reuse', async () => {
+  const { checker, a } = await setup('Admiral Jaina', 'Alicia');
+  assert.deepEqual(checker.afterReact(a.id, 'Dominion of the Seven Sea', 1), []);
+  assert.deepEqual(kinds(checker.afterReact(a.id, 'Dominion of the Seven Sea', 3)), ['once-per-fight-reuse']);
+});
+
+test('a react counts its cooldown in owner turns: Hellical Twice (cooldown 2) after owner turn 2 is free from turn 5', async () => {
+  const { checker, a } = await setup('Mira', 'Alicia');
+  assert.deepEqual(checker.afterReact(a.id, 'Hellical Twice', 2), []);
+  assert.deepEqual(kinds(checker.afterReact(a.id, 'Hellical Twice', 4)), ['cooldown-ignored']);
+  assert.deepEqual(checker.afterReact(a.id, 'Hellical Twice', 7), []);
+});
+
+test('turnOf: a unit whose turn this round is still to come has begun one turn fewer than the round', async () => {
+  const { checker } = await setup('Mira', 'Alicia');
+  L.handlePass();   // into round 1's second turn
+  const [first, second] = S.initiativeOrder;
+  assert.equal(S.roundNumber, 1);
+  assert.equal(checker.turnOf(first), 1);
+  assert.equal(checker.turnOf(second), 1);
+  L.handlePass();   // round 2, first unit active: the second has begun only 1 turn
+  assert.equal(S.roundNumber, 2);
+  assert.equal(checker.turnOf(first), 2);
+  assert.equal(checker.turnOf(second), 1);
+});
+
+test('react casts count toward charges like any cast', async () => {
+  const { checker, a } = await setup('Thormak, The Titan Slayer', 'Alicia');
+  for (let round = 1; round <= 3; round++) assert.deepEqual(checker.afterReact(a.id, "Apolo's Bow", round), []);
+  assert.deepEqual(kinds(checker.afterReact(a.id, "Apolo's Bow", 4)), ['charges-exceeded']);
+});
+
 test('a rejected cast does not enter the ledger', async () => {
   const { checker, a } = await setup('Admiral Jaina', 'Alicia');
   const plan = cast('Dominion of the Seven Sea');

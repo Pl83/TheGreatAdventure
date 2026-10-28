@@ -1,5 +1,6 @@
 // Development-only: checks a running fight against the rules of the character sheets and files breaches.
-//   createChecker(chars, seed) -> { beforeAction(actorId), afterAction(plan, result, actorId, round), finish(end) }
+//   createChecker(chars, seed) -> { beforeAction(actorId), afterAction(plan, result, actorId, round),
+//                                   turnOf(unitId), afterReact(unitId, ability, turn), finish(end) }
 // The ledger of casts comes from the plans the runner applied plus the sheets (cooldown: 99 = once per fight,
 // cooldown: N = N owner turns locked), never from the engine's own cooldown counters.
 import { installShims } from './headless.mjs';
@@ -90,6 +91,24 @@ export function createChecker(chars, seed) {
       }
       wasKo = false;
       checkState(out, round);
+      return out;
+    },
+
+    // The owner turns unitId has begun: the round, less one while its turn this round has not come up yet. A
+    // turn cast happens on the owner's turn (its round); a react can come before the owner's turn in a round
+    // and then follows the owner's previous turn, which is what its cooldown counts from.
+    turnOf(unitId) {
+      const slot = S.initiativeOrder.indexOf(unitId);
+      return S.roundNumber - (slot > S.currentTurnIndex ? 1 : 0);
+    },
+
+    // Call for each react played (unitId's ability, at the owner turn turnOf gave when it was chosen): it is cast
+    // like any move, so the same once-per-fight, cooldown and charge rules apply
+    afterReact(unitId, ability, turn) {
+      const out = [];
+      const unit = L.getCombatant(unitId);
+      if (unit) checkCast(out, unit, ability, turn);
+      checkState(out, S.roundNumber);
       return out;
     },
 

@@ -51,14 +51,14 @@ try {
     const seed = o.seed + i;
     const base = { seed, map: o.map };
     const r = await playFight({ ...base, teamA: teamI, teamB: teamII, brains: [brainFor(o.brainA, seed, 0), brainFor(o.brainB, seed, 1)] });
-    fights.push({ ...r, winnerTeam: r.winner === null ? null : r.winner });
+    fights.push({ ...r, winnerTeam: r.winner });
     if (o.swap) {
       const s = await playFight({ ...base, teamA: teamII, teamB: teamI, brains: [brainFor(o.brainB, seed, 1), brainFor(o.brainA, seed, 0)] });
       fights.push({ ...s, winnerTeam: s.winner === null ? null : 1 - s.winner });
     }
   }
 } catch (err) {
-  if (/^Unknown character/.test(err.message)) fail(err.message);
+  if (/^Unknown (character|map)/.test(err.message)) fail(err.message);
   throw err;
 }
 
@@ -90,4 +90,5 @@ console.log(`slowest decision: ${Math.max(...fights.map(f => f.maxDecisionMs)).t
 console.log('');
 console.log(`violations: ${violations.length}`);
 for (const v of violations) console.log(`  [${v.kind}] seed ${v.seed} round ${v.round}: ${v.detail}`);
-process.exit(violations.length ? 2 : 0);
+// exitCode rather than exit(): a large report piped elsewhere is flushed in full
+process.exitCode = violations.length ? 2 : 0;

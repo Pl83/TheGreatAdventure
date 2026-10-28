@@ -71,7 +71,17 @@ export async function playFight({ teamA, teamB, seed, map, brains, maxRounds = 4
       if (S.awaitingReact) {
         // The first option's owner decides for the whole prompt
         const reactor = () => brains[L.getCombatant(S.reactOptions[0].combatantId).teamIndex];
-        result.reactsPlayed += settleReacts(() => { const brain = reactor(); return ask(brain, () => brain.chooseReact()); });
+        // Reacts the brains chose among the options offered: played, so checked against the sheets like moves
+        const played = [];
+        result.reactsPlayed += settleReacts(() => {
+          const brain = reactor();
+          const choice = ask(brain, () => brain.chooseReact());
+          if (choice && S.reactOptions.some(o => o.combatantId === choice.combatantId && o.ability.name === choice.abilityName)) {
+            played.push({ choice, turn: checker.turnOf(choice.combatantId) });
+          }
+          return choice;
+        });
+        for (const { choice, turn } of played) result.violations.push(...checker.afterReact(choice.combatantId, choice.abilityName, turn));
         noteKos();
         continue;
       }
