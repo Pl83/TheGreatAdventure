@@ -737,6 +737,38 @@ export function handleMoveClick(gx, gy) {
   R.renderCombatScreen();
 }
 
+// Places a pending teleport on (gx, gy); returns false (and stays in teleport mode) when the cell is illegal
+export function handleTeleportClick(gx, gy) {
+  if (!S.teleportMode) return false;
+  const actor = getCombatant(S.teleportActorId);
+  const teleportBlockedByDomain = S.activeDomains.some(ad => {
+    if (ad.domain.type === 'Ouvert') return false;
+    const owner = getCombatant(ad.casterId);
+    if (!owner || owner.isKO || owner.teamIndex === actor?.teamIndex) return false;
+    const domainRadius = ad.domain.radius ?? 8;
+    const center = { x: ad.centerX, y: ad.centerY };
+    return chebyshev(actor, center) <= domainRadius
+      && chebyshev({ x: gx, y: gy }, center) > domainRadius;
+  });
+  if (!actor || chebyshev(actor, { x: gx, y: gy }) > S.teleportRange
+      || !isWalkableG(S.currentMap, gx, gy) || isOccupied(gx, gy, actor.id)
+      || teleportBlockedByDomain) return false;
+  addLog(`✦ ${actor.name} teleports to (${gx}, ${gy})!`, 'spell');
+  const origin = { x: actor.x, y: actor.y };
+  const group  = S.teleportGroup;
+  actor.x = gx; actor.y = gy;
+  S.lastTeleportedIds = group ? relocateAllies(actor, origin, group.radius || 1) : null;
+  const reactAbility = S.pendingTeleportReact;
+  S.pendingTeleportReact = null;
+  exitTeleportMode();
+  if (reactAbility) {
+    resumePendingAction(reactAbility);
+  } else {
+    R.renderCombatScreen();
+  }
+  return true;
+}
+
 export function setupCanvasClickHandler() {
   if (headless) return;
   const canvas = document.getElementById('dungeon-canvas');
@@ -763,33 +795,7 @@ export function setupCanvasClickHandler() {
   canvas._clickHandler = (e) => {
     const { gx, gy } = cellCoords(e);
     if (S.teleportMode) {
-      const actor = getCombatant(S.teleportActorId);
-      const teleportBlockedByDomain = S.activeDomains.some(ad => {
-        if (ad.domain.type === 'Ouvert') return false;
-        const owner = getCombatant(ad.casterId);
-        if (!owner || owner.isKO || owner.teamIndex === actor?.teamIndex) return false;
-        const domainRadius = ad.domain.radius ?? 8;
-        const center = { x: ad.centerX, y: ad.centerY };
-        return chebyshev(actor, center) <= domainRadius
-          && chebyshev({ x: gx, y: gy }, center) > domainRadius;
-      });
-      if (actor && chebyshev(actor, { x: gx, y: gy }) <= S.teleportRange
-          && isWalkableG(S.currentMap, gx, gy) && !isOccupied(gx, gy, actor.id)
-          && !teleportBlockedByDomain) {
-        addLog(`✦ ${actor.name} teleports to (${gx}, ${gy})!`, 'spell');
-        const origin = { x: actor.x, y: actor.y };
-        const group  = S.teleportGroup;
-        actor.x = gx; actor.y = gy;
-        S.lastTeleportedIds = group ? relocateAllies(actor, origin, group.radius || 1) : null;
-        const reactAbility = S.pendingTeleportReact;
-        S.pendingTeleportReact = null;
-        exitTeleportMode();
-        if (reactAbility) {
-          resumePendingAction(reactAbility);
-        } else {
-          R.renderCombatScreen();
-        }
-      }
+      handleTeleportClick(gx, gy);
       return;
     }
     if (S.aimMode) {
