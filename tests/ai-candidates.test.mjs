@@ -178,6 +178,40 @@ for (const seed of [1, 2]) {
   });
 }
 
+test('every plan of every living unit is accepted mid-fight (rounds 3-6, seeds 1-3)', async () => {
+  let tried = 0;
+  const rejected = [];
+  for (const seed of [1, 2, 3]) {
+    await newFight({ teamA, teamB, seed });
+    let probed = 0;
+    while (S.phase === 'combat' && S.roundNumber <= 6) {
+      settleReacts(greedyReact);
+      if (S.phase !== 'combat') break;
+      // Once per round from round 3: hand the turn to each living unit in turn and play all its plans
+      if (S.roundNumber >= 3 && probed !== S.roundNumber) {
+        probed = S.roundNumber;
+        const snap = snapshot();
+        for (const c of S.combatants.filter(x => !x.isKO)) {
+          S.currentTurnIndex = S.initiativeOrder.indexOf(c.id);
+          S.hasMoved = false; S.hasActed = false;
+          const turn = snapshot();
+          for (const p of enumeratePlans(c)) {
+            tried++;
+            const res = applyPlan(p);
+            settleReacts(() => null);
+            if (!res.accepted || res.reason) rejected.push(`seed ${seed} r${S.roundNumber} ${c.name}: ${JSON.stringify(p)} -> ${res.reason}`);
+            restore(turn);
+          }
+        }
+        restore(snap);
+      }
+      if (!applyPlan(greedyTurn(L.activeCombatant())).accepted) applyPlan({ move: null, action: { type: 'pass' } });
+    }
+  }
+  assert.deepEqual(rejected, []);
+  assert.ok(tried > 500, `only ${tried} plans tried`);
+});
+
 test('a teleport ability is offered with legal destinations', async () => {
   await newFight({ teamA: ['Thormak, The Titan Slayer'], teamB: ['Alicia', 'Susano'], seed: 1 });
   const thormak = unit('Thormak, The Titan Slayer');
