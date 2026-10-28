@@ -70,8 +70,8 @@ Each breach is filed once per fight even if it keeps standing.
 ## Acceptance: `tools/acceptance.mjs`
 
 ```
-node tools/acceptance.mjs            # the full run (about 15 minutes on a 6-core laptop)
-node tools/acceptance.mjs --quick    # a smoke test of every stage in a few seconds
+node tools/acceptance.mjs            # the full run (about 26 minutes on a 6-core laptop)
+node tools/acceptance.mjs --quick    # a smoke test of every stage in about 45 seconds
 node tools/acceptance.mjs --workers 4
 ```
 
@@ -80,15 +80,20 @@ Fights run on worker threads (`tools/pool.mjs`, `tools/fight-worker.mjs`; defaul
 and every fight is seeded, so the results do not depend on the worker count.
 
 1. **strength**: the ai against greedy on four team pairs (5v5 spec matchup; Kadgar, Baal, Eragon vs Akir,
-   Future Zane, Vayl-Soran; MaracachaCoocaracha, Mira vs Nate, Jhin; Jhin vs Kaelgrym), seeds 1-4. For each
-   seed the ai plays each team from each seat: 64 fights. Pass at 80% ai wins or more. The pairs were picked
+   Future Zane, Vayl-Soran; MaracachaCoocaracha, Mira vs Nate, Jhin; Jhin vs Kaelgrym), seeds 101-104. For
+   each seed the ai plays each team from each seat: 64 fights. Pass at 80% ai wins or more. The pairs were picked
    for being roughly even under greedy against greedy, so the ai also has to win with the weaker side.
+   **Seeds 101-104 were never used in tuning.** The weights were tuned on strength seeds 1-8 (ai vs greedy,
+   same pairs and seatings) and ai-vs-ai seeds 2001-2008; the review also measured seeds 9-12. Stage 2's seeds
+   1000-1199 were not used to choose weights, but two earlier full runs on them guided the stall fixes.
 2. **violations**: 200 fights over those pairs plus Vayl-Soran, Future Zane vs Ronin Lloyd, Mira, cycling ai
    vs ai, ai vs greedy and greedy vs ai (seeds 1000-1199). Pass at zero violations, `stalled` included.
+   All on the Manor of Nadargath: the spec asks for both maps, but `maps/manifest.json` lists only Manor and
+   the random dungeon is not supported by the headless loader, so the second map is not covered.
 3. **determinism**: one ai-vs-ai 5v5 fight (seed 77) played twice in two workers; the whole result except
    the timing must be identical.
-4. **time**: 5 duels with the brain on a `{ ms: 8000 }` clock budget, one fight at a time with nothing else
-   running; the slowest decision must stay within 8000 ms.
+4. **time**: 5 fights (4 duels and the spec 5v5) with the brain on a `{ ms: 8000 }` clock budget, one fight
+   at a time with nothing else running; the slowest decision must stay within 8000 ms.
 5. **demonstrations**: over stage 2's ai-vs-ai fights, once-per-fight uses, control-then-ally and reacts
    played must each be above zero.
 
@@ -113,22 +118,23 @@ loses its turn, a wet target, a taunt, a heal) without a list of combos.
 **Evaluation** (`WEIGHTS` in `evaluate.js`), from the scored side's point of view, own minus enemy:
 3 per unit of HP fraction, 1.5 per living unit, 0.8 per unit under a control effect, 0.3 per silenced or
 rooted unit, 0.15 per unspent once-per-fight or charged move, 0.005 per point of average damage in ready
-damage moves. A won fight scores +30 and a lost one -30, above any material lead short of a win yet small
-enough that a rare won sample does not swamp a mean. One term is one-sided: the **engagement** penalty,
-0.05 per step an own unit must still walk before its longest reach covers the nearest foe, multiplied by
-(1 + 0.25 x round)^2 so standoffs get broken. The search reads it when the candidate's own turn ends (against
+damage moves. A won fight scores +30 and a lost one -30; every other position is bounded strictly inside
+(-30, 30), so a rollout that wiped a side always ranks beyond one that did not, at any round and for any
+roster, and 30 is still small enough that a rare won sample does not swamp a mean. One term is one-sided: the
+**engagement** penalty, 0.05 per step an own unit must still walk before its longest reach covers the nearest
+foe, multiplied by (1 + 0.25 x round)^2 so standoffs get broken, and capped at 10 (a third of a win). The search reads it when the candidate's own turn ends (against
 the foes alive when the plan began, so a kill never reads as falling behind) and adds it to the material read
 at the horizon: read at the horizon, it would only reflect the greedy rollout walking everyone in, and two
 brains would wait for each other forever (the first acceptance run had every ai-vs-ai duel stall that way).
 
 **Sampling.** Dice are random, so each plan is sampled several times and averaged. All plans are compared
 under the same sample seeds (common random numbers). The first pass samples every plan once (twice when the
-budget allows); the best 40, plus any plan whose sample KO'd a foe, go on to successive halving: the
+budget allows); the best 40, plus up to 10 more whose sample KO'd a foe, go on to successive halving: the
 survivors share what is left of the budget, the better half goes on, until one remains. Ties go to the plan
 ending nearest a foe. Reacts (`chooseReact`) score every react choice the same way over shared sample seeds.
 
 **Budgets.** `{ sims: n }`: exactly n simulations per decision once n covers the first pass (the runner's
-default, `DEFAULT_SIMS`, set so a 50-fight spec batch takes about 20 minutes). `{ ms: t }`: a clock, capped at
+default, `DEFAULT_SIMS` = 500: a 50-fight spec batch measured 15.6 minutes, under the owner's 20). `{ ms: t }`: a clock, capped at
 8000 ms (`MAX_MS`). The deadline keeps a 2% margin (at most 100 ms) and no simulation starts that would, at the
 mean pace so far, end past it, so a whole decision stays within the cap.
 
@@ -181,37 +187,45 @@ settleReacts(() => brain.chooseReact());
 
 ## Results of the last full acceptance run
 
-Run on 2026-10-28, Intel i7-10750H (6 cores, 12 threads), Node, 6 workers, `DEFAULT_SIMS = 500`, commit of
-this document. **4 of 5 stages pass; the violations stage fails on stalls only.**
+Run on 2026-10-28, Intel i7-10750H (6 cores, 12 threads), 6 workers, `DEFAULT_SIMS = 500`, after review fix
+round 1 (score bound, engagement cap; no weight changed). **3 of 5 stages pass. Strength fails on held-out
+seeds and violations fail on stalls; the brain does not yet meet the 80% and zero-stall criteria.**
 
 ```
 acceptance: 6 worker(s)
-PASS  strength: ai won 55 of 64 fights against greedy (85.9%, bar 80%) at 500 sims/decision
+FAIL  strength: ai won 47 of 64 fights against greedy (73.4%, bar 80%) at 500 sims/decision, seeds 101..104
       5v5 Zhuqiao, Vermillion Bird +4 vs Admiral Jaina +4: ai won 16/16, stalled 0
-      3v3 Kadgar +2 vs Akir +2: ai won 14/16, stalled 1
-      2v2 MaracachaCoocaracha +1 vs Nate +1: ai won 12/16, stalled 0
-      1v1 Jhin vs Kaelgrym: ai won 13/16, stalled 0
+      3v3 Kadgar +2 vs Akir +2: ai won 12/16, stalled 1
+      2v2 MaracachaCoocaracha +1 vs Nate +1: ai won 10/16, stalled 0
+      1v1 Jhin vs Kaelgrym: ai won 9/16, stalled 0
 FAIL  violations: 8 violation(s) over 200 fights (8 stalled; 70 ai vs ai, 130 ai vs greedy), seeds 1000..1199
-      [stalled] seed 1001 round 40: no winner after 40 of 40 rounds
-      [stalled] seed 1006 round 40: no winner after 40 of 40 rounds
-      [stalled] seed 1021 round 40: no winner after 40 of 40 rounds
-      [stalled] seed 1066 round 40: no winner after 40 of 40 rounds
-      [stalled] seed 1136 round 40: no winner after 40 of 40 rounds
-      [stalled] seed 1166 round 40: no winner after 40 of 40 rounds
-      [stalled] seed 1180 round 40: no winner after 40 of 40 rounds
-      [stalled] seed 1195 round 40: no winner after 40 of 40 rounds
+      [stalled] seeds 1001, 1006, 1021, 1066, 1136, 1166, 1180, 1195, each at round 40
 PASS  determinism: seed 77, 5v5 ai vs ai played twice: identical (winner 0, 36 rounds, 8 KOs, 39 distinct moves)
-PASS  time: slowest decision 7900 ms over 5 fight(s) at 8000 ms/decision (cap 8000 ms)
+PASS  time: slowest decision 7901 ms over 5 fight(s) (1v1, 1v1, 1v1, 1v1, 5v5) at 8000 ms/decision (cap 8000 ms)
 PASS  demonstrations: over 70 ai vs ai fights: once-per-fight uses 78, control-then-ally 93, reacts played 527
 
-4 of 5 stages passed in 873 s
+3 of 5 stages passed in 1535 s
 ```
 
-No rule violation other than `stalled` appeared. The 8 stalls: 6 in the Kadgar, Baal, Eragon vs Akir,
-Future Zane, Vayl-Soran 3v3 (seeds 1001, 1136, 1166 ai vs ai; 1006, 1021, 1066 ai vs greedy), 2 in the spec
-5v5 ai vs ai (1180, 1195). The 3v3 stalls are long attrition fights in which regeneration and healing keep pace
+**Held-out versus in-sample strength** (same 4 pairs, ai on each team from each seat, 64 fights per row):
+
+| Seeds | Role | ai wins |
+|---|---|---|
+| 1-4 | tuning (and the earlier acceptance run, before the score bound) | 55/64, 85.9% |
+| 5-8 | tuning | 49/64, 76.6% (review) |
+| 9-12 | not tuned on (review) | 45/64, 70.3% |
+| 101-104 | not tuned on (this run) | 47/64, 73.4% |
+
+The weights were picked as the best of five variants on seeds 1-8, so the 85.9% was in-sample. On seeds the
+tuning never saw, the brain wins about 70-74% against greedy: clearly stronger than greedy (which wins 20-70%
+of these pairings against itself, depending on the side), but below the 80% bar. Per pair it wins nearly every
+5v5, and loses ground with the weaker side of the uneven small pairs (Jhin in the duel, Nate and Jhin in the 2v2).
+
+The 8 stalls are the same fights as before the score bound: 6 in the Kadgar, Baal, Eragon vs Akir, Future
+Zane, Vayl-Soran 3v3 (seeds 1001, 1136, 1166 ai vs ai; 1006, 1021, 1066 ai vs greedy) and 2 in the spec 5v5
+ai vs ai (1180, 1195). The 3v3 stalls are long attrition fights in which regeneration and healing keep pace
 with the damage dealt (that pair also stalls under greedy against greedy, 1 in 20, mean 27 rounds); they are
-not passive standoffs. The tuning stopped there; the stage is reported as failed.
+not passive standoffs. No violation other than `stalled` appeared.
 
 The timing batch, run alone: `node tools/sim.mjs "<spec team I>" "<spec team II>" --fights 50 --brain-a ai`
 took **937 s (15.6 min, 18.7 s per fight)**: team I (ai) won 49, team II 1, 0 stalled, mean 13.2 rounds,
@@ -232,4 +246,5 @@ slowest decision 1028 ms, 0 violations; once-per-fight uses 111, reacts played 1
 | e4 | e1 + hp 3, alive 1.5 (kept) | 81.3% | 4 |
 | e5 | e3 + damage 0.02 | 77.3% | 5 |
 
-Iterations from e1 on ran at 500 sims over 128 fights (seeds 1-8, of which the acceptance run uses 1-4).
+Iterations from e1 on ran at 500 sims over 128 fights on seeds 1-8. These are in-sample numbers; see the
+held-out table above.
