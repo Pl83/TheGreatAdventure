@@ -5,9 +5,9 @@ import {
   aoeCenterValid, aoeCombatantHits, blastReaches, coneCells, coneCellTargets, tauntSource, targetPool,
   allies, trappingDomainOwner, SPELL_RANGE,
 } from '../combat-logic.js';
+import { distanceToFoes } from './paths.js';
 
 const HEAL_BELOW = 0.6;
-const FAR = 999;
 
 // Expected value of a dice expression such as "2d6+3" or "1d8*(2d4)"; missingHp terms count as 0
 function avgDice(expr) {
@@ -102,16 +102,6 @@ function offence(c) {
 
 // What c does with its action from where it stands, or null when nothing is legal
 const chooseAction = c => healCast(c) ?? offence(c);
-
-// Walking distance from every cell to the nearest foe (foe cells themselves are 0)
-function distanceToFoes(foes) {
-  const dist = new Map();
-  for (const f of foes) {
-    dist.set(`${f.x},${f.y}`, 0);
-    for (const [k, d] of bfsReachable(f.x, f.y, FAR)) if (d < (dist.get(k) ?? Infinity)) dist.set(k, d);
-  }
-  return dist;
-}
 
 // The free reachable cell that most shortens the walk to a foe, or null when none does
 function approachCell(c, foes) {
