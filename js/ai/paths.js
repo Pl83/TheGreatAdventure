@@ -10,26 +10,42 @@ export function walkMap(x, y) {
   return dist;
 }
 
-// Walking distance from every cell to the nearest foe (foe cells themselves are 0)
-export function distanceToFoes(foes) {
-  const dist = new Map();
-  for (const f of foes) {
-    for (const [k, d] of walkMap(f.x, f.y)) if (d < (dist.get(k) ?? Infinity)) dist.set(k, d);
+// Walking distances depend on the terrain only (units never block a walk), so each map keeps, per source cell,
+// the distance to every cell as an Int16Array indexed y * cols + x (-1: no walk leads there)
+const walkCache = new WeakMap();
+
+function walkArray(map, x, y) {
+  let byCell = walkCache.get(map);
+  if (!byCell) walkCache.set(map, byCell = new Map());
+  const { cols, rows } = map.grid;
+  const key = y * cols + x;
+  let dist = byCell.get(key);
+  if (!dist) {
+    dist = new Int16Array(cols * rows).fill(-1);
+    for (const [k, d] of walkMap(x, y)) {
+      const [cx, cy] = k.split(',').map(Number);
+      if (cx >= 0 && cy >= 0 && cx < cols && cy < rows) dist[cy * cols + cx] = d;
+    }
+    byCell.set(key, dist);
   }
   return dist;
 }
 
-// Walking maps depend on the terrain only (units never block the walk), so each map keeps the ones it computed
-const walkCache = new WeakMap();
-
-// Walking distance between two cells of the current map, Infinity when no walk joins them; cached per cell
+// Walking distance between two cells of the current map, Infinity when no walk joins them (Chebyshev off-map)
 export function walkDistance(x, y, tx, ty) {
   const map = S.currentMap;
   if (!map) return Math.max(Math.abs(x - tx), Math.abs(y - ty));
-  let byCell = walkCache.get(map);
-  if (!byCell) walkCache.set(map, byCell = new Map());
-  const key = `${x},${y}`;
-  let dist = byCell.get(key);
-  if (!dist) byCell.set(key, dist = walkMap(x, y));
-  return dist.get(`${tx},${ty}`) ?? Infinity;
+  const { cols, rows } = map.grid;
+  if (tx < 0 || ty < 0 || tx >= cols || ty >= rows) return Infinity;
+  const d = walkArray(map, x, y)[ty * cols + tx];
+  return d < 0 ? Infinity : d;
+}
+
+// Walking distance from a cell to the nearest of foes (a foe's own cell is 0), as a function of (x, y)
+export function foeDistance(foes) {
+  return (x, y) => {
+    let best = Infinity;
+    for (const f of foes) best = Math.min(best, walkDistance(f.x, f.y, x, y));
+    return best;
+  };
 }

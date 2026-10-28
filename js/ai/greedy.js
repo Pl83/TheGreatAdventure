@@ -2,10 +2,10 @@
 // or attack. Baseline opponent and rollout policy; it never teleports and never throws.
 import {
   S, activeCombatant, bfsReachable, isOccupied, abilityAvailable, hasValidTarget, targetInRange,
-  aoeCenterValid, aoeCombatantHits, blastReaches, coneCells, coneCellTargets, tauntSource, targetPool,
+  aoeCenterValid, aoeCombatantHits, blastReaches, coneCells, enemies, tauntSource, targetPool,
   allies, trappingDomainOwner, SPELL_RANGE,
 } from '../combat-logic.js';
-import { distanceToFoes } from './paths.js';
+import { foeDistance } from './paths.js';
 
 const HEAL_BELOW = 0.6;
 
@@ -26,6 +26,19 @@ export function avgDice(expr) {
 const usable = (c, ab) => abilityAvailable(c, ab) && !ab.reactOnly && !ab.isReact && !ab.isBlock
   && !ab.isGate && !ab.isTransform && !ab.isRevive && !ab.isInstant && !ab.tags?.includes('teleportation');
 
+// Cone cells depend only on the caster's cell, the aim, the range and the terrain: kept per map, the table
+// emptied when it grows past CONE_CACHE_MAX entries
+const CONE_CACHE_MAX = 50000;
+const coneCache = new WeakMap();
+function cachedConeCells(c, ab, dir) {
+  let table = coneCache.get(S.currentMap);
+  if (!table || table.size > CONE_CACHE_MAX) coneCache.set(S.currentMap, table = new Map());
+  const key = `${c.x},${c.y}>${dir.x},${dir.y}/${ab.range ?? SPELL_RANGE}`;
+  let cells = table.get(key);
+  if (!cells) table.set(key, cells = coneCells(c, ab, dir));
+  return cells;
+}
+
 // The best aimed use of an area or cone ability from c's current cell: { targetIds, hits } or null
 function bestArea(c, ab) {
   const taunter = tauntSource(c);
@@ -37,10 +50,11 @@ function bestArea(c, ab) {
     if (!best || score > best.score) best = { score, targetIds: hits.map(t => t.id), hits: hits.length };
   };
   if (ab.isCone) {
+    const inCone = (cells, t) => cells.some(k => k.x === t.x && k.y === t.y);
     for (const foe of targetPool(c)) {
-      const dir = { x: foe.x, y: foe.y };
-      const cells = coneCells(c, ab, dir);
-      consider(coneCellTargets(c, ab, dir), friends.filter(a => cells.some(k => k.x === a.x && k.y === a.y)).length);
+      // The same cells coneCellTargets would compute, looked up once for foes and friends alike
+      const cells = S.currentMap ? cachedConeCells(c, ab, foe) : [];
+      consider(enemies(c).filter(t => inCone(cells, t)), friends.filter(a => inCone(cells, a)).length);
     }
     return best;
   }
@@ -105,12 +119,11 @@ const chooseAction = c => healCast(c) ?? offence(c);
 
 // The free reachable cell that most shortens the walk to a foe, or null when none does
 function approachCell(c, foes) {
-  const dist = distanceToFoes(foes);
-  const here = dist.get(`${c.x},${c.y}`) ?? Infinity;
-  let best = null, bestD = here;
+  const dist = foeDistance(foes);
+  let best = null, bestD = dist(c.x, c.y);
   for (const [k] of bfsReachable(c.x, c.y, c.speed)) {
     const [x, y] = k.split(',').map(Number);
-    const d = dist.get(k) ?? Infinity;
+    const d = dist(x, y);
     if (d >= bestD || isOccupied(x, y, c.id) || trappingDomainOwner(c, x, y)) continue;
     bestD = d; best = { x, y };
   }
@@ -119,8 +132,9 @@ function approachCell(c, foes) {
 
 export function greedyTurn(c) {
   try {
-    // Already within reach of a foe: hold position and act
-    if (offence(c)) return { move: null, action: chooseAction(c) };
+    // Already within reach of a foe: hold position and act (chooseAction, without computing offence twice)
+    const strike = offence(c);
+    if (strike) return { move: null, action: healCast(c) ?? strike };
     const foes = targetPool(c);
     const rooted = c.statusEffects.some(e => e.name.toLowerCase() === 'root');
     const move = foes.length && !rooted && c.speed > 0 ? approachCell(c, foes) : null;
