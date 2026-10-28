@@ -138,11 +138,11 @@ test('the control-then-ally line: Jaina binds the foe next to Thormak rather tha
   assert.ok(controls >= 8, `Sea Bound chosen in ${controls} of 10: ${plans.map(p => p.action.ability ?? p.action.type).join(', ')}`);
 });
 
-// A stall (no winner by the round cap) is filed as a violation but is a result of play, not a rule breach
-test('a 5v5 fight with the brain on team 0 against greedy finishes without rule violations', async () => {
+// A stall counts: the fight must end with a winner and no violation of any kind
+test('a 5v5 fight with the brain on team 0 against greedy finishes without violations', async () => {
   const r = await playFight({ teamA, teamB, seed: 1, brains: [createBrain({ budget: { sims: 20 }, seed: 1 }), greedyBrain] });
-  assert.ok(r.winner !== null || r.stalled);
-  assert.deepEqual(r.violations.filter(v => v.kind !== 'stalled'), []);
+  assert.notEqual(r.winner, null);
+  assert.deepEqual(r.violations, []);
 });
 
 test('a brain fallback is filed as an exception violation and the fight goes on', async () => {

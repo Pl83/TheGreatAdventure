@@ -7,7 +7,7 @@ import { search, simulateReact, resolveBudget, sampleSeed, deadlineOf } from './
 import { greedyTurn, greedyReact } from './greedy.js';
 import { enumerateReacts } from './candidates.js';
 
-export const DEFAULT_SIMS = 200;
+export const DEFAULT_SIMS = 500;
 
 // The plan the search finds best for the active unit, which must be on teamIndex; throws as search does
 export function chooseTurn(teamIndex, budget = { sims: DEFAULT_SIMS }, seed) {

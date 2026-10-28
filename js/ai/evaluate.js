@@ -5,10 +5,11 @@ import { S, abilityAvailable, hasControlEffect, MELEE_RANGE, SPELL_RANGE } from 
 import { avgDice } from './greedy.js';
 import { walkDistance } from './paths.js';
 
-// Starting weights, to be tuned against fight results
+// Weights tuned against fight results (see docs/ai-runner.md)
 export const WEIGHTS = Object.freeze({
-  hp: 1,            // per unit of HP fraction (own sum minus enemy sum)
-  alive: 3,         // per living unit, own minus enemy: a KO costs clearly more than any wound
+  hp: 3,            // per unit of HP fraction (own sum minus enemy sum): wounds weigh about as much as KOs
+  alive: 1.5,       // per living unit, own minus enemy: on top of the HP lost, a KO costs half a unit more
+                    // (tuned: hp 1 / alive 3 won 70% against greedy, hp 3 / alive 1.5 won 81%)
   control: 0.8,     // per enemy under a control effect (own controlled units cost the same)
   hinder: 0.3,      // per enemy that is silenced or rooted (own cost the same)
   unspent: 0.15,    // per unspent once-per-fight or charged ability on a living unit (own bonus, enemy malus)

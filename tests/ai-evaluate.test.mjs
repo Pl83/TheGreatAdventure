@@ -40,7 +40,8 @@ test('a KO\'d own unit costs more than the same unit merely hurt', async () => {
   const down = evaluate(0);
   u.isKO = false; u.currentHp = hp;
   assert.ok(base > hurt && hurt > down);
-  assert.ok(base - down > 2 * (base - hurt));
+  // Falling costs the alive weight on top of the last HP
+  assert.ok(base - down - (base - hurt) >= WEIGHTS.alive);
 });
 
 test('a stunned enemy scores higher than the same enemy unstunned', async () => {
