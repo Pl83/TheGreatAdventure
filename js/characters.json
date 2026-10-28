@@ -811,7 +811,7 @@
         "target": "aoe", "range": 10, "radius": 4,
         "description": "Inflicts silence for 1d2 turns.",
         "effect": "1d2 silence",
-        "cooldown": 3
+        "cooldown": 99
       },
       {
         "category": "relic",
@@ -1078,7 +1078,7 @@
       {
         "category": "relic",
         "base": { "nom": "Dominion of the Seven Sea", "dices": "7d12", "tags": ["water", "magic", "adv"] },
-        "target": "aoe", "range": 15, "radius": 6, "cooldown": 0
+        "target": "aoe", "range": 15, "radius": 6, "cooldown": 99
       }
     ]
   },
@@ -1454,7 +1454,7 @@
       {
         "category": "relic",
         "base": { "nom": "End of Three World", "dices": "3d20+10", "tags": ["magic"] },
-        "target": "cone", "range": 15, "cooldown": 0
+        "target": "cone", "range": 15, "cooldown": 99
       }
     ]
   },
@@ -1524,7 +1524,7 @@
       {
         "category": "technique",
         "base": { "nom": "Arrow Volley", "dices": "3d12+12", "tags": ["physical"] },
-        "target": "mono", "range": 20, "cooldown": 0
+        "target": "mono", "range": 20, "cooldown": 2
       }
     ]
   },
@@ -1661,7 +1661,7 @@
       {
         "category": "technique",
         "base": { "nom": "Scream of the Banshee", "dices": "2d12+8", "tags": ["psy", "stun"] },
-        "target": "cone", "range": 6, "cooldown": 0
+        "target": "cone", "range": 6, "cooldown": 2
       }
     ]
   },
@@ -1837,7 +1837,7 @@
         },
         "target": "aoe", "range": 10, "radius": 5,
         "description": "Authority 7. Passive: 3 charges for lightning explosion. Active: Divine storm. Silence 1d2 turns.",
-        "cooldown": 0
+        "cooldown": 99
       }
     ]
   },
