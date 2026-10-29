@@ -1890,6 +1890,7 @@
         "base": { "nom": "Stone Skin", "tags": ["magic", "buff", "react"] },
         "target": "self", "range": 0,
         "description": "10 flat damage reduction for 3 turns.",
+        "grants": { "status": "damage_reduction", "amount": 10, "turns": 3, "label": "Stone Skin" },
         "duration": 3,
         "spellCost": 1
       },
@@ -2161,10 +2162,10 @@
     "baseAtk": { "nom": "Dual Pirate Swords", "dices": "1d6+4+1d4+2", "tags": ["physical"] },
     "passif": [
       { "nom": "Sky Pirate Veteran", "dices": "+2", "tags": ["buff"], "applyOn": ["utilityRoll"], "description": "+2 Pilot/Boat/Agility rolls." },
-      { "nom": "Dual Wielder", "tags": ["buff"], "applyOn": ["atkRoll"], "description": "Can attack twice if first hit lands." },
+      { "nom": "Dual Wielder", "tags": ["buff", "doubleStrike"], "applyOn": ["atkRoll"], "description": "Can attack twice if first hit lands." },
       {
         "nom": "Djinn's Luck",
-        "tags": ["buff"],
+        "tags": ["buff", "rerollOne"],
         "applyOn": ["allRolls"],
         "description": "Reroll a 1 once per turn. Excludes Destiny Gamble."
       }
@@ -2175,6 +2176,7 @@
         "base": { "nom": "Wind's Whim", "tags": ["magic", "buff", "react"] },
         "target": "self", "range": 0,
         "description": "+4 def roll against ranged attacks for 2 turns.",
+        "grants": { "status": "ranged_guard", "amount": 4, "turns": 2, "label": "Wind's Whim" },
         "duration": 2,
         "spellCost": 1
       },
@@ -2185,7 +2187,7 @@
       },
       {
         "category": "technique",
-        "base": { "nom": "Destiny Gamble", "tags": ["buff", "crit"] },
+        "base": { "nom": "Destiny Gamble", "tags": ["buff", "crit", "gamble"] },
         "target": "self", "range": 0,
         "description": "Roll d6: 1=Self 10 dmg | 2-5=+2d8 next atk | 6=Sure Hit & Crit (x2).",
         "cooldown": 0

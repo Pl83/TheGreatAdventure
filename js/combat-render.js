@@ -37,6 +37,10 @@ export function statusEmoji(name) {
   if (n === 'living_blade_armor')                                return '⚔';
   if (n === 'final_reckoning')                                   return '💀';
   if (n === 'runik_precast')                                     return '✦';
+  if (n === 'damage_reduction')                                  return '🪨';
+  if (n === 'ranged_guard')                                      return '🌬';
+  if (n === 'destiny_crit')                                      return '🌟';
+  if (n === 'gamble_bonus')                                      return '✨';
   if (n.includes('damage_shield'))                               return '🛡';
   if (n.includes('water_shield') || n.includes('shield'))       return '🛡';
   return '◈';
@@ -80,6 +84,7 @@ const STATUS_NAMES = {
   damage_shield: 'Shield', living_blade_armor: 'Blade armor', chains_of_apophis: 'Chains of Apophis',
   runik_precast: 'Runic precast', final_reckoning: 'Final reckoning', smoke_screen: 'Smoke screen',
   para: 'Paralysed', gel: 'Frozen', adv: 'Advantage', sure_hit: 'Sure hit', orders: 'Orders', ward: 'Moon ward', relic_awake: 'Ifrit awake', passives_off: 'Passives off',
+  damage_reduction: 'Damage reduction', ranged_guard: 'Ranged guard', destiny_crit: 'Destiny strikes', gamble_bonus: 'Fortune +2d8',
 };
 // "lost:Bone Armor" is a passive switched off for a while
 export const statusName = n => STATUS_NAMES[n] ?? (n.startsWith('lost:') ? `${n.slice(5)} lost` : n.replace(/_/g, ' ').replace(/^\w/, ch => ch.toUpperCase()));
@@ -93,7 +98,7 @@ export function statusBadgesHTML(c) {
       : `${e.turnsLeft} turn${e.turnsLeft === 1 ? '' : 's'}`;
     const notes = e.notes ? ` title="${e.notes}"` : '';
     const cls = e.name === 'wet' ? 'status-water' : statusCssClass(e.damType);
-    return `<li class="status-badge ${cls}"${notes}>${statusName(e.name)} <span class="status-dur">${dur}</span></li>`;
+    return `<li class="status-badge ${cls}"${notes}>${e.label ?? statusName(e.name)} <span class="status-dur">${dur}</span></li>`;
   }).join('');
   return `<ul class="status-badge-row" aria-label="Effects">${badges}</ul>`;
 }

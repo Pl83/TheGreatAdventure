@@ -231,24 +231,24 @@
       "where": "combat-logic.js · resumePendingAction (generic react branch)"
     },
     {
-      "id": "mech-react-buffs", "cat": "mechanics", "sev": "med",
+      "id": "mech-react-buffs", "resolution": "Fixed: Stone Skin and Wind's Whim are timed buffs (a new grants field on the move). Stone Skin puts 10 flat reduction on its user for 3 of their turns, Wind's Whim +4 on defense rolls against ranged attacks (anything from more than an adjacent cell, or tagged ranged) for 2 turns; a fresh cast refreshes the old one. Cast on the owner's own turn they work and end the turn; used as a react they no longer stop the blow: they are in place before it lands, and Wind's Whim re-judges an ordinary hit already rolled against the raised total.", "cat": "mechanics", "sev": "med",
       "title": "Timed react buffs behave as a single block", "who": "Cole Climber, Napoléon",
       "detail": "Stone Skin should take 10 flat damage off every hit for 3 turns; Wind's Whim should give +4 on defense rolls against ranged attacks for 2 turns. Both fall into the generic react branch: they block one attack and last no turns. Cast on the owner's own turn they do nothing, and attacks are not tagged ranged.",
       "where": "combat-logic.js · resumePendingAction (generic react branch)"
     },
     {
-      "id": "mech-destiny-gamble", "cat": "mechanics", "sev": "med",
+      "id": "mech-destiny-gamble", "resolution": "Implemented: casting it rolls a d6 and ends the turn. 1: 10 damage to Napoleon (ignores reduction). 2-5: +2d8 on the next attack (basic, single-target or area), spent by it. 6: the next attack counts as a sure natural 20 (always hits, dice doubled under the crit rules, or x4 against a natural 1 defense, plain against a natural 20). The bonus or the fate lasts through Napoleon's next turn.", "cat": "mechanics", "sev": "med",
       "title": "Destiny Gamble", "who": "Napoléon",
       "detail": "Roll a d6: 1 deals 10 damage to himself, 2-5 gives +2d8 on the next attack, 6 is a sure hit and a crit (x2). Casting it only logs \"uses Destiny Gamble\".",
       "evidence": "Found by the 2026-10-29 audit: every move was cast in the headless engine and the passives were checked against what combat-logic.js reads."
     },
     {
-      "id": "mech-dual-wielder", "cat": "mechanics", "sev": "low",
+      "id": "mech-dual-wielder", "resolution": "Implemented for basic attacks: when Napoleon's first blow lands he swings a second time at the same target (no second react, never a third). A miss, a fumble or a mutual fumble gives no second blow. Moves and spells are not doubled.", "cat": "mechanics", "sev": "low",
       "title": "Dual Wielder", "who": "Napoléon",
       "detail": "Attacks twice when the first attack lands. Napoléon gets one attack per action."
     },
     {
-      "id": "mech-djinn-luck", "cat": "mechanics", "sev": "low",
+      "id": "mech-djinn-luck", "resolution": "Implemented for d20 rolls: a 1 on Napoleon's attack or defense roll is rolled again, once per turn (it comes back at the start of his turn). The d6 of Destiny Gamble and damage dice are not rerolled.", "cat": "mechanics", "sev": "low",
       "title": "Djinn's Luck", "who": "Napoléon",
       "detail": "Rerolls a 1 once per turn (not Destiny Gamble). No reroll exists."
     },

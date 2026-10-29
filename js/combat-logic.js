@@ -226,6 +226,7 @@ export function resolveAbilitiesFromList(moveList) {
       slotRegen:     move.slotRegen ?? 0,
       bonusVs:       move.bonusVs ?? null,   // { vs: 'wet' | a unit tag, dice }: extra damage against such a target
       precastDice:   move.precastDice ?? null,
+      grants:        move.grants ?? null,   // { status, amount, turns, label }: a timed buff the move puts on its user
       maxCharges:    move.charges ?? 0,
       isReact:    tags.includes('react'),
       isBlock:    tags.includes('block'),
@@ -281,6 +282,7 @@ export function buildCombatant(char, teamIndex, id) {
     statusEffects: char.passif?.some(p => p.tags?.includes('fly'))
       ? [{ name: 'fly', turnsLeft: 999, dice: null, damType: null, notes: '' }]
       : [],
+    luckSpent: false,         // Djinn's Luck: the reroll of this turn is gone
     freeActionTarget: null,   // id of the foe this unit may now answer with a free action
     isTransformed:    false,
     transformedBaseAtk: null,
@@ -1227,7 +1229,7 @@ export function applyDamage(combatant, amount, damType = null, atkTags = [], ign
   if (stance && amount > 0 && !ignoreDR) {
     const before = amount;
     amount = Math.max(0, amount - stance.amount);
-    addLog(`🐗 ${combatant.name}'s stance shaves ${before - amount} off the hit! (${before} → ${amount})`, 'spell');
+    addLog(`🐗 ${combatant.name}'s ${stance.label ?? 'stance'} shaves ${before - amount} off the hit! (${before} → ${amount})`, 'spell');
   }
   // Damage-absorption shield / chains check (bypassed by unblockabled or antiMagic on spell/art shields)
   const dmgShield = combatant.statusEffects.find(e => e.name === 'damage_shield' || e.name === 'chains_of_apophis');
@@ -1709,6 +1711,18 @@ function pushStatus(c, eff, beneficial = false) {
 // A d20 for one of the combatant's own attack or defense rolls. Advantage and disadvantage cancel out;
 // Gravity's one-shot statuses are spent by the roll, Smoke Screen's disadvantage lasts.
 function rollD20For(c, baseAdv = false, baseDis = false) {
+  const roll = rollD20Raw(c, baseAdv, baseDis);
+  // Djinn's Luck: a 1 is rolled again, once per turn
+  if (roll.isNat1 && !c.luckSpent && c.sourceChar.passif?.some(p => p.tags?.includes('rerollOne') && !passiveLost(c, p))) {
+    c.luckSpent = true;
+    const again = rollD20();
+    addLog(`  🍀 ${c.name}'s Djinn's Luck rerolls the 1 — now ${again.value}.`, 'spell');
+    return again;
+  }
+  return roll;
+}
+
+function rollD20Raw(c, baseAdv, baseDis) {
   const advEff = c.statusEffects.find(e => e.name === 'advantage');
   const disEff = c.statusEffects.find(e => e.name === 'disadvantage');
   const adv = baseAdv || !!advEff;
@@ -1812,6 +1826,30 @@ function relocateAllies(leader, origin, radius) {
   return moved;
 }
 
+// Destiny Gamble: a d6. 1 costs 10 HP; 2-5 puts 2d8 on the next attack; 6 makes the next attack a sure natural 20.
+function destinyGamble(caster) {
+  const face = rollDie(6);
+  addLog(`🎲 ${caster.name} gambles with destiny and rolls a ${face}.`, 'spell');
+  if (face === 1) {
+    addLog(`  💀 Fate turns on ${caster.name}: 10 damage!`, 'miss');
+    applyDamage(caster, 10, damTypeFromTags([]), [], true);
+  } else if (face <= 5) {
+    pushStatus(caster, { name: 'gamble_bonus', turnsLeft: 2, dice: '2d8' }, true);
+    addLog(`  ✨ Fortune smiles: +2d8 on the next attack.`, 'spell');
+  } else {
+    pushStatus(caster, { name: 'destiny_crit', turnsLeft: 2 }, true);
+    addLog(`  🌟 Destiny itself: the next attack cannot miss, and it will be a critical.`, 'spell');
+  }
+}
+
+// The dice a status banks for the next attack (Runik Precast, Destiny Gamble): spent by it
+function spendNextBonus(c) {
+  const st = c.statusEffects.find(e => (e.name === 'runik_precast' || e.name === 'gamble_bonus') && e.dice);
+  if (!st) return null;
+  c.statusEffects = c.statusEffects.filter(e => e !== st);
+  return { dice: st.dice, label: st.name === 'gamble_bonus' ? 'DestinyGamble' : 'RuniquePrecast' };
+}
+
 // The attacker's d20 for one move. Advantage / sure-hit come from the owner's domain or the move's own tags.
 function rollAttackD20(attacker, ability, defender = null) {
   const domainAtkEffs = getDomainEffects(attacker, { applyOn: 'atkRoll', ability });
@@ -1830,12 +1868,50 @@ function rollAttackD20(attacker, ability, defender = null) {
   attacker.attacked = true;
   if (dread) addLog(`💀 Death Presence — ${attacker.name}'s first attack is made at disadvantage.`, 'info');
 
+  // Destiny Gamble's 6: the blow is a sure natural 20
+  const fate = attacker.statusEffects.find(e => e.name === 'destiny_crit');
+  if (fate) {
+    attacker.statusEffects = attacker.statusEffects.filter(e => e !== fate);
+    addLog(`🌟 ${attacker.name}'s destiny strikes true!`, 'spell');
+    return { roll: { value: 20, isNat20: true, isNat1: false }, sureHit: true };
+  }
   return { roll: rollD20For(attacker, adv, dread), sureHit };
 }
 
+// A blow from more than an arm's length away, or one the move itself calls ranged
+const isRangedAttack = (attacker, defender, ability) =>
+  !(chebyshev(attacker, defender) <= MELEE_RANGE && !ability?.tags?.includes('ranged'));
+
+// Timed buffs a move puts on its user (Stone Skin, Wind's Whim); a fresh cast refreshes the old one
+function grantTimed(c, ab) {
+  const g = ab.grants;
+  c.statusEffects = c.statusEffects.filter(e => e.name !== g.status);
+  // statuses tick when their owner's turn starts, so +1 keeps it for the owner's next `turns` turns
+  c.statusEffects.push({ name: g.status, turnsLeft: g.turns + 1, amount: g.amount, label: g.label, dice: null, damType: null, notes: '' });
+  addLog(`🛡 ${c.name} calls on ${g.label} for ${g.turns} turns.`, 'spell');
+  updateCombatantCardDOM(c);
+}
+
+// Wind's Whim raised in answer to a blow that was already rolled: re-judge an ordinary hit against the new total
+function strengthenDefense(action, defender) {
+  const r = action.result;
+  if (!r || r.atkRoll === '—' || !r.hit || !r.ordinary) return;
+  const attacker = getCombatant(action.attackerId ?? action.casterId);
+  if (!attacker) return;
+  const bonus = defenseBonus(defender, attacker, action.ability) - (r.effectiveDefRoll - r.defRoll);
+  if (bonus <= 0) return;
+  r.effectiveDefRoll += bonus;
+  if (r.atkRoll < r.effectiveDefRoll) {
+    r.hit = false; r.damage = 0; r.breakdown = '—';
+    addLog(`  🌬 ${defender.name}'s Wind's Whim lifts the defense to ${r.effectiveDefRoll} — the blow misses!`, 'spell');
+  }
+}
+
 export function defenseBonus(defender, attacker, ability) {
-  if (ability?.tags?.includes('arPen')) return 0;   // armour piercing: defense-roll passives (armour) do not count
-  let bonus = 0;
+  const guard = defender.statusEffects.find(e => e.name === 'ranged_guard');
+  const windBonus = guard && isRangedAttack(attacker, defender, ability) ? guard.amount : 0;
+  if (ability?.tags?.includes('arPen')) return windBonus;   // armour piercing: defense-roll passives (armour) do not count
+  let bonus = windBonus;
   for (const b of rollBonuses(defender, 'defRoll', attacker, ability)) bonus += parseDice(b.dices).total;
   return bonus;
 }
@@ -1954,6 +2030,8 @@ export function resolveAttack(attacker, defender, diceExpr, ability = null) {
   const hit = outcome.hit || domainForcesHit;
   const { mutual, bonusMult } = outcome;
   const freeAction = outcome.freeAction && !hit;
+  // Decided by the totals alone: no natural 1 or 20 on either side and no sure-hit (a later bonus can still turn it)
+  const ordinary = !atkRoll.isNat1 && !atkRoll.isNat20 && !defRoll.isNat1 && !defRoll.isNat20 && !domainForcesHit;
   const crit   = atkRoll.isNat20;
   const fumble = atkRoll.isNat1;
 
@@ -1985,12 +2063,11 @@ export function resolveAttack(attacker, defender, diceExpr, ability = null) {
       passiveParts.push(`FinalReckoning[${fr.breakdown}]`);
     }
 
-    const precastSt = attacker.statusEffects.find(e => e.name === 'runik_precast');
-    if (precastSt?.dice) {
-      const pr = pd(precastSt.dice);
+    const banked = spendNextBonus(attacker);
+    if (banked) {
+      const pr = pd(banked.dice);
       passiveBonus += pr.total;
-      passiveParts.push(`RuniquePrecast[${pr.breakdown}]`);
-      attacker.statusEffects = attacker.statusEffects.filter(e => e !== precastSt);
+      passiveParts.push(`${banked.label}[${pr.breakdown}]`);
     }
 
     if (attacker.shadowCounterBonus > 0) {
@@ -2007,7 +2084,7 @@ export function resolveAttack(attacker, defender, diceExpr, ability = null) {
   }
 
   return {
-    hit, crit, fumble, mutual, freeAction, recoil, bonusMult, guaranteed: bonusMult > 1,
+    hit, crit, fumble, mutual, freeAction, recoil, bonusMult, guaranteed: bonusMult > 1, ordinary,
     damage, atkRoll: atkRoll.value, defRoll: defRoll.value, effectiveDefRoll, breakdown, domainSureHit: domainForcesHit,
   };
 }
@@ -2518,6 +2595,10 @@ export function resumePendingAction(reactAbility) {
         }
       } else if (reactAbility.tags?.includes('half_phys')) {
         raiseBladeArmor(reactor, reactAbility);
+      } else if (reactAbility.grants) {
+        // A timed buff does not stop the blow: it is in place before the damage lands, and stays
+        grantTimed(reactor, reactAbility);
+        strengthenDefense(action, reactor);
       } else if (reactAbility.tags?.includes('teleportation')) {
         // A group teleport takes the allies who followed along (everyone, without a map) out of the way too
         const group = reactAbility.tags.includes('group');
@@ -2634,6 +2715,12 @@ export function resumePendingAction(reactAbility) {
           strikeBack(atk, action.result, damType, atkTags);
           applyHpPerHitPassives(atk);
           if (atkTags.includes('grounded')) removeFlying(def);
+          // Dual Wielder: a landed blow is followed by a second one
+          if (!action.result.mutual && !atk.isKO && !def.isKO
+              && atk.sourceChar.passif?.some(p => p.tags?.includes('doubleStrike') && !passiveLost(atk, p))) {
+            addLog(`⚔ ${atk.name}'s second blade follows!`, 'crit');
+            freeAttack(atk, def);
+          }
         } else if (!action.result.hit && !action.result.freeAction) {
           const shadowEffs = getDomainEffects(def, { applyOn: 'atkRoll', foeJustMissed: true });
           if (shadowEffs.length > 0 && shadowEffs[0].dices) {
@@ -2651,12 +2738,10 @@ export function resumePendingAction(reactAbility) {
       const allTargets = action.targetIds.map(id => getCombatant(id)).filter(t => t && !t.isKO);
       const isPureHeal = ability.targetKind === 'ally';
       let precastBonus = 0;
-      const aoePrecast = caster?.statusEffects.find(e => e.name === 'runik_precast');
-      if (aoePrecast?.dice) {
-        const pr = parseDice(aoePrecast.dice);
-        precastBonus = pr.total;
-        caster.statusEffects = caster.statusEffects.filter(e => e !== aoePrecast);
-        addLog(`✦ ${caster.name}'s Runik Precast activates! (+${precastBonus})`, 'spell');
+      const banked = caster ? spendNextBonus(caster) : null;
+      if (banked) {
+        precastBonus = parseDice(banked.dice).total;
+        addLog(`✦ ${caster.name}'s ${banked.label === 'DestinyGamble' ? 'Destiny Gamble' : 'Runik Precast'} activates! (+${precastBonus})`, 'spell');
       }
       const aoeIgnoreDR = ignoresDR(caster, ability);
       addLog(`${caster.name}'s ${ability.name} strikes all ${isPureHeal ? 'allies' : 'enemies'}!`, 'spell');
@@ -2841,6 +2926,8 @@ export function resumePendingAction(reactAbility) {
         if (isSelf && ability.tags?.includes('selfDestruct')) {
           selfDestruct(caster, ability);
         } else if (isSelf || isPureHeal) {
+          if (ability.grants) grantTimed(target, ability);
+          if (ability.tags?.includes('gamble')) destinyGamble(caster);
           if (ability.tags?.includes('half_phys')) {
             raiseBladeArmor(target, ability);
           } else if (ability.isBlock) {
@@ -3210,6 +3297,7 @@ export function advanceTurn() {
 
 export function beginTurn(c) {
   if (!c) return;
+  c.luckSpent = false;
   addLog(c.name, 'turn', { team: c.teamIndex });   // start-of-turn ticks belong to this turn
 
   const survived = tickTurn(c);
