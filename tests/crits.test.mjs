@@ -281,3 +281,137 @@ test('a mage with a free action may cast a spell at the attacker', async () => {
   assert.ok(logText().some(t => t.includes(spell.name)), 'the spell is cast');
   assert.ok(hpOf(ras) < before || kadgar.spellSlots < slots || kadgar.ki < ki, 'it cost something or hurt');
 });
+
+// ── Area moves: the caster rolls once, every victim defends against that roll ──
+
+async function stormAt(victims = ['Ras']) {
+  await newFight({ teamA: ['Susano'], teamB: [...victims, 'Kay Climber'], seed: 1 });
+  const kadgar = byName('Susano'), ras = byName('Ras');
+  toTurn('Susano');
+  const spot = freeRun(4);
+  place(kadgar, spot.x, spot.y);
+  place(ras, spot.x + 2, spot.y);
+  return { kadgar, ras };
+}
+// Casts Fire Ball (1d10+10) on Ras with the d20s given, declining every react
+function storm(kadgar, ras, ...d20s) {
+  forceD20(...d20s);
+  L.handleCastAbility(kadgar.id, 'Fire Ball', [ras.id]);
+  if (S.awaitingReact) settleReacts(() => null);
+}
+const hitLine = name => logText().find(t => new RegExp(`${name} is hit for`).test(t));
+const dieCount = (line, sides) => Number(line?.match(new RegExp(String.raw`(\d+)d${sides}\[`))?.[1]);
+
+test('area: a natural 20 against a natural 20 defense is a plain full hit', async () => {
+  const { kadgar, ras } = await stormAt();
+  storm(kadgar, ras, 20, 20);
+  assert.equal(dieCount(hitLine('Ras'), 10), 1);
+});
+
+test('area: a natural 20 against an ordinary defense doubles the dice', async () => {
+  const { kadgar, ras } = await stormAt();
+  storm(kadgar, ras, 20, 10);
+  assert.equal(dieCount(hitLine('Ras'), 10), 2);
+});
+
+test('area: a natural 20 against a natural 1 defense rolls the dice four times', async () => {
+  const { kadgar, ras } = await stormAt();
+  storm(kadgar, ras, 20, 1);
+  assert.equal(dieCount(hitLine('Ras'), 10), 4);
+});
+
+test('area: an ordinary roll against a natural 1 defense doubles the dice', async () => {
+  const { kadgar, ras } = await stormAt();
+  storm(kadgar, ras, 12, 1);
+  assert.equal(dieCount(hitLine('Ras'), 10), 2);
+});
+
+test('area: an ordinary roll against an ordinary defense keeps the old rule', async () => {
+  const { kadgar, ras } = await stormAt();
+  storm(kadgar, ras, 15, 9);
+  assert.equal(dieCount(hitLine('Ras'), 10), 1, 'full damage, one set of dice');
+});
+
+test('area: both fumble, the victim takes half and the caster takes the same', async () => {
+  const { kadgar, ras } = await stormAt();
+  const hp = ras.currentHp;
+  storm(kadgar, ras, 1, 1);
+  const recoil = logText().map(t => t.match(/Susano takes (\d+) from the botched blow/)).find(Boolean);
+  assert.ok(recoil, 'the caster is hurt');
+  assert.equal(hp - ras.currentHp, Number(recoil[1]));
+});
+
+test('area: a caster natural 1 fails against an ordinary defense and the victim earns a free action', async () => {
+  const { kadgar, ras } = await stormAt();
+  const hp = ras.currentHp;
+  storm(kadgar, ras, 1, 10);
+  assert.equal(hitLine('Ras'), undefined, 'no damage');
+  assert.equal(ras.currentHp, hp);
+  assert.ok(logText().some(t => /Ras.*free action/i.test(t)));
+});
+
+test('area: a natural 20 defense against an ordinary roll takes no damage and earns a free action', async () => {
+  const { kadgar, ras } = await stormAt();
+  const hp = ras.currentHp;
+  storm(kadgar, ras, 12, 20);
+  assert.equal(hitLine('Ras'), undefined);
+  assert.equal(ras.currentHp, hp);
+  assert.ok(logText().some(t => /Ras.*free action/i.test(t)));
+});
+
+test('splash: the bystanders defend against the primary roll under the same rules', async () => {
+  await newFight({ teamA: ['Eragon'], teamB: ['Ras', 'Kay Climber'], seed: 1 });
+  const eragon = byName('Eragon'), ras = byName('Ras'), kay = byName('Kay Climber');
+  toTurn('Eragon');
+  const spot = freeRun(4);
+  place(eragon, spot.x, spot.y); place(ras, spot.x + 2, spot.y); place(kay, spot.x + 2, spot.y + 1);
+  forceD20(20, 10);
+  L.handleCastAbility(eragon.id, 'Water Dragon', [ras.id]);
+  if (S.awaitingReact) settleReacts(() => null);
+  const caught = logText().find(t => /Kay Climber is caught by the splash/.test(t));
+  assert.ok(caught, 'Kay is caught');
+  assert.equal(dieCount(caught, 12), 4, 'a natural 20 doubles 2d12');
+});
+
+// ── A free-action spell gives its target a react ───────────────────────────
+
+async function freeSpellDuel() {
+  await newFight({ teamA: ['Susano'], teamB: ['Kay Climber'], seed: 3 });
+  const kadgar = byName('Susano'), kay = byName('Kay Climber');
+  const spot = freeRun(3);
+  place(kadgar, spot.x, spot.y);
+  place(kay, spot.x + 2, spot.y);
+  const spell = L.freeActionOptions(kadgar, kay).find(o => o.type === 'spell').ability;
+  assert.ok(L.getReacts(kay, spell).length > 0, 'fixture: Kay has a react against the spell');
+  return { kadgar, kay, spell };
+}
+
+test('a free spell stops for the target\'s react before it resolves', async () => {
+  const { kadgar, kay, spell } = await freeSpellDuel();
+  const serial = S.turnSerial;
+  const handedOff = L.resolveFreeAction(kadgar, kay, { type: 'spell', abilityName: spell.name });
+  assert.equal(handedOff, true, 'the spell carries on through the react flow');
+  assert.equal(S.awaitingReact, true);
+  assert.equal(S.reactOptions[0].combatantId, kay.id);
+  assert.equal(S.turnSerial, serial, 'not resolved yet');
+});
+
+test('a person who picks a free spell moves the turn on exactly once', async () => {
+  const { kadgar, kay, spell } = await freeSpellDuel();
+  S.awaitingFree = { actorId: kadgar.id, targetId: kay.id, instant: false };
+  const serial = S.turnSerial;
+  L.handleFreeAction({ type: 'spell', abilityName: spell.name });
+  if (S.awaitingReact) L.handleReactNo();
+  assert.equal(S.awaitingReact, false);
+  assert.equal(S.awaitingFree, null);
+  assert.equal(S.turnSerial, serial + 1);
+});
+
+test('a free spell does not earn its target a free action of their own', async () => {
+  const { kadgar, kay, spell } = await freeSpellDuel();
+  forceD20(5, 20);
+  L.resolveFreeAction(kadgar, kay, { type: 'spell', abilityName: spell.name });
+  if (S.awaitingReact) L.handleReactNo();
+  assert.equal(kay.freeActionTarget, null);
+  assert.ok(!logText().some(t => /Kay Climber takes a free action/.test(t)));
+});

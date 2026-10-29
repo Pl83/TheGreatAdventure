@@ -157,12 +157,12 @@
       "where": "combat-logic.js · resolveAttack, rollAttackD20, areaDefense, reaction flow; js/ai/* must learn the free action"
     },
     {
-      "id": "mech-crit-areas", "cat": "mechanics", "sev": "med",
+      "id": "mech-crit-areas", "resolution": "Implemented: area, cone and splash-bystander moves use the same d20 matrix per victim. The caster's one roll against each victim's own: nat 20 doubles the dice (x4 against a victim's nat 1, plain against a nat 20), an ordinary roll against a victim's nat 1 doubles them, 1d2 riders become certain on those hits; a caster nat 1 turns the blow away from every victim (each earns a free action) unless the victim fumbles too (the victim takes half and the caster takes the same half, once per such victim); a victim's nat 20 against an ordinary roll takes nothing and earns a free action. Ordinary rolls keep the old full / half / none rule, and a sure-hit still lands. Splash bystanders defend against the primary roll the same way.", "cat": "mechanics", "sev": "med",
       "title": "Crits do not reach area moves",
       "detail": "The new nat 20 / nat 1 matrix only governs single-target blows. Area, cone and splash-bystander moves still use the old rule: the caster's nat 20 is a full-damage hit, defenders roll against it, and a caster's nat 1 does nothing special. No bonus dice, no free action for a nat 20 defender, no mutual fumble."
     },
     {
-      "id": "mech-free-spell-react", "cat": "mechanics", "sev": "low",
+      "id": "mech-free-spell-react", "resolution": "Fixed: a free-action spell is now an ordinary pending action, so its target is offered its reacts before it resolves (for an area spell, each unit in the blast). A pre-armed shield blocks it. It is marked free: it never earns anyone another free action, and when it finishes it concludes the action it answered, so the turn moves on exactly once.", "cat": "mechanics", "sev": "low",
       "title": "Free-action spells give the target no react",
       "detail": "A spell cast as a free action resolves at once: the attacked unit is not offered a react (Phoenix Shroud, shields, reflects), and a pre-armed shield does not stop it. It also never chains into another free action."
     },
