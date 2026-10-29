@@ -363,6 +363,7 @@
   },
   {
     "nom": "Zane Climber",
+    "tags": ["mecha"],
     "hp": 65,
     "spellSlot": 6,
     "ki": 0,
@@ -402,6 +403,7 @@
       }
     ],
     "transformation": {
+      "loseTags": ["mecha"],
       "base": { "nom": "Dragon Form", "tags": ["buff", "ice"] },
       "hp": 15,
       "spellSlot": 0,
@@ -566,6 +568,7 @@
   },
   {
     "nom": "Pixal",
+    "tags": ["mecha"],
     "hp": 60,
     "spellSlot": 0,
     "ki": 0,
@@ -731,6 +734,7 @@
       {
         "category": "spell",
         "base": { "nom": "Ice Coffin", "dices": "1d12", "tags": ["magic", "ice", "freeze", "disv"] },
+        "bonusVs": { "vs": "wet", "dice": "2d10" },
         "target": "aoe", "range": 8, "radius": 3,
         "description": "+2d10 if target is wet.",
         "spellCost": 1
@@ -1379,6 +1383,7 @@
       {
         "category": "technique",
         "base": { "nom": "Force Lightning", "dices": "1d12+6", "tags": ["lightning"] },
+        "bonusVs": { "vs": "mecha", "dice": "2d12" },
         "target": "mono", "range": 10,
         "description": "+2d12 vs mecha targets.",
         "cooldown": 3
@@ -2267,7 +2272,7 @@
       },
       {
         "category": "spell",
-        "base": { "nom": "Anti-magic Slash", "dices": "2d12", "tags": ["magic", "antiMagic"] },
+        "base": { "nom": "Anti-magic Slash", "dices": "2d12", "tags": ["magic", "antiMagic", "passives_off"] },
         "target": "cone", "range": 6,
         "description": "True damage + disables target passives for 1 turn.",
         "spellCost": 1
@@ -3670,6 +3675,7 @@
   },
   {
     "nom": "Future Zane",
+    "tags": ["mecha"],
     "hp": 70,
     "spellSlot": 6,
     "ki": 0,

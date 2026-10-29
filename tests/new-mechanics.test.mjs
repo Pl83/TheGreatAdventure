@@ -948,3 +948,60 @@ test('pure dodge reactions are reactions only: they are not offered as moves for
     assert.equal(byName(who).abilities.find(a => a.name === n).reactOnly, true, n);
   }
 });
+
+// ── Mecha tag, Force Lightning, Ice Coffin vs wet, Anti-magic Slash ────────
+
+test('Zane, Pixal and Future Zane are mechas, and Zane stops being one in Dragon Form', async () => {
+  await newFight({ teamA: ['Zane Climber', 'Pixal', 'Future Zane'], teamB: ['Kay Climber'], seed: 1 });
+  const zane = byName('Zane Climber');
+  for (const n of ['Zane Climber', 'Pixal', 'Future Zane']) assert.equal(L.unitHasTag(byName(n), 'mecha'), true, n);
+  assert.equal(L.unitHasTag(byName('Kay Climber'), 'mecha'), false);
+  toTurn('Zane Climber');
+  L.handleTransform(zane.id);
+  assert.equal(zane.isTransformed, true);
+  assert.equal(L.unitHasTag(zane, 'mecha'), false, 'the dragon is flesh');
+});
+
+test('Force Lightning adds 2d12 against a mecha, not against anyone else', async () => {
+  await newFight({ teamA: ['Vorrakan Duskbane'], teamB: ['Pixal', 'Kay Climber'], seed: 1 });
+  const vor = byName('Vorrakan'), pixal = byName('Pixal'), kay = byName('Kay Climber');
+  const fl = vor.abilities.find(a => a.name === 'Force Lightning');
+  vor.statusEffects.push(status('sure_hit'));
+  assert.ok(L.resolveAttack(vor, pixal, fl.dice, fl).breakdown.includes('mecha['), 'against Pixal');
+  vor.statusEffects.push(status('sure_hit'));
+  assert.ok(!L.resolveAttack(vor, kay, fl.dice, fl).breakdown.includes('mecha['), 'against Kay');
+});
+
+test('Ice Coffin hits a wet target for 2d10 more', async () => {
+  const lost = async wet => {
+    await newFight({ teamA: ['Eragon'], teamB: ['Kay Climber'], seed: 4 });
+    const eragon = byName('Eragon'), kay = byName('Kay Climber');
+    const far = freeRun(8);
+    place(eragon, far.x, far.y); place(kay, far.x + 3, far.y);
+    eragon.statusEffects.push(status('sure_hit'));
+    if (wet) L.applyStatus(kay, 'wet');
+    toTurn('Eragon');
+    const before = kay.currentHp;
+    applyPlan({ move: null, action: { type: 'cast', ability: 'Ice Coffin', targetIds: [kay.id] } });
+    settleReacts(() => null);
+    return before - kay.currentHp;
+  };
+  const dry = await lost(false), soaked = await lost(true);
+  assert.ok(soaked - dry >= 2 && soaked - dry <= 20, `dry ${dry}, wet ${soaked}`);
+});
+
+test('Anti-magic Slash switches the passives of those it hits off for 1 turn', async () => {
+  await newFight({ teamA: ['Hela, Goddess of Death'], teamB: ['Kay Climber'], seed: 1 });
+  const hela = toTurn('Hela'), kay = byName('Kay Climber');
+  const far = freeRun(8);
+  place(hela, far.x, far.y); place(kay, far.x + 2, far.y);
+  hela.statusEffects.push(status('sure_hit'));
+  const armoured = L.defenseBonus(kay, hela, null);
+  assert.ok(armoured > 0, 'fixture: Kay has armour');
+  applyPlan({ move: null, action: { type: 'cast', ability: 'Anti-magic Slash', targetIds: [kay.id] } });
+  settleReacts(() => null);
+  assert.ok(kay.statusEffects.some(e => e.name === 'passives_off'));
+  assert.equal(L.defenseBonus(kay, hela, null), 0, "armour is off (Kay's turn is under way)");
+  L.tickTurn(kay);
+  assert.equal(L.defenseBonus(kay, hela, null), armoured, 'back once that turn is over');
+});

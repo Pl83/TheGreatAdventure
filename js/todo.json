@@ -133,7 +133,7 @@
       "where": "combat-logic.js · handleCastAbility (isRevive), reviveBeside"
     },
     {
-      "id": "mech-wet", "cat": "mechanics", "sev": "med",
+      "id": "mech-wet", "resolution": "Implemented: Water Dragon and Abyssal Current soak their targets for 2 turns; standing in the map's water also makes a unit wet. Wet units walk at 0.8 speed and take x1.5 lightning; ice freezes them for sure or gives a 1d2 chance; fire dries them and lightning or ice spends the soaking; Ice Coffin hits a wet target for 2d10 more; Fire Tornado removes wet from allies; Black Turtle and Kaelgrym are immune. Left: Runik Sea Bound's advantage on a wet field (see its own item).", "cat": "mechanics", "sev": "med",
       "title": "Wet status", "who": "Eragon, Black Turtle, Admiral Jaina",
       "detail": "There is no wet status. Water Dragon (Eragon) and Abyssal Current (Black Turtle) carry the wet tag but only deal damage. Nothing reads it: Ice Coffin's +2d10 against a wet target, Fire Tornado removing wet, Runik Sea Bound's advantage on a wet field, and the wet immunity of Black Turtle. The combat AI spec lists the wet combos as supported; they are not.",
       "evidence": "combat-logic.js never mentions wet. Found by the 2026-10-29 audit: every move was cast in the headless engine and the passives were checked against what combat-logic.js reads.",
@@ -143,6 +143,11 @@
       "id": "mech-ifrit-state", "resolution": "Implemented: the relic starts asleep and absorbs fire. The first strike with the Awake form wakes it for the rest of the fight: no more absorption, the Sleeping form can no longer be used, and a badge shows that Ifrit is awake.", "cat": "mechanics", "sev": "low",
       "title": "Ifrit's Bane Sleeping / Awake", "who": "Kaelgrym",
       "detail": "Kaelgrym has both relic attacks but no state tells which form he wields, so the fire absorption of the Sleeping form is always on, even when he uses the Awake form. Awake should presumably end the absorption."
+    },
+    {
+      "id": "mech-sea-bound-wet", "cat": "mechanics", "sev": "low",
+      "title": "Runik Sea Bound: advantage on a wet field", "who": "Admiral Jaina",
+      "detail": "Runik Sea Bound should roll with advantage when the field is wet, and its stun and root should each be a 1d2 chance. The spell has no attack roll in the engine (it deals no damage), so there is nothing to give advantage to, and both statuses always land."
     },
     {
       "id": "mech-disv-riders", "cat": "mechanics", "sev": "med",
@@ -232,7 +237,7 @@
       "where": "combat-logic.js · reflectSpell, applyDamage, applyStatus"
     },
     {
-      "id": "mech-hela-passives", "cat": "mechanics", "sev": "low",
+      "id": "mech-hela-passives", "resolution": "Implemented: Death Presence makes each foe's first attack of the fight roll at disadvantage, and Anti-magic Slash switches the passives of everyone it hits off for 1 turn (damage reduction, roll bonuses, regeneration and shields included).", "cat": "mechanics", "sev": "low",
       "title": "Death Presence and Anti-magic Slash rider", "who": "Hela",
       "detail": "Death Presence (every foe has disadvantage on its first attack each fight) is not applied. Anti-magic Slash does not disable the target's passives for 1 turn.",
       "evidence": "Anti-magic Slash cast on two foes: damage only, no status. Found by the 2026-10-29 audit: every move was cast in the headless engine and the passives were checked against what combat-logic.js reads."
@@ -269,7 +274,7 @@
       "detail": "The boomerang should add 1d4 damage on the next turn. The bounce works, the follow-up does not."
     },
     {
-      "id": "mech-mecha-bonus", "cat": "mechanics", "sev": "low",
+      "id": "mech-mecha-bonus", "resolution": "Implemented: Zane Climber, Pixal and Future Zane carry the mecha tag (Zane loses it in Dragon Form) and Force Lightning adds 2d12 against a mecha.", "cat": "mechanics", "sev": "low",
       "title": "Force Lightning vs mecha", "who": "Vorrakan Duskbane",
       "detail": "+2d12 against mecha targets. No unit carries a mecha tag and the engine does not look for one."
     },

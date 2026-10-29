@@ -79,7 +79,7 @@ export function resourceHTML(c) {
 const STATUS_NAMES = {
   damage_shield: 'Shield', living_blade_armor: 'Blade armor', chains_of_apophis: 'Chains of Apophis',
   runik_precast: 'Runic precast', final_reckoning: 'Final reckoning', smoke_screen: 'Smoke screen',
-  para: 'Paralysed', gel: 'Frozen', adv: 'Advantage', sure_hit: 'Sure hit', orders: 'Orders', ward: 'Moon ward', relic_awake: 'Ifrit awake',
+  para: 'Paralysed', gel: 'Frozen', adv: 'Advantage', sure_hit: 'Sure hit', orders: 'Orders', ward: 'Moon ward', relic_awake: 'Ifrit awake', passives_off: 'Passives off',
 };
 // "lost:Bone Armor" is a passive switched off for a while
 export const statusName = n => STATUS_NAMES[n] ?? (n.startsWith('lost:') ? `${n.slice(5)} lost` : n.replace(/_/g, ' ').replace(/^\w/, ch => ch.toUpperCase()));

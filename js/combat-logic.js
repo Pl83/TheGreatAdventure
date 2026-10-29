@@ -220,6 +220,7 @@ export function resolveAbilitiesFromList(moveList) {
       maxBounce:     move.maxBounce ?? 0,
       bounceRange:   move.range ?? SPELL_RANGE,
       slotRegen:     move.slotRegen ?? 0,
+      bonusVs:       move.bonusVs ?? null,   // { vs: 'wet' | a unit tag, dice }: extra damage against such a target
       precastDice:   move.precastDice ?? null,
       maxCharges:    move.charges ?? 0,
       isReact:    tags.includes('react'),
@@ -1182,7 +1183,7 @@ export function applyDamage(combatant, amount, damType = null, atkTags = [], ign
     .filter(t => t && DAMAGE_TYPES.includes(String(t).toLowerCase()))
     .map(t => String(t).toLowerCase()))];
   const immune = (combatant.sourceChar.immunities ?? []).map(i => i.toLowerCase());
-  const absorbsFire = combatant.sourceChar.passif?.some(p => p.tags?.includes('absorbFire'))
+  const absorbsFire = combatant.sourceChar.passif?.some(p => p.tags?.includes('absorbFire') && !passiveLost(combatant, p))
     && !combatant.statusEffects.some(e => e.name === 'relic_awake');
   if (absorbsFire) immune.push('fire');
   const immuneTypes = types.filter(t => immune.includes(t));
@@ -1247,6 +1248,7 @@ export function applyDamage(combatant, amount, damType = null, atkTags = [], ign
   // A leading minus marks the whole expression as a reduction: "-1d8+10" reduces by 1d8+10.
   for (const p of combatant.sourceChar.passif ?? []) {
     if (ignoreDR) break;
+    if (passiveLost(combatant, p)) continue;
     if (!p.applyOn?.includes('incomingDam') || !p.dices || !p.condition?.incomingHasTag || amount <= 0) continue;
     const expr = String(p.dices).trim();
     if (!expr.startsWith('-')) continue;
@@ -1268,6 +1270,7 @@ export function applyDamage(combatant, amount, damType = null, atkTags = [], ign
   }
   // Lethal-hit passives (Unkillable): a coin flip to survive, at the cost of dropping to 1 HP
   for (const p of combatant.sourceChar.passif ?? []) {
+    if (passiveLost(combatant, p)) continue;
     if (!p.applyOn?.includes('incomingDam') || !p.condition?.incomingIsLethal || p.chance == null) continue;
     if (amount < combatant.currentHp) continue;
     if (random() < p.chance) {
@@ -1408,6 +1411,7 @@ export function tickTurn(c) {
 
 export function applyHpPerHitPassives(combatant) {
   for (const p of combatant.sourceChar.passif ?? []) {
+    if (passiveLost(combatant, p)) continue;
     if (!p.applyOn?.includes('hpPerHit') || !p.dices) continue;
     applyHeal(combatant, p.dices, p.nom);   // rolled once, logged once (and only if HP was actually missing)
   }
@@ -1507,6 +1511,24 @@ function ignoresDR(c, ability) {
       || getDomainEffects(c, { applyOn: 'atkRoll', ability }).some(e => e.tags?.includes('unblockabled'));
 }
 
+// Does the unit carry this tag: a character tag (unless its transformation sheds it) or a status of that name
+export function unitHasTag(c, tag) {
+  const t = String(tag).toLowerCase();
+  const shed = c.isTransformed ? (c.sourceChar.transformation?.loseTags ?? []) : [];
+  if (shed.some(x => x.toLowerCase() === t)) return false;
+  return (c.sourceChar.tags ?? []).some(x => x.toLowerCase() === t) || c.statusEffects.some(e => e.name.toLowerCase() === t);
+}
+
+// The extra dice a move deals to this target (Force Lightning vs mechas, Ice Coffin vs the wet), or null
+function bonusVsFor(ability, target) {
+  const b = ability?.bonusVs;
+  if (!b || !target) return null;
+  const applies = b.vs === 'wet' ? isWet(target) : unitHasTag(target, b.vs);
+  if (!applies) return null;
+  const r = parseDice(b.dice);
+  return { total: r.total, label: `${ability.name} vs ${b.vs}[${r.breakdown}]` };
+}
+
 // Does passive `p` (owned by `owner`, facing `other`) currently apply?
 // Conditions the engine cannot evaluate (e.g. selfBehindTarget, needs facing) never apply.
 function passiveConditionMet(p, owner, other, ability) {
@@ -1520,8 +1542,7 @@ function passiveConditionMet(p, owner, other, ability) {
   if (cond.targetHasTag) {
     // a character `tags` list (when the data provides one) or a status the target is under (e.g. "stun")
     const tag = cond.targetHasTag.toLowerCase();
-    return (other.sourceChar.tags ?? []).some(t => t.toLowerCase() === tag)
-        || other.statusEffects.some(e => e.name.toLowerCase() === tag);
+    return unitHasTag(other, tag);
   }
   if (cond.weaponType) {
     const w = cond.weaponType.toLowerCase();
@@ -1540,7 +1561,7 @@ function passiveConditionMet(p, owner, other, ability) {
 // ── Passive helpers: lost passives, stacks, Divine Beast synergy ────────────
 
 // A passive can be switched off for a while (Oslo's Bone Armor after Bone Shatter)
-const passiveLost = (c, p) => c.statusEffects.some(e => e.name === `lost:${p.nom}`);
+const passiveLost = (c, p) => c.statusEffects.some(e => e.name === `lost:${p.nom}` || e.name === 'passives_off');
 
 // Off for the owner's next `turns` turns, back on the one after (statuses tick when the owner's turn starts)
 function losePassive(c, nom, turns) {
@@ -1888,6 +1909,12 @@ export function resolveAttack(attacker, defender, diceExpr, ability = null) {
       const pr = parseDice(b.dices);
       passiveBonus += pr.total;
       passiveParts.push(`${b.nom}[${pr.breakdown}]`);
+    }
+
+    const versus = bonusVsFor(ability, defender);
+    if (versus) {
+      passiveBonus += versus.total;
+      passiveParts.push(versus.label);
     }
 
     const frStatus = attacker.statusEffects.find(e => e.name === 'final_reckoning');
@@ -2598,8 +2625,9 @@ export function resumePendingAction(reactAbility) {
           } else {
             const rd = parseDice(ability.dice);
             const damType = damTypeFromTags(ability.tags);
-            const totalDmg = Math.floor((rd.total + precastBonus) * mult);
-            addLog(`  ${target.name} is hit for ${totalDmg} (${rd.breakdown}${precastBonus ? ` +precast${precastBonus}` : ''}${mult < 1 ? ' ×½' : ''})`, 'hit');
+            const versus = bonusVsFor(ability, target);
+            const totalDmg = Math.floor((rd.total + precastBonus + (versus?.total ?? 0)) * mult);
+            addLog(`  ${target.name} is hit for ${totalDmg} (${rd.breakdown}${precastBonus ? ` +precast${precastBonus}` : ''}${versus ? ` +${versus.label}` : ''}${mult < 1 ? ' ×½' : ''})`, 'hit');
             applyDamage(target, totalDmg, damType, ability.tags, aoeIgnoreDR);
             if (ability.isHeal) applyHeal(caster, String(totalDmg));
             if (ability.tags?.includes('grounded')) removeFlying(target);
@@ -2672,12 +2700,16 @@ export function resumePendingAction(reactAbility) {
         if ((action.halvedIds ?? []).includes(target.id)) mult *= 0.5;
         if (ability.dice) {
           const rd = parseDice(ability.dice);
-          const dmg = Math.floor(rd.total * mult);
-          addLog(`  ${target.name} is hit for ${dmg} (${rd.breakdown}${mult < 1 ? ' ×½' : ''})`, 'hit');
+          const versus = bonusVsFor(ability, target);
+          const dmg = Math.floor((rd.total + (versus?.total ?? 0)) * mult);
+          addLog(`  ${target.name} is hit for ${dmg} (${rd.breakdown}${versus ? ` +${versus.label}` : ''}${mult < 1 ? ' ×½' : ''})`, 'hit');
           applyDamage(target, dmg, damType, ability.tags, coneIgnoreDR);
           if (ability.tags?.includes('grounded')) removeFlying(target);
         }
         applyMoveEffect(ability, target);
+        if (ability.tags?.includes('passives_off') && !target.isKO && pushStatus(target, { name: 'passives_off', turnsLeft: 2 })) {
+          addLog(`  ✦ ${target.name}'s passives are switched off for 1 turn.`, 'status');
+        }
       }
 
     } else if (action.type === 'splash') {
@@ -2969,6 +3001,7 @@ export function beginTurn(c) {
 
   // Absorb shield refreshed every turn (grantDamageShield keeps the larger value, so it never stacks)
   for (const p of c.sourceChar.passif ?? []) {
+    if (passiveLost(c, p)) continue;
     if (!p.applyOn?.includes('shieldPerTurn') || !p.dices) continue;
     const shieldHp = Math.max(0, parseDice(p.dices).total);
     grantDamageShield(c, shieldHp, 'passif');
@@ -2977,6 +3010,7 @@ export function beginTurn(c) {
   }
 
   for (const p of c.sourceChar.passif ?? []) {
+    if (passiveLost(c, p)) continue;
     if (!p.applyOn?.includes('hpPerTurn') || !p.dices) continue;
     if (p.condition?.selfBelow50pct && c.currentHp > c.maxHp * 0.5) continue;
     if (p.target === 'allies') {
