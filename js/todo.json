@@ -178,10 +178,15 @@
       "evidence": "Casting Azure Dragon Roar and Ice Coffin leaves no disadvantage status on any target. Found by the 2026-10-29 audit: every move was cast in the headless engine and the passives were checked against what combat-logic.js reads."
     },
     {
-      "id": "mech-field-corruption-chances", "cat": "mechanics", "sev": "low",
+      "id": "mech-field-corruption-chances", "resolution": "Implemented: Field of Corruption is now a lingering field (S.fields) centred on the chosen cell, radius 4, lasting 5 rounds counting the one it is cast in. It deals no damage and has no attack roll. Every foe inside meets it at the cast and then once at the start of each of its turns (never twice in a round, and not when it has walked out): para, poison, burn and bleed each on their own 1d2, and a 1d2 chance of disadvantage on attacks. Allies and foes outside are untouched. It is drawn on the map and fades with a log line.", "cat": "mechanics", "sev": "low",
       "title": "Field of Corruption: its para, poison and burn are certain", "who": "Mei",
       "detail": "The description says 1d2 para + 1d2 poison + 1d2 burn + 1d2 disv atk, but the move has no effect string, so its three statuses come from the tags and every target in the area gets all three every time (20 of 20 casts in the check). Only the disadvantage rider honours the 1d2 now. Give the move an effect of \"1d2 para, 1d2 toxic, 1d2 burn\".",
       "where": "characters.json · Mei, Field of Corruption"
+    },
+    {
+      "id": "mech-field-bot", "cat": "mechanics", "sev": "low",
+      "title": "The bot does not understand lingering fields", "who": "Mei",
+      "detail": "The bot casts Field of Corruption as if it were an area spell aimed at a foe: it does not value the four turns of exposure, and no unit ever walks out of a field it stands in or avoids walking into one."
     },
     {
       "id": "mech-passive-advantage", "resolution": "Implemented: a passive tagged adv rolls advantage on its attack, defense or spell rolls (Jhin only with sword moves). White also has no range limit and ignores walls within 10 cells; Wind Step no longer promises dodging through walls. Death Presence: every foe of a living Hela makes its first attack of the fight at disadvantage.", "cat": "mechanics", "sev": "med",

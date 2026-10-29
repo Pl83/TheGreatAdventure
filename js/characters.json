@@ -1136,10 +1136,11 @@
     "moveSet": [
       {
         "category": "Art",
-        "base": { "nom": "Field of Corruption", "tags": ["para", "poison", "burn", "disv"] },
+        "base": { "nom": "Field of Corruption", "tags": ["disv", "field"] },
+        "field": { "turns": 5, "effect": "1d2 para, 1d2 toxic, 1d2 burn, 1d2 bleed" },
         "inflicts": { "status": "hindered_atk", "turns": 2, "chance": 0.5 },
         "target": "aoe", "range": 6, "radius": 4,
-        "description": "1d2 para + 1d2 poison + 1d2 burn + 1d2 disv atk.",
+        "description": "A field that lasts 5 turns. Each turn, every foe in it has a 1d2 chance of para, of poison, of burn, of bleed and of disadvantage on attacks.",
         "kiCost": 10
       },
       {

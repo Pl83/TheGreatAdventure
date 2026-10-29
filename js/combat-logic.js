@@ -71,6 +71,7 @@ export const S = {
   reachableCells: new Map(),
   iceCells:       new Set(),   // water cells frozen by Convert (Freeze): plain floor, "x,y" keys
   driedCells:     new Set(),   // water cells evaporated by Convert (Evaporate)
+  fields:         [],          // lingering areas (Field of Corruption): { name, ability, casterId, teamIndex, x, y, radius, roundsLeft, effect, exposed }
   // ── Aim / targeting ───────────────────────────────────────────────────────
   aimMode:     false,
   aimAbility:  null,
@@ -226,6 +227,7 @@ export function resolveAbilitiesFromList(moveList) {
       slotRegen:     move.slotRegen ?? 0,
       bonusVs:       move.bonusVs ?? null,   // { vs: 'wet' | a unit tag, dice }: extra damage against such a target
       precastDice:   move.precastDice ?? null,
+      field:         move.field ?? null,     // { turns, effect }: leaves a lingering area that works on the foes inside each round
       inflicts:      move.inflicts ?? null,  // { status, turns, chance? }: a timed hindrance on each target the move reaches
       grants:        move.grants ?? null,   // { status, amount, turns, label }: a timed buff the move puts on its user
       maxCharges:    move.charges ?? 0,
@@ -980,6 +982,14 @@ export function drawMap() {
     }
   }
 
+  // Lingering fields
+  for (const f of S.fields) {
+    ctx.fillStyle = 'rgba(140, 90, 170, 0.22)';
+    for (let gx = f.x - f.radius; gx <= f.x + f.radius; gx++) for (let gy = f.y - f.radius; gy <= f.y + f.radius; gy++) {
+      if (isWalkableG(S.currentMap, gx, gy)) ctx.fillRect(gx * cp, gy * cp, cp, cp);
+    }
+  }
+
   // Draw active domain zones
   if (S.activeDomains.length > 0) {
     const { cols, rows } = S.currentMap.grid;
@@ -1672,6 +1682,37 @@ function inflict(ability, target, guaranteed) {
   }
 }
 
+// A lingering area: it works on each foe standing in it once per round, from the cast until it fades
+function inField(f, c) {
+  return chebyshev(c, { x: f.x, y: f.y }) <= f.radius;
+}
+
+function exposeToField(f, c) {
+  if (c.isKO || f.exposed[c.id] === S.roundNumber) return;
+  f.exposed[c.id] = S.roundNumber;
+  addLog(`  🌫 ${c.name} is caught in the ${f.name}.`, 'status');
+  applyStatus(c, f.effect);
+  if (f.ability.inflicts) inflict(f.ability, c, false);
+}
+
+function raiseField(caster, ability, center) {
+  const f = {
+    name: ability.name, ability, casterId: caster.id, teamIndex: caster.teamIndex,
+    x: center.x, y: center.y, radius: ability.radius > 0 ? ability.radius : 1,
+    roundsLeft: ability.field.turns, effect: ability.field.effect, exposed: {},
+  };
+  S.fields.push(f);
+  addLog(`🌫 ${caster.name} spreads the ${f.name} around (${f.x}, ${f.y}) for ${f.roundsLeft} rounds.`, 'spell');
+  for (const foe of enemies(caster)) if (inField(f, foe)) exposeToField(f, foe);
+}
+
+// A new round: every field has one round less in it
+function tickFields() {
+  for (const f of S.fields) f.roundsLeft--;
+  for (const f of S.fields.filter(x => x.roundsLeft <= 0)) addLog(`🌫 The ${f.name} fades.`, 'info');
+  S.fields = S.fields.filter(f => f.roundsLeft > 0);
+}
+
 // A bonus hit (`guaranteed`) makes the 1d2 riders certain
 export function applyMoveEffect(ability, target, guaranteed = false) {
   const soaked = hasWetStatus(target);
@@ -2246,14 +2287,14 @@ export function handleCastAbility(casterId, abilityName, targetIds, center = nul
     }
   }
   if (ability.targetKind === 'enemy' && targets.length > 0 && tauntViolation(caster, targets)) return;
-  if (isConvert(ability) && !center && !targets[0]) { addLog('Pick a cell to convert.', 'info'); return; }
+  if ((isConvert(ability) || ability.field) && !center && !targets[0]) { addLog('Pick a cell first.', 'info'); return; }
   if (!ability.isAoe && !ability.isCone && ability.targetKind !== 'self' && ability.targetKind !== 'ally' && !ability.isSplash && targets.length === 0) {
     addLog(`No valid target selected.`, 'info');
     return;
   }
 
   // Nothing is spent on a cast that cannot do anything
-  if ((ability.isAoe || ability.isCone) && targets.length === 0 && !isConvert(ability)) {
+  if ((ability.isAoe || ability.isCone) && targets.length === 0 && !isConvert(ability) && !ability.field) {
     addLog(`⚠ ${ability.name} has no valid target in that area.`, 'info');
     return;
   }
@@ -2279,6 +2320,11 @@ export function handleCastAbility(casterId, abilityName, targetIds, center = nul
 
   addLog(`${caster.name} uses ${ability.name}!`, ability.source === 'spell' ? 'spell' : 'tech');
   if (ability.tags?.includes('shatter_armor')) losePassive(caster, 'Bone Armor', 2);
+  if (ability.field) {
+    raiseField(caster, ability, center ?? { x: targets[0].x, y: targets[0].y });
+    if (ability.isInstant) R.renderCombatScreen(); else advanceTurn();
+    return;
+  }
   if (isConvert(ability)) {
     convertArea(caster, ability, center ?? { x: targets[0].x, y: targets[0].y });
     if (ability.isInstant) R.renderCombatScreen(); else advanceTurn();
@@ -3284,6 +3330,7 @@ export async function startInitiative() {
 export function startCombat() {
   S.iceCells = new Set();
   S.driedCells = new Set();
+  S.fields = [];
   S.phase = 'combat';
   S.currentTurnIndex = 0;
   S.turnSerial++;
@@ -3318,7 +3365,7 @@ export function advanceTurn() {
   clearAimState();
   exitTeleportMode();
   S.pendingTeleportReact = null;
-  if (passedZero) { S.roundNumber++; addRoundDivider(); }
+  if (passedZero) { S.roundNumber++; addRoundDivider(); tickFields(); }
 
   beginTurn(activeCombatant());
 }
@@ -3366,6 +3413,9 @@ export function beginTurn(c) {
       }
     }
   }
+
+  // Lingering fields work on the foes who start a turn inside them
+  for (const f of S.fields) if (f.teamIndex !== c.teamIndex && inField(f, c)) exposeToField(f, c);
 
   // Domain auras tick on whoever starts a turn inside the area
   for (const entry of S.activeDomains) {
