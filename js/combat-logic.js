@@ -595,16 +595,17 @@ export function placeCharacters(map) {
 
 export function targetInRange(actor, target, ability) {
   const dist = chebyshev(actor, target);
+  const space = attacksFromAnywhere(actor);
+  const seen = () => !S.currentMap || (space && dist <= SPACE_SIGHT) || hasLos(actor.x, actor.y, target.x, target.y);
   if (!ability) {
-    if (dist > MELEE_RANGE) return { inRange: false, reason: 'Must be adjacent to attack' };
-    if (S.currentMap && !hasLos(actor.x, actor.y, target.x, target.y))
-      return { inRange: false, reason: 'No line of sight' };
+    if (dist > MELEE_RANGE && !space) return { inRange: false, reason: 'Must be adjacent to attack' };
+    if (!seen()) return { inRange: false, reason: 'No line of sight' };
     return { inRange: true, reason: '' };
   }
   if (ability.isAoe) return { inRange: true, reason: '' };
   const maxRange = ability.range ?? SPELL_RANGE;
-  if (dist > maxRange) return { inRange: false, reason: `Out of range (max ${maxRange})` };
-  if (S.currentMap && !hasLos(actor.x, actor.y, target.x, target.y))
+  if (dist > maxRange && !space) return { inRange: false, reason: `Out of range (max ${maxRange})` };
+  if (!seen())
     return { inRange: false, reason: 'No line of sight' };
   return { inRange: true, reason: '' };
 }
@@ -612,6 +613,7 @@ export function targetInRange(actor, target, ability) {
 export function computeAimOverlay(caster, ability) {
   if (!S.currentMap || !ability) return { inRangeCells: new Set(), losCells: new Set(), validTargetIds: new Map() };
   const range = ability.range ?? SPELL_RANGE;
+  const space = attacksFromAnywhere(caster) && ability.targetKind !== 'ally';
   const { cols, rows } = S.currentMap.grid;
   const inRangeCells = new Set();
   const losCells     = new Set();
@@ -621,11 +623,12 @@ export function computeAimOverlay(caster, ability) {
     for (let gx = 0; gx < cols; gx++) {
       // Ally spells may target the caster, so their own cell stays selectable
       if (gx === caster.x && gy === caster.y && !isAlly) continue;
-      if (Math.max(Math.abs(gx - caster.x), Math.abs(gy - caster.y)) > range) continue;
+      const cellDist = Math.max(Math.abs(gx - caster.x), Math.abs(gy - caster.y));
+      if (cellDist > range && !space) continue;
       if (!isWalkableG(S.currentMap, gx, gy)) continue;
       const key = `${gx},${gy}`;
       inRangeCells.add(key);
-      if (hasLos(caster.x, caster.y, gx, gy)) losCells.add(key);
+      if ((space && cellDist <= SPACE_SIGHT) || hasLos(caster.x, caster.y, gx, gy)) losCells.add(key);
     }
   }
   // Revive targets KO'd allies; every other ally spell targets the living
@@ -1471,6 +1474,20 @@ export function moveSpeed(c) {
   return speed;
 }
 
+// Does a passive of `owner` grant advantage on this kind of roll? (tag "adv" on the passive; a weapon condition
+// looks at the move, anything else needs the opponent, so an area roll made against nobody in particular skips it)
+function passiveAdvantage(owner, applyOn, other, ability) {
+  return (owner.sourceChar.passif ?? []).some(p => {
+    if (!p.tags?.includes('adv') || !p.applyOn?.includes(applyOn) || passiveLost(owner, p)) return false;
+    const needsFoe = p.condition && Object.keys(p.condition).some(k => k !== 'weaponType');
+    return (!needsFoe || !!other) && passiveConditionMet(p, owner, other, ability);
+  });
+}
+
+// White's Sword of Space: his attacks have no range limit, and walls only matter beyond this distance
+const SPACE_SIGHT = 10;
+const attacksFromAnywhere = c => !!c.sourceChar.passif?.some(p => p.tags?.includes('anyRange'));
+
 // The dice that add to one of `owner`'s rolls: passives (a stacking one counts once per stack) and synergy effects
 function rollBonuses(owner, applyOn, other, ability) {
   const out = [];
@@ -1611,9 +1628,11 @@ function relocateAllies(leader, origin, radius) {
 }
 
 // The attacker's d20 for one move. Advantage / sure-hit come from the owner's domain or the move's own tags.
-function rollAttackD20(attacker, ability) {
+function rollAttackD20(attacker, ability, defender = null) {
   const domainAtkEffs = getDomainEffects(attacker, { applyOn: 'atkRoll', ability });
-  const adv     = domainAtkEffs.some(e => e.tags?.includes('adv'))         || !!ability?.tags?.includes('adv');
+  const adv     = domainAtkEffs.some(e => e.tags?.includes('adv'))         || !!ability?.tags?.includes('adv')
+               || passiveAdvantage(attacker, 'atkRoll', defender, ability)
+               || (isSpellMove(ability) && passiveAdvantage(attacker, 'magicRoll', defender, ability));
   // Hunter Instinct: the next attack lands, and arming it is spent by the swing
   const armed = attacker.statusEffects.find(e => e.name === 'sure_hit');
   if (armed) {
@@ -1667,7 +1686,7 @@ function gateAbility(stored) {
 }
 function areaDefense(atk, target, caster, ability) {
   if (atk.sureHit) return 1;
-  const defRoll = rollD20For(target).value;
+  const defRoll = rollD20For(target, passiveAdvantage(target, 'defRoll', caster, ability)).value;
   const bonus   = defenseBonus(target, caster, ability);
   const def     = defRoll + bonus;
   const defStr  = bonus ? `${defRoll}+${bonus}=${def}` : String(defRoll);
@@ -1684,9 +1703,9 @@ function areaDefense(atk, target, caster, ability) {
 }
 
 export function resolveAttack(attacker, defender, diceExpr, ability = null) {
-  const { roll: atkRoll, sureHit: domainSureHit } = rollAttackD20(attacker, ability);
+  const { roll: atkRoll, sureHit: domainSureHit } = rollAttackD20(attacker, ability, defender);
 
-  const defRoll = rollD20For(defender);
+  const defRoll = rollD20For(defender, passiveAdvantage(defender, 'defRoll', attacker, ability));
   const effectiveDefRoll = defRoll.value + defenseBonus(defender, attacker, ability);
 
   const domainForcesHit = domainSureHit && !atkRoll.isNat1;

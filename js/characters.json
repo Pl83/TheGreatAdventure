@@ -685,7 +685,7 @@
     "passif": [
       {
         "nom": "Know Advantage",
-        "tags": ["buff"],
+        "tags": ["buff", "adv"],
         "applyOn": ["magicRoll"],
         "description": "Advantage on all spell rolls."
       }
@@ -1219,7 +1219,7 @@
     "baseAtk": { "nom": "Sword of Space", "dices": "1d8+4", "tags": ["physical", "adv"] },
     "passif": [
       { "nom": "Fly", "dices": "18", "tags": ["buff"], "applyOn": ["speed"] },
-      { "nom": "Sword of Space", "tags": ["buff"], "applyOn": ["atkRoll"], "description": "Can attack from anywhere. Always advantage." },
+      { "nom": "Sword of Space", "tags": ["buff", "adv", "anyRange"], "applyOn": ["atkRoll"], "description": "Can attack from anywhere, with no range limit, and ignores line of sight within 10 cells. Always advantage." },
       { "nom": "Sous Powered", "dices": "+5/+4/+2", "tags": ["buff"], "applyOn": ["atkRoll", "defRoll", "constRoll"] }
     ],
     "moveSet": [
@@ -1275,7 +1275,7 @@
     "baseAtk": { "nom": "Great Staff", "dices": "1d6+2", "tags": ["physical"] },
     "passif": [
       { "nom": "Archmage", "dices": "+3", "tags": ["buff"], "applyOn": ["magicRoll"] },
-      { "nom": "Knowledge", "tags": ["buff"], "applyOn": ["magicRoll"], "description": "Advantage on all magic rolls." },
+      { "nom": "Knowledge", "tags": ["buff", "adv"], "applyOn": ["magicRoll"], "description": "Advantage on all magic rolls." },
       { "nom": "Great Staff", "dices": "+2", "tags": ["buff"], "applyOn": ["magicRoll"], "description": "Prevent 3/3 critical fails." },
       { "nom": "Runik Mage", "dices": "+1d12", "tags": ["runik", "buff"], "applyOn": ["magicRoll"] }
     ],
@@ -1647,7 +1647,7 @@
     "immunities": [],
     "baseAtk": { "nom": "Bow", "dices": "1d12+4", "tags": ["physical"] },
     "passif": [
-      { "nom": "Banshee", "tags": ["buff"], "applyOn": ["defRoll"], "description": "Advantage on defense rolls." },
+      { "nom": "Banshee", "tags": ["buff", "adv"], "applyOn": ["defRoll"], "description": "Advantage on defense rolls." },
       { "nom": "Fly", "dices": "18", "tags": ["buff"], "applyOn": ["speed"] }
     ],
     "moveSet": [
@@ -2193,7 +2193,7 @@
       "tags": ["physical", "antiMagic", "adv"]
     },
     "passif": [
-      { "nom": "True Weapon Goddess", "tags": ["buff"], "applyOn": ["atkRoll"], "description": "Advantage on ALL attack rolls." },
+      { "nom": "True Weapon Goddess", "tags": ["buff", "adv"], "applyOn": ["atkRoll"], "description": "Advantage on ALL attack rolls." },
       { "nom": "Anti-Magic", "tags": ["buff"], "applyOn": [], "description": "Immune to magic/status below Authority 8. In immunities[]." },
       { "nom": "Death Presence", "tags": ["debuff"], "applyOn": [], "description": "All foes have disadvantage on their first attack each fight." },
       { "nom": "Undying Queen", "dices": "20", "tags": ["regen", "buff"], "applyOn": ["hpPerTurn"], "description": "Heal 20 HP each turn. Resurrection active." }
@@ -2366,12 +2366,13 @@
       {
         "nom": "Wind Step",
         "tags": [
-          "buff"
+          "buff",
+          "adv"
         ],
         "applyOn": [
           "defRoll"
         ],
-        "description": "Advantage on all defense rolls. Can dodge through walls of wind."
+        "description": "Advantage on all defense rolls."
       }
     ],
     "divineSync": {

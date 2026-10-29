@@ -385,3 +385,94 @@ test('Tiger\'s Leap dashes next to a target within 6 cells and cannot be cast at
   assert.equal(cast(jeagen, "Tiger's Leap", [kadgar.id]).accepted, true);
   assert.equal(L.chebyshev(jeagen, kadgar), 1, 'now adjacent');
 });
+
+// ── Passive advantage ──────────────────────────────────────────────────────
+
+const advantageLogs = who => logText().filter(t => t.includes(`Advantage (${who}`)).length;
+
+test('White always attacks with advantage, whatever he swings', async () => {
+  await newFight({ teamA: ['White'], teamB: ['Kay Climber'], seed: 1 });
+  const white = byName('White'), kay = byName('Kay Climber');
+  for (let i = 0; i < 5; i++) L.resolveAttack(white, kay, null);
+  assert.equal(advantageLogs('White'), 5);
+  const flame = white.abilities.find(a => a.name === 'Flame of the Dead');
+  L.resolveAttack(white, kay, '1d4', flame);
+  assert.equal(advantageLogs('White'), 6);
+});
+
+test('Jeagen rolls his defense with advantage, and the description no longer promises dodging through walls', async () => {
+  assert.ok(!/wall/i.test(chars.find(c => c.nom.startsWith('Jeagen')).passif.find(p => p.nom === 'Wind Step').description));
+  await newFight({ teamA: ['Kay Climber'], teamB: ['Jeagen, White Tiger'], seed: 1 });
+  const kay = byName('Kay Climber'), jeagen = byName('Jeagen');
+  for (let i = 0; i < 4; i++) L.resolveAttack(kay, jeagen, null);
+  assert.equal(advantageLogs('Jeagen'), 4);
+  assert.equal(advantageLogs('Kay Climber'), 0, 'only the defender had the passive');
+});
+
+test('Jhin has advantage with the sword (basic attack and sword techniques) and nowhere else', async () => {
+  await newFight({ teamA: ['Jhin'], teamB: ['Kay Climber'], seed: 1 });
+  const jhin = byName('Jhin'), kay = byName('Kay Climber');
+  const abil = n => jhin.abilities.find(a => a.name === n);
+  L.resolveAttack(jhin, kay, null);
+  assert.equal(advantageLogs('Jhin'), 1, 'basic sword attack');
+  L.resolveAttack(jhin, kay, '1d4', abil('Vorpal Slash'));
+  assert.equal(advantageLogs('Jhin'), 2, 'sword technique');
+  L.resolveAttack(jhin, kay, '1d4', abil('Spinzutsu'));
+  assert.equal(advantageLogs('Jhin'), 2, 'Spinzutsu is not a sword move');
+});
+
+// ── White: no range limit, no line of sight needed up close ───────────────
+
+function cellsWhere(pred) {
+  const { cols, rows } = S.currentMap.grid;
+  const out = [];
+  for (let ay = 1; ay < rows - 1; ay += 2) for (let ax = 1; ax < cols - 1; ax += 2)
+    for (let by = 1; by < rows - 1; by += 3) for (let bx = 1; bx < cols - 1; bx += 3) {
+      if (isWalkableG(S.currentMap, ax, ay) && isWalkableG(S.currentMap, bx, by) && pred(ax, ay, bx, by)) return { ax, ay, bx, by };
+    }
+  throw new Error('no such pair of cells');
+}
+
+test('White reaches any distance, and ignores walls within 10 cells but not beyond', async () => {
+  await newFight({ teamA: ['White', 'Kay Climber'], teamB: ['Meï'], seed: 1 });
+  const white = byName('White'), foe = byName('Meï');
+  const flame = white.abilities.find(a => a.name === 'Flame of the Dead');
+  const far = cellsWhere((ax, ay, bx, by) => Math.max(Math.abs(ax - bx), Math.abs(ay - by)) > 12 && L.hasLos(ax, ay, bx, by));
+  place(white, far.ax, far.ay); place(foe, far.bx, far.by);
+  assert.equal(L.targetInRange(white, foe, null).inRange, true, 'basic attack at any distance');
+  assert.equal(L.targetInRange(white, foe, flame).inRange, true, 'range 10 move at any distance');
+  const near = cellsWhere((ax, ay, bx, by) => Math.max(Math.abs(ax - bx), Math.abs(ay - by)) <= 10 && !L.hasLos(ax, ay, bx, by));
+  place(white, near.ax, near.ay); place(foe, near.bx, near.by);
+  assert.equal(L.targetInRange(white, foe, null).inRange, true, 'no line of sight needed within 10');
+  const blocked = cellsWhere((ax, ay, bx, by) => Math.max(Math.abs(ax - bx), Math.abs(ay - by)) > 10 && !L.hasLos(ax, ay, bx, by));
+  place(white, blocked.ax, blocked.ay); place(foe, blocked.bx, blocked.by);
+  assert.equal(L.targetInRange(white, foe, null).inRange, false, 'beyond 10 a wall still blocks');
+});
+
+test('an ordinary fighter keeps the normal range and line of sight', async () => {
+  await newFight({ teamA: ['Kay Climber'], teamB: ['Meï'], seed: 1 });
+  const kay = byName('Kay Climber'), foe = byName('Meï');
+  const far = cellsWhere((ax, ay, bx, by) => Math.max(Math.abs(ax - bx), Math.abs(ay - by)) > 5 && L.hasLos(ax, ay, bx, by));
+  place(kay, far.ax, far.ay); place(foe, far.bx, far.by);
+  assert.equal(L.targetInRange(kay, foe, null).inRange, false);
+});
+
+test('Hela attacks and Sylvanas defends with advantage', async () => {
+  await newFight({ teamA: ['Hela, Goddess of Death'], teamB: ['Sylvanas Nightmare'], seed: 1 });
+  const hela = byName('Hela'), sylvanas = byName('Sylvanas');
+  L.resolveAttack(hela, sylvanas, null);
+  assert.equal(advantageLogs('Hela'), 1, 'True Weapon Goddess');
+  assert.equal(advantageLogs('Sylvanas'), 1, 'Banshee');
+});
+
+test('Eragon and Kadgar roll spells with advantage, but not their staff', async () => {
+  await newFight({ teamA: ['Eragon', 'Kadgar'], teamB: ['Kay Climber'], seed: 1 });
+  const kay = byName('Kay Climber');
+  for (const who of ['Eragon', 'Kadgar']) {
+    const c = byName(who), tornado = c.abilities.find(a => a.tags.includes('magic') && a.source === 'spell');
+    L.resolveAttack(c, kay, '1d4', tornado);
+    assert.equal(advantageLogs(who), 1, `${who}: spell`);
+    L.resolveAttack(c, kay, null);
+    assert.equal(advantageLogs(who), 1, `${who}: staff stays flat`);
+  }
+});
