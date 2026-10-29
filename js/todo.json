@@ -172,10 +172,16 @@
       "detail": "The bot (and headless fights) strike when the dash reaches and otherwise pass; they never choose a spell, and do not weigh striking against a spell or against doing nothing."
     },
     {
-      "id": "mech-disv-riders", "cat": "mechanics", "sev": "med",
+      "id": "mech-disv-riders", "resolution": "Implemented as a data field (inflicts) on each move, with three kinds of hindrance. Earthquake, Quake Wave, Wind Tornado, Vicious Mockery and Azure Dragon Roar leave each target they reach rolling every d20 with disadvantage for one of its turns (hindered). Ice Coffin (Eragon) makes the next defense roll of each target a disadvantage, and only that one (hindered_def, up to 2 turns if never rolled). Field of Corruption gives each target a 1d2 chance of disadvantage on attack rolls for 2 turns (hindered_atk); a bonus hit makes the chance certain. A warded target is spared, a target that evades the area is not touched, a fresh hit refreshes instead of stacking, and Fire Tornado lifts all three from allies.", "cat": "mechanics", "sev": "med",
       "title": "Disadvantage riders (disv tag)", "who": "Eragon, Meï, Vorrakan Duskbane, Morrow, Cole Climber, Jay",
       "detail": "Moves tagged disv should leave their targets rolling with disadvantage: Ice Coffin (next saving throw), Field of Corruption (1d2 turns on attacks), Earthquake, Wind Tornado, Quake Wave, and Azure Dragon Roar (\"disadvantage on foe rolls for 1 turn\"). They only deal their damage. Smoke Screen and Gravity Up are the only moves that apply disadvantage today.",
       "evidence": "Casting Azure Dragon Roar and Ice Coffin leaves no disadvantage status on any target. Found by the 2026-10-29 audit: every move was cast in the headless engine and the passives were checked against what combat-logic.js reads."
+    },
+    {
+      "id": "mech-field-corruption-chances", "cat": "mechanics", "sev": "low",
+      "title": "Field of Corruption: its para, poison and burn are certain", "who": "Mei",
+      "detail": "The description says 1d2 para + 1d2 poison + 1d2 burn + 1d2 disv atk, but the move has no effect string, so its three statuses come from the tags and every target in the area gets all three every time (20 of 20 casts in the check). Only the disadvantage rider honours the 1d2 now. Give the move an effect of \"1d2 para, 1d2 toxic, 1d2 burn\".",
+      "where": "characters.json · Mei, Field of Corruption"
     },
     {
       "id": "mech-passive-advantage", "resolution": "Implemented: a passive tagged adv rolls advantage on its attack, defense or spell rolls (Jhin only with sword moves). White also has no range limit and ignores walls within 10 cells; Wind Step no longer promises dodging through walls. Death Presence: every foe of a living Hela makes its first attack of the fight at disadvantage.", "cat": "mechanics", "sev": "med",

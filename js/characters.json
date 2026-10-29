@@ -735,8 +735,9 @@
         "category": "spell",
         "base": { "nom": "Ice Coffin", "dices": "1d12", "tags": ["magic", "ice", "freeze", "disv"] },
         "bonusVs": { "vs": "wet", "dice": "2d10" },
+        "inflicts": { "status": "hindered_def", "turns": 2 },
         "target": "aoe", "range": 8, "radius": 3,
-        "description": "+2d10 if target is wet.",
+        "description": "+2d10 if target is wet. The next saving throw of each target is rolled with disadvantage.",
         "spellCost": 1
       },
       {
@@ -1136,6 +1137,7 @@
       {
         "category": "Art",
         "base": { "nom": "Field of Corruption", "tags": ["para", "poison", "burn", "disv"] },
+        "inflicts": { "status": "hindered_atk", "turns": 2, "chance": 0.5 },
         "target": "aoe", "range": 6, "radius": 4,
         "description": "1d2 para + 1d2 poison + 1d2 burn + 1d2 disv atk.",
         "kiCost": 10
@@ -1361,6 +1363,7 @@
       {
         "category": "spell",
         "base": { "nom": "Earthquake", "dices": "2d8+5", "tags": ["magic", "earth", "disv"] },
+        "inflicts": { "status": "hindered", "turns": 1 },
         "target": "aoe", "range": 8, "radius": 5, "spellCost": 1
       },
       {
@@ -1463,6 +1466,7 @@
       {
         "category": "spell",
         "base": { "nom": "Wind Tornado", "dices": "1d6", "tags": ["magic", "disv"] },
+        "inflicts": { "status": "hindered", "turns": 1 },
         "target": "aoe", "range": 8, "radius": 4, "spellCost": 1
       },
       {
@@ -1774,6 +1778,7 @@
       {
         "category": "spell",
         "base": { "nom": "Vicious Mockery", "tags": ["magic", "psy", "disv"] },
+        "inflicts": { "status": "hindered", "turns": 1 },
         "target": "aoe", "range": 8, "radius": 4, "spellCost": 1
       }
     ]
@@ -1897,6 +1902,7 @@
       {
         "category": "spell",
         "base": { "nom": "Quake Wave", "dices": "2d8+5", "tags": ["magic", "earth", "disv"] },
+        "inflicts": { "status": "hindered", "turns": 1 },
         "target": "aoe", "range": 8, "radius": 5, "spellCost": 1
       }
     ],
@@ -2697,6 +2703,7 @@
         "range": 10,
         "radius": 4,
         "description": "The cry of the Azure Dragon. Disadvantage on foe rolls for 1 turn.",
+        "inflicts": { "status": "hindered", "turns": 1 },
         "spellCost": 2,
         "kiCost": 4,
         "cooldown": 4

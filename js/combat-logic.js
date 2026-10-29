@@ -226,6 +226,7 @@ export function resolveAbilitiesFromList(moveList) {
       slotRegen:     move.slotRegen ?? 0,
       bonusVs:       move.bonusVs ?? null,   // { vs: 'wet' | a unit tag, dice }: extra damage against such a target
       precastDice:   move.precastDice ?? null,
+      inflicts:      move.inflicts ?? null,  // { status, turns, chance? }: a timed hindrance on each target the move reaches
       grants:        move.grants ?? null,   // { status, amount, turns, label }: a timed buff the move puts on its user
       maxCharges:    move.charges ?? 0,
       isReact:    tags.includes('react'),
@@ -1482,7 +1483,7 @@ function dryAllies(caster, ability, center) {
   const radius = ability.radius > 0 ? ability.radius : 1;
   for (const a of livingCombatants(caster.teamIndex)) {
     if (chebyshev(a, center) > radius) continue;
-    const clear = a.statusEffects.filter(e => ['wet', 'disadvantage', 'smoke_screen'].includes(e.name));
+    const clear = a.statusEffects.filter(e => ['wet', 'disadvantage', 'smoke_screen', ...HINDRANCE_NAMES].includes(e.name));
     if (!clear.length) continue;
     a.statusEffects = a.statusEffects.filter(e => !clear.includes(e));
     addLog(`🔥 The tornado dries ${a.name} and clears their head (${clear.map(e => e.name).join(', ')}).`, 'info');
@@ -1649,11 +1650,34 @@ export function effectFor(ability, target) {
 }
 
 // Applies what a landed move does to its target; ice spends the soaking it just used
+// The hindrance a disv move leaves on a target it reaches: disadvantage for `turns` of the target's turns
+// (hindered: every d20; hindered_atk: attack rolls; hindered_def: the next defense roll). A `chance` below 1 is
+// rolled, and a bonus hit makes it certain, like any 1d2 rider.
+const HINDRANCE_NAMES = ['hindered', 'hindered_atk', 'hindered_def'];
+
+function inflict(ability, target, guaranteed) {
+  const { status, turns, chance = 1 } = ability.inflicts;
+  if (target.isKO) return;
+  if (target.statusEffects.some(e => e.name === 'ward')) {
+    addLog(`🌙 ${target.name} is warded against ${ability.name}'s hindrance!`, 'info');
+    return;
+  }
+  if (!guaranteed && chance < 1 && random() >= chance) {
+    addLog(`${target.name} shrugs off the hindrance. (${ability.name})`, 'info');
+    return;
+  }
+  // statuses tick when their owner's turn starts, so +1 keeps it for the owner's next `turns` turns
+  if (pushStatus(target, { name: status, turnsLeft: turns + 1 })) {
+    addLog(`  ⬇ ${target.name} rolls with disadvantage${status === 'hindered_def' ? ' on the next defense roll' : status === 'hindered_atk' ? ' on attacks' : ''}!`, 'status');
+  }
+}
+
 // A bonus hit (`guaranteed`) makes the 1d2 riders certain
 export function applyMoveEffect(ability, target, guaranteed = false) {
   const soaked = hasWetStatus(target);
   const effect = effectFor(ability, target);
   applyStatus(target, guaranteed && effect ? effect.replace(/(^|,\s*)1d2\s+/gi, '$1') : effect);
+  if (ability.inflicts) inflict(ability, target, guaranteed);
   if (soaked && bitesIce(ability) && !target.isKO) dropWetStatus(target);
 }
 
@@ -1710,8 +1734,8 @@ function pushStatus(c, eff, beneficial = false) {
 
 // A d20 for one of the combatant's own attack or defense rolls. Advantage and disadvantage cancel out;
 // Gravity's one-shot statuses are spent by the roll, Smoke Screen's disadvantage lasts.
-function rollD20For(c, baseAdv = false, baseDis = false) {
-  const roll = rollD20Raw(c, baseAdv, baseDis);
+function rollD20For(c, baseAdv = false, baseDis = false, role = null) {
+  const roll = rollD20Raw(c, baseAdv, baseDis, role);
   // Djinn's Luck: a 1 is rolled again, once per turn
   if (roll.isNat1 && !c.luckSpent && c.sourceChar.passif?.some(p => p.tags?.includes('rerollOne') && !passiveLost(c, p))) {
     c.luckSpent = true;
@@ -1722,14 +1746,18 @@ function rollD20For(c, baseAdv = false, baseDis = false) {
   return roll;
 }
 
-function rollD20Raw(c, baseAdv, baseDis) {
+function rollD20Raw(c, baseAdv, baseDis, role) {
   const advEff = c.statusEffects.find(e => e.name === 'advantage');
   const disEff = c.statusEffects.find(e => e.name === 'disadvantage');
   const adv = baseAdv || !!advEff;
-  const dis = baseDis || !!disEff || c.statusEffects.some(e => e.name === 'smoke_screen');
+  // Hindrances from disv moves: every roll, attack rolls only, or the next defense roll only
+  const nextDef = role === 'def' ? c.statusEffects.find(e => e.name === 'hindered_def') : null;
+  const dis = baseDis || !!disEff || !!nextDef
+    || c.statusEffects.some(e => e.name === 'smoke_screen' || e.name === 'hindered' || (role === 'atk' && e.name === 'hindered_atk'));
   for (const e of [advEff, disEff]) {
     if (e && --e.uses <= 0) c.statusEffects = c.statusEffects.filter(x => x !== e);
   }
+  if (nextDef) c.statusEffects = c.statusEffects.filter(x => x !== nextDef);
   const r1 = rollD20();
   if (adv === dis) return r1;
   const r2   = rollD20();
@@ -1875,7 +1903,7 @@ function rollAttackD20(attacker, ability, defender = null) {
     addLog(`🌟 ${attacker.name}'s destiny strikes true!`, 'spell');
     return { roll: { value: 20, isNat20: true, isNat1: false }, sureHit: true };
   }
-  return { roll: rollD20For(attacker, adv, dread), sureHit };
+  return { roll: rollD20For(attacker, adv, dread, 'atk'), sureHit };
 }
 
 // A blow from more than an arm's length away, or one the move itself calls ranged
@@ -1957,7 +1985,7 @@ const NO_CLASH = { mult: 1, diceMult: 1, freeAction: false, mutual: false };
 
 function areaDefense(atk, target, caster, ability) {
   if (atk.sureHit) return NO_CLASH;
-  const defD20  = rollD20For(target, passiveAdvantage(target, 'defRoll', caster, ability));
+  const defD20  = rollD20For(target, passiveAdvantage(target, 'defRoll', caster, ability), false, 'def');
   const defRoll = defD20.value;
   const bonus   = defenseBonus(target, caster, ability);
   const def     = defRoll + bonus;
@@ -2020,7 +2048,7 @@ function clash(atk, def, effectiveDefRoll) {
 export function resolveAttack(attacker, defender, diceExpr, ability = null) {
   const { roll: atkRoll, sureHit: domainSureHit } = rollAttackD20(attacker, ability, defender);
 
-  const defRoll = rollD20For(defender, passiveAdvantage(defender, 'defRoll', attacker, ability));
+  const defRoll = rollD20For(defender, passiveAdvantage(defender, 'defRoll', attacker, ability), false, 'def');
   const effectiveDefRoll = defRoll.value + defenseBonus(defender, attacker, ability);
 
   const domainForcesHit = domainSureHit && !atkRoll.isNat1;

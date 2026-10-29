@@ -41,6 +41,7 @@ export function statusEmoji(name) {
   if (n === 'ranged_guard')                                      return '🌬';
   if (n === 'destiny_crit')                                      return '🌟';
   if (n === 'gamble_bonus')                                      return '✨';
+  if (n === 'hindered' || n === 'hindered_atk' || n === 'hindered_def') return '⬇';
   if (n.includes('damage_shield'))                               return '🛡';
   if (n.includes('water_shield') || n.includes('shield'))       return '🛡';
   return '◈';
@@ -85,6 +86,7 @@ const STATUS_NAMES = {
   runik_precast: 'Runic precast', final_reckoning: 'Final reckoning', smoke_screen: 'Smoke screen',
   para: 'Paralysed', gel: 'Frozen', adv: 'Advantage', sure_hit: 'Sure hit', orders: 'Orders', ward: 'Moon ward', relic_awake: 'Ifrit awake', passives_off: 'Passives off',
   damage_reduction: 'Damage reduction', ranged_guard: 'Ranged guard', destiny_crit: 'Destiny strikes', gamble_bonus: 'Fortune +2d8',
+  hindered: 'Disadvantage', hindered_atk: 'Attacks at disadvantage', hindered_def: 'Next defense at disadvantage',
 };
 // "lost:Bone Armor" is a passive switched off for a while
 export const statusName = n => STATUS_NAMES[n] ?? (n.startsWith('lost:') ? `${n.slice(5)} lost` : n.replace(/_/g, ' ').replace(/^\w/, ch => ch.toUpperCase()));
