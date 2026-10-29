@@ -140,6 +140,11 @@
       "where": "combat-logic.js · applyStatus, resolveAttack"
     },
     {
+      "id": "mech-ifrit-state", "cat": "mechanics", "sev": "low",
+      "title": "Ifrit's Bane Sleeping / Awake", "who": "Kaelgrym",
+      "detail": "Kaelgrym has both relic attacks but no state tells which form he wields, so the fire absorption of the Sleeping form is always on, even when he uses the Awake form. Awake should presumably end the absorption."
+    },
+    {
       "id": "mech-disv-riders", "cat": "mechanics", "sev": "med",
       "title": "Disadvantage riders (disv tag)", "who": "Eragon, Meï, Vorrakan Duskbane, Morrow, Cole Climber, Jay",
       "detail": "Moves tagged disv should leave their targets rolling with disadvantage: Ice Coffin (next saving throw), Field of Corruption (1d2 turns on attacks), Earthquake, Wind Tornado, Quake Wave, and Azure Dragon Roar (\"disadvantage on foe rolls for 1 turn\"). They only deal their damage. Smoke Screen and Gravity Up are the only moves that apply disadvantage today.",
@@ -233,13 +238,13 @@
       "evidence": "Anti-magic Slash cast on two foes: damage only, no status. Found by the 2026-10-29 audit: every move was cast in the headless engine and the passives were checked against what combat-logic.js reads."
     },
     {
-      "id": "mech-nine-lives", "cat": "mechanics", "sev": "med",
+      "id": "mech-nine-lives", "resolution": "Implemented: Heracles returns to life with 1 HP each time he is killed, up to 9 times per fight. Alicia's Loki's Blessing (death saves) is still not modelled.", "cat": "mechanics", "sev": "med",
       "title": "Nine Lives", "who": "Heracles",
       "detail": "Nine times per fight, return to life with 1 HP when killed. The passive uses deathRoll with maxStacks 9, neither of which the engine reads, so Heracles dies like anyone else. Alicia's Loki's Blessing (two death saves) has no counterpart either: the simulator has no death saves.",
       "where": "combat-logic.js · applyDamage (the Resurrection check is the model)"
     },
     {
-      "id": "mech-battle-tactician", "cat": "mechanics", "sev": "low",
+      "id": "mech-battle-tactician", "resolution": "Implemented: Battle Tactician is a title that unlocks the Give Orders action. It targets an ally, ends the turn, and gives the ally +2 on its attack rolls until its next turn is over. The +2 follows the engine's usual atkRoll convention (added to the damage of a landed blow). The bot can plan it but the greedy policy does not value it yet.", "cat": "mechanics", "sev": "low",
       "title": "Battle Tactician", "who": "Future Zane",
       "detail": "+2 to allies' attack rolls when giving orders. Future Zane has no move that gives orders and the passive has no applyOn, so it does nothing. The combat AI spec lists it as supported; it is not."
     },
@@ -249,12 +254,12 @@
       "detail": "Poison Breath (Spheras Nightmare: 1d2 poison or 1d12+8 toxic on nearby enemies each turn) and Toxic Daggers (Astrid Nightmare: 1d2 poison or 1d12 extra on each attack) do nothing. Corruption Bolt (Dream Hunter) adds its +1d10 but never builds up corruption on the target."
     },
     {
-      "id": "mech-slot-restore", "cat": "mechanics", "sev": "low",
+      "id": "mech-slot-restore", "resolution": "Implemented: Vorpal Slash (Vorrakan) restores 5 spell slots with its lifesteal. Kaelgrym absorbs incoming fire: the hit does nothing and restores 1 slot. The Sleeping/Awake state of Ifrit's Bane is not modelled, so the absorption is always on.", "cat": "mechanics", "sev": "low",
       "title": "Spell slot restoration", "who": "Vorrakan Duskbane, Kaelgrym",
       "detail": "Vorrakan's Vorpal Slash should restore 5 spell slots after its lifesteal; Kaelgrym's Ifrit's Bane should absorb fire damage to restore spell slots. The lifesteal works, the slots never come back."
     },
     {
-      "id": "mech-cleanse-riders", "cat": "mechanics", "sev": "low",
+      "id": "mech-cleanse-riders", "resolution": "Implemented: Benediction of the Moon also wards the ally against new debuffs for 2 of its turns (granted even when nothing was cleansed). Fire Tornado removes wet and disadvantage (disadvantage, Smoke Screen) from the allies within its blast.", "cat": "mechanics", "sev": "low",
       "title": "Cleanse riders", "who": "Nya Léviathan, Eragon",
       "detail": "Bénédiction of the Moon should also grant 2 turns of immunity after removing a debuff. Fire Tornado should remove wet and disadvantage from allies in the area. Neither rider exists."
     },

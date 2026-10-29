@@ -280,6 +280,7 @@ export function buildCombatant(char, teamIndex, id) {
     domainActive:     false,
     domainCharges:    char.domain ? Math.max(1, Math.floor((char.domain.rafinement ?? 0) / 3)) : 0,
     shadowCounterBonus: 0,
+    deathSaves: {},   // lives spent by passives like Nine Lives: passive name -> times used
     attacked: false,   // has made its first attack roll of the fight (Death Presence)
     stacks: {},   // stacking passives (Relentless Warrior): passive name -> stacks gained this fight
     x: 0,
@@ -1169,7 +1170,10 @@ export function applyDamage(combatant, amount, damType = null, atkTags = [], ign
     .filter(t => t && DAMAGE_TYPES.includes(String(t).toLowerCase()))
     .map(t => String(t).toLowerCase()))];
   const immune = (combatant.sourceChar.immunities ?? []).map(i => i.toLowerCase());
+  const absorbsFire = combatant.sourceChar.passif?.some(p => p.tags?.includes('absorbFire'));
+  if (absorbsFire) immune.push('fire');
   const immuneTypes = types.filter(t => immune.includes(t));
+  if (absorbsFire && types.includes('fire')) restoreSlots(combatant, 1, "Ifrit's Bane");
   if (immuneTypes.length === types.length && types.length > 0) {
     addLog(`🛡 ${combatant.name} is immune to ${immuneTypes.join('/')}!`, 'info');
     return done();
@@ -1266,7 +1270,14 @@ export function applyDamage(combatant, amount, damType = null, atkTags = [], ign
   combatant.currentHp = Math.max(0, hpBefore - dmg);
   if (dmg > 0) addLog(`  ${combatant.name}: ${hpBefore} → ${combatant.currentHp}`, 'hit');
   if (combatant.currentHp <= 0 && !combatant.isKO) {
-    const resAb = combatant.abilities.find(a =>
+    const lives = combatant.sourceChar.passif?.find(p => p.applyOn?.includes('deathRoll') && p.maxStacks
+      && (combatant.deathSaves[p.nom] ?? 0) < p.maxStacks);
+    if (lives) {
+      const used = combatant.deathSaves[lives.nom] = (combatant.deathSaves[lives.nom] ?? 0) + 1;
+      combatant.currentHp = 1;
+      addLog(`✨ ${combatant.name}'s ${lives.nom} brings them back with 1 HP! (${used}/${lives.maxStacks})`, 'crit');
+    }
+    const resAb = lives ? null : combatant.abilities.find(a =>
       a.name === 'Resurrection' && a.isOncePerFight && !combatant.usedThisFight.includes('Resurrection')
     );
     if (resAb) {
@@ -1274,7 +1285,7 @@ export function applyDamage(combatant, amount, damType = null, atkTags = [], ign
       combatant.usedThisFight.push('Resurrection');
       addLog(`💀✨ ${combatant.name} RESURRECTS with 150 HP — Final Reckoning activates!`, 'crit');
       combatant.statusEffects.push({ name: 'final_reckoning', turnsLeft: 999, dice: '2d12', damType: null, notes: '+2d12 atk bonus' });
-    } else {
+    } else if (!lives) {
       combatant.isKO = true;
       noteFallen(combatant);
       combatant.statusEffects = [];   // the dead keep no buffs or damage-over-time
@@ -1302,6 +1313,10 @@ export function applyStatus(combatant, effectStr, defaultTurns = 2) {
     // Buffs are never blocked by immunities; everything else is checked against the
     // blanket "status" immunity and the status's own name or alias (gel ↔ freeze, toxic ↔ poison)
     if (!beneficial) {
+      if (isDebuff({ name: key }) && combatant.statusEffects.some(e => e.name === 'ward')) {
+        addLog(`🌙 ${combatant.name} is warded against ${effName}!`, 'info');
+        continue;
+      }
       if (immunities.includes('status')) {
         addLog(`🛡 ${combatant.name} is immune to all status effects!`, 'info');
         continue;
@@ -1393,6 +1408,35 @@ function cleanseOne(target, source) {
   target.statusEffects = target.statusEffects.filter(e => e !== bad);
   addLog(`✨ ${source} lifts ${bad.name} from ${target.name}.`, 'heal');
   updateCombatantCardDOM(target);
+}
+
+// Gives back spell slots, never past the maximum
+function restoreSlots(unit, amount, source) {
+  const gained = Math.min(amount, unit.maxSpellSlots - unit.spellSlots);
+  if (gained <= 0) return;
+  unit.spellSlots += gained;
+  addLog(`  ✦ ${unit.name} recovers ${gained} slot(s) from ${source}! (${unit.spellSlots}/${unit.maxSpellSlots})`, 'heal');
+  updateCombatantCardDOM(unit);
+}
+
+// Fire Tornado: allies within the blast shed wet and every disadvantage
+function dryAllies(caster, ability, center) {
+  const radius = ability.radius > 0 ? ability.radius : 1;
+  for (const a of livingCombatants(caster.teamIndex)) {
+    if (chebyshev(a, center) > radius) continue;
+    const clear = a.statusEffects.filter(e => ['wet', 'disadvantage', 'smoke_screen'].includes(e.name));
+    if (!clear.length) continue;
+    a.statusEffects = a.statusEffects.filter(e => !clear.includes(e));
+    addLog(`🔥 The tornado dries ${a.name} and clears their head (${clear.map(e => e.name).join(', ')}).`, 'info');
+    updateCombatantCardDOM(a);
+  }
+}
+
+// Bénédiction of the Moon: two turns safe from new debuffs
+function applyWard(ability, target) {
+  if (ability.tags?.includes('ward') && pushStatus(target, { name: 'ward', turnsLeft: 3 }, true)) {
+    addLog(`🌙 ${target.name} is warded against debuffs for 2 turns.`, 'spell');
+  }
 }
 
 export function applyCleanse(target) {
@@ -1554,6 +1598,7 @@ function rollBonuses(owner, applyOn, other, ability) {
     }
   }
   for (const e of divineEffects(owner, applyOn)) if (e.dices) out.push({ nom: e.nom, dices: e.dices });
+  if (applyOn === 'atkRoll' && owner.statusEffects.some(e => e.name === 'orders')) out.push({ nom: 'Orders', dices: '+2' });
   return out;
 }
 
@@ -1987,7 +2032,7 @@ export function handleCastAbility(casterId, abilityName, targetIds) {
   const noReacts = ability.targetKind === 'ally' || !!ability.tags?.some(t => t === 'unblockabled' || t === 'taunt');
   const hasMechanics = ability.dice || ability.effect || ability.precastDice || ability.slotRegen > 0 || ability.isRevive
     || ability.isBlock || ability.targetKind === 'self'
-    || ability.isContest || ability.tags?.some(t => ['dash', 'fly', 'teleportation', 'cleans', 'pull', 'taunt', 'smoke', 'adv_next'].includes(t));
+    || ability.isContest || ability.tags?.some(t => ['dash', 'fly', 'teleportation', 'cleans', 'pull', 'taunt', 'smoke', 'adv_next', 'orders', 'ward', 'dry'].includes(t));
   if (!hasMechanics) addLog(`  ⚠ ${ability.name} has no mechanical effect in the simulator yet.`, 'info');
 
   // Dash: close the distance to the target before the move resolves
@@ -2441,6 +2486,7 @@ export function resumePendingAction(reactAbility) {
       }
       const aoeIgnoreDR = ignoresDR(caster, ability);
       addLog(`${caster.name}'s ${ability.name} strikes all ${isPureHeal ? 'allies' : 'enemies'}!`, 'spell');
+      if (ability.tags?.includes('dry') && allTargets[0]) dryAllies(caster, ability, allTargets[0]);
       // A taunt is not an attack: no roll to land it, no save against it
       const taunting = !!ability.tags?.includes('taunt');
       if (taunting && pushStatus(caster, { name: 'damage_reduction', turnsLeft: 1, amount: 10 }, true)) {
@@ -2466,6 +2512,7 @@ export function resumePendingAction(reactAbility) {
         const mult = aoeAtk ? areaDefense(aoeAtk, target, caster, ability) : 1;
         if (mult === 0) continue;
         if (ability.tags?.includes('cleans')) applyCleanse(target);
+        applyWard(ability, target);
         if (ability.dice) {
           if (isPureHeal) {
             if (ability.tags?.includes('regen')) {
@@ -2488,14 +2535,7 @@ export function resumePendingAction(reactAbility) {
           }
         }
         applyMoveEffect(ability, target);
-        if (isPureHeal && ability.slotRegen > 0) {
-          const gained = Math.min(ability.slotRegen, target.maxSpellSlots - target.spellSlots);
-          if (gained > 0) {
-            target.spellSlots += gained;
-            addLog(`  ✦ ${target.name} recovers ${gained} slot(s)! (${target.spellSlots}/${target.maxSpellSlots})`, 'heal');
-            updateCombatantCardDOM(target);
-          }
-        }
+        if (isPureHeal && ability.slotRegen > 0) restoreSlots(target, ability.slotRegen, ability.name);
       }
 
     } else if (action.type === 'bounce') {
@@ -2633,6 +2673,10 @@ export function resumePendingAction(reactAbility) {
             }
           }
           if (ability.tags?.includes('cleans')) applyCleanse(target);
+          applyWard(ability, target);
+          if (ability.tags?.includes('orders') && pushStatus(target, { name: 'orders', turnsLeft: 2 }, true)) {
+            addLog(`📣 ${target.name} follows the orders — +2 on attack rolls until their next turn is over.`, 'spell');
+          }
           if (ability.tags?.includes('sure_hit') && pushStatus(target, { name: 'sure_hit', turnsLeft: 2 }, true)) {
             addLog(`🎯 ${target.name}'s next attack cannot miss!`, 'spell');
           }
@@ -2677,6 +2721,7 @@ export function resumePendingAction(reactAbility) {
               const ignoreDR = ignoresDR(caster, ability);
               applyDamage(target, action.result.damage, damType, ability.tags, ignoreDR);
               if (ability.isHeal) applyHeal(caster, String(action.result.damage));
+              if (ability.isHeal && ability.slotRegen > 0) restoreSlots(caster, ability.slotRegen, ability.name);
               applyHpPerHitPassives(caster);
               if (ability.tags?.includes('grounded')) removeFlying(target);
             }

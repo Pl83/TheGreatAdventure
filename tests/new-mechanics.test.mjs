@@ -646,3 +646,116 @@ test('ice freezes a soaked unit for sure and spends the wet', async () => {
   assert.ok(mei.statusEffects.some(e => e.name.toLowerCase() === 'gel'), 'frozen');
   assert.equal(hasWet(mei), false, 'the wet is spent');
 });
+
+// ── Nine Lives ─────────────────────────────────────────────────────────────
+
+test('Nine Lives: Heracles gets back up at 1 HP nine times, the tenth blow kills', async () => {
+  await newFight({ teamA: ['Heracles'], teamB: ['Meï'], seed: 1 });
+  const heracles = byName('Heracles');
+  for (let i = 1; i <= 9; i++) {
+    L.applyDamage(heracles, 9999, 'physical', ['physical'], true);
+    assert.equal(heracles.isKO, false, `life ${i}`);
+    assert.equal(heracles.currentHp, 1);
+  }
+  L.applyDamage(heracles, 9999, 'physical', ['physical'], true);
+  assert.equal(heracles.isKO, true);
+});
+
+test('Nine Lives is only Heracles\'s: anyone else dies at once', async () => {
+  await newFight({ teamA: ['Kay Climber'], teamB: ['Meï'], seed: 1 });
+  const kay = byName('Kay Climber');
+  L.applyDamage(kay, 9999, 'physical', ['physical'], true);
+  assert.equal(kay.isKO, true);
+});
+
+// ── Battle Tactician: Give Orders ──────────────────────────────────────────
+
+test('Future Zane can Give Orders to an ally: the turn ends and the ally attacks with +2 until its next turn is over', async () => {
+  await newFight({ teamA: ['Future Zane', 'Kay Climber'], teamB: ['Meï'], seed: 1 });
+  const zane = toTurn('Future Zane'), kay = byName('Kay Climber');
+  const orders = zane.abilities.find(a => a.name === 'Give Orders');
+  assert.ok(orders, 'Future Zane has the action');
+  assert.equal(orders.targetKind, 'ally');
+  const serial = S.turnSerial;
+  assert.equal(cast(zane, 'Give Orders', [kay.id]).accepted, true);
+  assert.notEqual(S.turnSerial, serial, 'the turn ended');
+  assert.ok(kay.statusEffects.some(e => e.name === 'orders'));
+  kay.statusEffects.push(status('sure_hit'));
+  const swing = L.resolveAttack(kay, byName('Meï'), null);
+  assert.ok(swing.hit && swing.breakdown.includes('Orders[+2'), `the +2 is added to the blow: ${swing.breakdown}`);
+  L.tickTurn(kay);
+  assert.ok(kay.statusEffects.some(e => e.name === 'orders'), 'still there for its next turn');
+  L.tickTurn(kay);
+  assert.ok(!kay.statusEffects.some(e => e.name === 'orders'), 'gone after it');
+});
+
+test('the bot can plan Give Orders on an ally', async () => {
+  const { enumeratePlans } = await import('../js/ai/candidates.js');
+  await newFight({ teamA: ['Future Zane', 'Kay Climber'], teamB: ['Meï'], seed: 1 });
+  const zane = toTurn('Future Zane');
+  assert.ok(enumeratePlans(zane).some(p => p.action.ability === 'Give Orders' && p.action.targetIds[0] === byName('Kay Climber').id));
+});
+
+// ── Spell slot restoration ─────────────────────────────────────────────────
+
+test('Vorpal Slash gives Vorrakan back 5 spell slots with its lifesteal', async () => {
+  let restored = 0;
+  for (let seed = 1; seed <= 12; seed++) {
+    await newFight({ teamA: ['Vorrakan Duskbane'], teamB: ['Kay Climber'], seed });
+    const vor = toTurn('Vorrakan'), kay = byName('Kay Climber');
+    place(kay, vor.x + 1, vor.y);
+    vor.spellSlots = 2; vor.maxSpellSlots = Math.max(vor.maxSpellSlots, 10);
+    vor.statusEffects.push(status('sure_hit'));
+    const hp = kay.currentHp;
+    cast(vor, 'Vorpal Slash', [kay.id]);
+    if (kay.currentHp < hp) { restored++; assert.equal(vor.spellSlots, 7, `seed ${seed}`); }
+  }
+  assert.ok(restored > 0, 'the slash landed at least once');
+});
+
+test('Kaelgrym absorbs fire into spell slots instead of taking it', async () => {
+  await newFight({ teamA: ['Kaelgrym'], teamB: ['Meï'], seed: 1 });
+  const kael = byName('Kaelgrym');
+  kael.spellSlots = 3;
+  assert.equal(hpLost(kael, () => L.applyDamage(kael, 20, 'fire', ['fire'], true)), 0);
+  assert.equal(kael.spellSlots, 4);
+  assert.equal(hpLost(kael, () => L.applyDamage(kael, 20, 'physical', ['physical'], true)), 20);
+  assert.equal(kael.spellSlots, 4, 'only fire feeds him');
+  kael.spellSlots = kael.maxSpellSlots;
+  L.applyDamage(kael, 20, 'fire', ['fire'], true);
+  assert.equal(kael.spellSlots, kael.maxSpellSlots, 'never past the maximum');
+});
+
+// ── Cleanse riders ─────────────────────────────────────────────────────────
+
+test('Bénédiction of the Moon lifts a debuff and shields the ally from new ones for 2 turns', async () => {
+  await newFight({ teamA: ['Nya Léviathan', 'Kay Climber'], teamB: ['Meï'], seed: 1 });
+  const nya = toTurn('Nya'), kay = byName('Kay Climber');
+  place(kay, nya.x + 1, nya.y);
+  L.applyStatus(kay, 'burn');
+  assert.ok(kay.statusEffects.some(e => e.name.toLowerCase() === 'burn'));
+  cast(nya, 'Bénédiction of the Moon', [kay.id]);
+  assert.ok(!kay.statusEffects.some(e => e.name.toLowerCase() === 'burn'), 'burn lifted');
+  L.applyStatus(kay, 'burn');
+  assert.ok(!kay.statusEffects.some(e => e.name.toLowerCase() === 'burn'), 'new debuff refused');
+  L.tickTurn(kay);
+  L.applyStatus(kay, 'toxic');
+  assert.ok(!kay.statusEffects.some(e => e.name.toLowerCase() === 'toxic'), 'shielded on its first turn');
+  L.tickTurn(kay);
+  L.applyStatus(kay, 'toxic');
+  assert.ok(!kay.statusEffects.some(e => e.name.toLowerCase() === 'toxic'), 'and on its second');
+  L.tickTurn(kay);
+  L.applyStatus(kay, 'toxic');
+  assert.ok(kay.statusEffects.some(e => e.name.toLowerCase() === 'toxic'), 'the ward is over');
+});
+
+test('Fire Tornado dries the allies in its area and takes the disadvantage off them', async () => {
+  await newFight({ teamA: ['Eragon', 'Kay Climber'], teamB: ['Meï'], seed: 1 });
+  const eragon = toTurn('Eragon'), kay = byName('Kay Climber'), mei = byName('Meï');
+  place(kay, eragon.x + 1, eragon.y);
+  place(mei, eragon.x + 3, eragon.y);
+  L.applyStatus(kay, 'wet');
+  kay.statusEffects.push(status('disadvantage'), status('smoke_screen', 3));
+  cast(eragon, 'Fire Tornado', [mei.id]);
+  assert.ok(!kay.statusEffects.some(e => ['wet', 'disadvantage', 'smoke_screen'].includes(e.name)), 'dried and clear-eyed');
+});

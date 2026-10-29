@@ -513,7 +513,7 @@
       },
       {
         "category": "spell",
-        "base": { "nom": "Bénédiction of the Moon", "tags": ["magic", "cleans", "buff"] },
+        "base": { "nom": "Bénédiction of the Moon", "tags": ["magic", "cleans", "buff", "ward"] },
         "target": "mono",
         "range": 8,
         "description": "Remove debuff, 2 turns immunity.",
@@ -693,7 +693,7 @@
     "moveSet": [
       {
         "category": "spell",
-        "base": { "nom": "Fire Tornado", "dices": "2d12", "tags": ["magic", "fire"] },
+        "base": { "nom": "Fire Tornado", "dices": "2d12", "tags": ["magic", "fire", "dry"] },
         "target": "aoe", "range": 8, "radius": 4,
         "description": "Removes wet and disadvantage from allies.",
         "spellCost": 1
@@ -952,7 +952,8 @@
         "description": "Immune to wet. -1d8+10 water damage."
       },
       { "nom": "Blacksmith", "dices": "+1d4", "tags": ["buff"], "applyOn": ["atkRoll"] },
-      { "nom": "Sword Master", "dices": "+2", "tags": ["buff"], "applyOn": ["atkRoll"], "condition": { "weaponType": "sword" } }
+      { "nom": "Sword Master", "dices": "+2", "tags": ["buff"], "applyOn": ["atkRoll"], "condition": { "weaponType": "sword" } },
+      { "nom": "Ifrit's Bane (Sleeping)", "tags": ["buff", "absorbFire"], "applyOn": ["incomingDam"], "description": "Absorbs fire damage: the hit does nothing and restores 1 spell slot." }
     ],
     "moveSet": [
       {
@@ -1380,6 +1381,7 @@
         "base": { "nom": "Vorpal Slash", "dices": "2d10+10", "tags": ["physical", "heal"] },
         "target": "mono", "range": 3,
         "description": "100% lifesteal + restore 5 spell slots.",
+        "slotRegen": 5,
         "cooldown": 4
       },
       {
@@ -3695,10 +3697,16 @@
           "buff"
         ],
         "applyOn": [],
-        "description": "+2 to allies' attack rolls when giving orders."
+        "description": "Title. Unlocks Give Orders: an ally gets +2 on its attack rolls."
       }
     ],
     "moveSet": [
+      {
+        "category": "technique",
+        "base": { "nom": "Give Orders", "tags": ["buff", "orders"] },
+        "target": "mono", "range": 10,
+        "description": "Battle Tactician. Ends the turn; an ally gets +2 on its attack rolls until its next turn is over."
+      },
       {
         "category": "technique",
         "base": {
