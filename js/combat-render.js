@@ -85,14 +85,15 @@ const STATUS_NAMES = {
 export const statusName = n => STATUS_NAMES[n] ?? (n.startsWith('lost:') ? `${n.slice(5)} lost` : n.replace(/_/g, ' ').replace(/^\w/, ch => ch.toUpperCase()));
 
 export function statusBadgesHTML(c) {
-  const wet = isWet(c) ? '<li class="status-badge status-ice" title="Standing in water: slower, lightning hits harder, ice freezes">Wet</li>' : '';
+  const wet = isWet(c) && !c.statusEffects.some(e => e.name === 'wet') ? '<li class="status-badge status-water" title="Standing in water: slower, lightning hits harder, ice freezes">Wet</li>' : '';
   if (!c.statusEffects.length && !wet) return '';
   const badges = wet + c.statusEffects.map(e => {
     const dur = e.name === 'damage_shield' ? `${e.shieldHp} HP`
       : e.turnsLeft === 999 ? 'lasting'
       : `${e.turnsLeft} turn${e.turnsLeft === 1 ? '' : 's'}`;
     const notes = e.notes ? ` title="${e.notes}"` : '';
-    return `<li class="status-badge ${statusCssClass(e.damType)}"${notes}>${statusName(e.name)} <span class="status-dur">${dur}</span></li>`;
+    const cls = e.name === 'wet' ? 'status-water' : statusCssClass(e.damType);
+    return `<li class="status-badge ${cls}"${notes}>${statusName(e.name)} <span class="status-dur">${dur}</span></li>`;
   }).join('');
   return `<ul class="status-badge-row" aria-label="Effects">${badges}</ul>`;
 }

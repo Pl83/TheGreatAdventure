@@ -164,7 +164,9 @@ export function findEffect(name) {
 }
 
 const TAG_TO_STATUS = { freeze: 'gel', poison: 'toxic' };
-const STATUS_EFFECT_TAGS = ['para','gel','freeze','burn','bleed','stun','root','fear','silence','blind','toxic','poison'];
+const STATUS_EFFECT_TAGS = ['para','gel','freeze','burn','bleed','stun','root','fear','silence','blind','toxic','poison','wet'];
+// Statuses that last longer than the default (turnsLeft counts the owner's turns plus one)
+const STATUS_TURNS = { wet: 3 };
 // A status and the tag it is applied from are interchangeable for immunity checks
 const STATUS_ALIASES = { gel: 'freeze', freeze: 'gel', toxic: 'poison', poison: 'toxic' };
 // Self/ally buffs are never blocked by a "status" immunity
@@ -1183,6 +1185,11 @@ export function applyDamage(combatant, amount, damType = null, atkTags = [], ign
     const before = amount;
     amount = Math.floor(amount * (1 + (WET_LIGHTNING - 1) / types.length));
     addLog(`💧 ${combatant.name} is wet — the lightning bites harder (${before} → ${amount}).`, 'hit');
+    if (hasWetStatus(combatant)) dropWetStatus(combatant);   // the soaking is spent; water underfoot is not
+  }
+  if (types.includes('fire') && hasWetStatus(combatant)) {
+    dropWetStatus(combatant);
+    addLog(`♨ The fire dries ${combatant.name}.`, 'info');
   }
 
   // Living Blade Armor: halve incoming physical before any absorption
@@ -1312,7 +1319,7 @@ export function applyStatus(combatant, effectStr, defaultTurns = 2) {
         continue;
       }
     }
-    const turns = defaultTurns;
+    const turns = STATUS_TURNS[key] ?? defaultTurns;
 
     const eff      = findEffect(effName);
     const existing = combatant.statusEffects.find(e => e.name.toLowerCase() === key);
@@ -1475,11 +1482,16 @@ function divineEffects(c, applyOn) {
   return out;
 }
 
-// Standing in water soaks a unit (a flier above it stays dry, and so does anything immune to wet)
+const hasWetStatus = c => c.statusEffects.some(e => e.name === 'wet');
+const dropWetStatus = c => { c.statusEffects = c.statusEffects.filter(e => e.name !== 'wet'); };
+
+// Wet: soaked by a water spell (a status that fire or lightning or ice ends), or standing in the map's water
+// (a flier above it stays dry). Nothing immune to wet ever is.
 export function isWet(c) {
+  if ((c.sourceChar.immunities ?? []).some(i => i.toLowerCase() === 'wet')) return false;
+  if (hasWetStatus(c)) return true;
   if (!S.currentMap?.water?.has(`${c.x},${c.y}`)) return false;
-  if (c.statusEffects.some(e => e.name.toLowerCase() === 'fly')) return false;
-  return !(c.sourceChar.immunities ?? []).some(i => i.toLowerCase() === 'wet');
+  return !c.statusEffects.some(e => e.name.toLowerCase() === 'fly');
 }
 
 const WET_SPEED = 0.8;
@@ -1494,14 +1506,23 @@ export function moveSpeed(c) {
 
 // The status string a damaging move applies to `target`. Water makes ice bite: a 1dN freeze becomes certain,
 // and an ice move with no freeze gets a 1d2 chance of one.
+const bitesIce = ability => !!ability.tags?.includes('ice') && !!ability.dice && !ability.isHeal;
+
 export function effectFor(ability, target) {
   const base = ability.effect;
-  if (!isWet(target) || !ability.tags?.includes('ice') || !ability.dice || ability.isHeal) return base;
+  if (!isWet(target) || !bitesIce(ability)) return base;
   const parts = base ? base.split(',').map(p => p.trim()) : [];
   const freeze = parts.findIndex(p => /^(1d\d+\s+)?(gel|freeze)$/i.test(p));
   if (freeze === -1) return [...parts, '1d2 gel'].join(', ');
   parts[freeze] = parts[freeze].replace(/^1d\d+\s+/i, '');
   return parts.join(', ');
+}
+
+// Applies what a landed move does to its target; ice spends the soaking it just used
+export function applyMoveEffect(ability, target) {
+  const soaked = hasWetStatus(target);
+  applyStatus(target, effectFor(ability, target));
+  if (soaked && bitesIce(ability) && !target.isKO) dropWetStatus(target);
 }
 
 // Does a passive of `owner` grant advantage on this kind of roll? (tag "adv" on the passive; a weapon condition
@@ -1593,7 +1614,7 @@ function selfDestruct(caster, ability) {
   const caught = S.combatants.filter(x => !x.isKO && x.id !== caster.id && (!S.currentMap || chebyshev(caster, x) <= radius));
   for (const x of caught) {
     applyDamage(x, dmg, damTypeFromTags(ability.tags), ability.tags);
-    applyStatus(x, effectFor(ability, x));
+    applyMoveEffect(ability, x);
   }
   caster.currentHp = 0;
   caster.isKO = true;
@@ -2466,7 +2487,7 @@ export function resumePendingAction(reactAbility) {
             if (ability.tags?.includes('knockback')) knockBack(caster, target);
           }
         }
-        applyStatus(target, effectFor(ability, target));
+        applyMoveEffect(ability, target);
         if (isPureHeal && ability.slotRegen > 0) {
           const gained = Math.min(ability.slotRegen, target.maxSpellSlots - target.spellSlots);
           if (gained > 0) {
@@ -2507,7 +2528,7 @@ export function resumePendingAction(reactAbility) {
           if (result.hit && !result.fumble && ability.dice) {
             const ignoreDR = ignoresDR(caster, ability);
             applyDamage(current, result.damage, damType, ability.tags, ignoreDR);
-            applyStatus(current, effectFor(ability, current));
+            applyMoveEffect(ability, current);
             if (ability.tags?.includes('grounded')) removeFlying(current);
           }
           if (result.fumble) current.hasCounterAttack = true;
@@ -2543,7 +2564,7 @@ export function resumePendingAction(reactAbility) {
           applyDamage(target, dmg, damType, ability.tags, coneIgnoreDR);
           if (ability.tags?.includes('grounded')) removeFlying(target);
         }
-        applyStatus(target, effectFor(ability, target));
+        applyMoveEffect(ability, target);
       }
 
     } else if (action.type === 'splash') {
@@ -2570,12 +2591,12 @@ export function resumePendingAction(reactAbility) {
                 const splashDmg = Math.floor(rd.total / 2 * mult);
                 addLog(`  ${t.name} is caught by the splash for ${splashDmg}.`, 'hit');
                 applyDamage(t, splashDmg, damType, ability.tags);
-                applyStatus(t, effectFor(ability, t));
+                applyMoveEffect(ability, t);
               }
             }
           }
         }
-        applyStatus(primary, effectFor(ability, primary));
+        applyMoveEffect(ability, primary);
       }
 
     } else if (action.type === 'ability') {
@@ -2638,7 +2659,7 @@ export function resumePendingAction(reactAbility) {
               applyHeal(target, ability.dice);
             }
           }
-          applyStatus(target, effectFor(ability, target));
+          applyMoveEffect(ability, target);
           if (ability.tags?.includes('fly') && !target.statusEffects.some(e => e.name.toLowerCase() === 'fly')) {
             target.statusEffects.push({ name: 'fly', turnsLeft: ability.duration > 0 ? ability.duration : 999, dice: null, damType: null, notes: '' });
             addLog(`🦅 ${target.name} is now flying!`, 'spell');
@@ -2659,7 +2680,7 @@ export function resumePendingAction(reactAbility) {
               applyHpPerHitPassives(caster);
               if (ability.tags?.includes('grounded')) removeFlying(target);
             }
-            applyStatus(target, effectFor(ability, target));
+            applyMoveEffect(ability, target);
             if (ability.tags?.includes('pull') && !target.isKO) pullTarget(caster, target);
             if (ability.tags?.includes('disv_next') && pushStatus(target, { name: 'disadvantage', turnsLeft: 2, uses: 1 })) {
               addLog(`⬇ ${target.name} is weighed down — next d20 at disadvantage!`, 'status');

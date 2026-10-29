@@ -931,7 +931,7 @@
     "kiRegen": 0,
     "speed": 6,
     "autority": 0,
-    "immunities": ["toxic", "freeze"],
+    "immunities": ["toxic", "freeze", "wet"],
     "baseAtk": { "nom": "Sword", "dices": "1d8+2", "tags": ["physical"] },
     "passif": [
       { "nom": "Survivalist", "dices": "+2", "tags": ["buff"], "applyOn": ["constRoll", "percepRoll", "deceptionRoll"] },

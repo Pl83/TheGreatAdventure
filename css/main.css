@@ -2824,6 +2824,7 @@ header.nav-open .nav-toggle span:nth-child(3) { transform: translateY(-9px) rota
 .status-fire   { background: #f6e7df; border-color: var(--tga-crimson-soft); color: var(--tga-crimson-deep); }
 .status-poison { background: #e6efe6; border-color: var(--tga-emerald-soft); color: var(--tga-emerald-deep); }
 .status-ice, .status-cold { background: #e3eef1; border-color: var(--tga-teal-soft); color: var(--tga-teal-deep); }
+.status-water  { background: #e1edf8; border-color: #7fb2d9; color: #1d5a8a; }
 .status-phys   { background: #f0e8de; border-color: var(--tga-bronze); color: #6E4529; }
 .status-holy   { background: #f7efd9; border-color: var(--tga-gold); color: var(--tga-gold-deep); }
 .status-psy    { background: #ebe5f3; border-color: var(--tga-violet-soft); color: var(--tga-violet-deep); }

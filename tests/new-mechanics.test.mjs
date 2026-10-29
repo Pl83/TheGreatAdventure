@@ -585,3 +585,64 @@ test('ice on a wet target: a 1d2 freeze becomes certain, a plain ice move gets a
   const fire = byName('Susano').abilities.find(a => !a.tags.includes('ice') && a.dice);
   assert.equal(L.effectFor(fire, mei), fire.effect, 'only ice damage');
 });
+
+// ── Wet from water spells: lasts two turns, fire dries it, lightning and ice spend it ──
+
+const hasWet = c => c.statusEffects.some(e => e.name === 'wet');
+
+test('Water Dragon and Abyssal Current soak their targets for two of its turns', async () => {
+  await newFight({ teamA: ['Eragon', 'Black Turtle'], teamB: ['Kay Climber', 'Kaelgrym'], seed: 1 });
+  const eragon = byName('Eragon'), turtle = byName('Black Turtle'), kay = byName('Kay Climber'), kael = byName('Kaelgrym');
+  assert.match(eragon.abilities.find(a => a.name === 'Water Dragon').effect, /wet/);
+  assert.match(turtle.abilities.find(a => a.name === 'Abyssal Current').effect, /wet/);
+  L.applyStatus(kay, 'wet');
+  assert.equal(hasWet(kay), true);
+  assert.equal(L.isWet(kay), true, 'off the water, the status is enough');
+  L.tickTurn(kay); assert.equal(hasWet(kay), true, 'still wet on its first turn');
+  L.tickTurn(kay); assert.equal(hasWet(kay), true, 'and on its second');
+  L.tickTurn(kay); assert.equal(hasWet(kay), false, 'dry on the third');
+  L.applyStatus(kael, 'wet');
+  assert.equal(hasWet(kael), false, 'Kaelgrym is immune to wet');
+});
+
+test('fire dries a soaked unit, but not the water it stands in', async () => {
+  await newFight({ teamA: ['Kay Climber'], teamB: ['Meï'], seed: 1 });
+  const kay = byName('Kay Climber');
+  L.applyStatus(kay, 'wet');
+  L.applyDamage(kay, 5, 'fire', ['fire'], true);
+  assert.equal(hasWet(kay), false);
+  assert.equal(L.isWet(kay), false);
+  const w = waterCell();
+  place(kay, w.x, w.y);
+  L.applyStatus(kay, 'wet');
+  L.applyDamage(kay, 5, 'fire', ['fire'], true);
+  assert.equal(hasWet(kay), false);
+  assert.equal(L.isWet(kay), true, 'still standing in water');
+});
+
+test('lightning bites a soaked unit once and spends the wet', async () => {
+  await newFight({ teamA: ['Kay Climber'], teamB: ['Meï'], seed: 1 });
+  const kay = byName('Kay Climber');
+  L.applyStatus(kay, 'wet');
+  assert.equal(hpLost(kay, () => L.applyDamage(kay, 10, 'lightning', ['lightning'], true)), 15);
+  assert.equal(hasWet(kay), false);
+  assert.equal(hpLost(kay, () => L.applyDamage(kay, 10, 'lightning', ['lightning'], true)), 10);
+});
+
+test('lightning does not spend the water a unit stands in', async () => {
+  await newFight({ teamA: ['Kay Climber'], teamB: ['Meï'], seed: 1 });
+  const kay = byName('Kay Climber'), w = waterCell();
+  place(kay, w.x, w.y);
+  L.applyDamage(kay, 10, 'lightning', ['lightning'], true);
+  assert.equal(hpLost(kay, () => L.applyDamage(kay, 10, 'lightning', ['lightning'], true)), 15);
+});
+
+test('ice freezes a soaked unit for sure and spends the wet', async () => {
+  await newFight({ teamA: ['Future Zane'], teamB: ['Meï'], seed: 1 });
+  const zane = byName('Future Zane'), mei = byName('Meï');
+  const cryo = zane.abilities.find(a => a.name === 'Cryo Beam');
+  L.applyStatus(mei, 'wet');
+  L.applyMoveEffect(cryo, mei);
+  assert.ok(mei.statusEffects.some(e => e.name.toLowerCase() === 'gel'), 'frozen');
+  assert.equal(hasWet(mei), false, 'the wet is spent');
+});
