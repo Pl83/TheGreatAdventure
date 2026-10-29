@@ -228,7 +228,7 @@ export function resolveAbilitiesFromList(moveList) {
       isVoid:     tags.includes('void'),
       isGate:     tags.includes('gate'),
       // Reactions that do nothing when cast proactively
-      reactOnly:  tags.includes('void') || tags.includes('reflect'),
+      reactOnly:  tags.includes('void') || tags.includes('reflect') || (tags.includes('dodge') && tags.includes('react')),
       // Attack-versus-defense roll with no damage dice (the effect applies when the defense fails)
       isContest:  tags.some(t => ['disv_next', 'execute', 'puppet'].includes(t)),
       bypassAuthority: move.bypassAuthority ?? 0,
@@ -1529,6 +1529,11 @@ function passiveConditionMet(p, owner, other, ability) {
     const atk = owner.transformedBaseAtk ?? owner.sourceChar.baseAtk;
     return (atk?.tags ?? []).includes(w) || (atk?.nom ?? '').toLowerCase().includes(w);
   }
+  if (cond.contextHasTag) {
+    const tag = cond.contextHasTag.toLowerCase();
+    if (tag === 'water') return isWaterCell(owner.x, owner.y) && !owner.statusEffects.some(e => e.name.toLowerCase() === 'fly');
+    if (tag === 'melee') return !!other && chebyshev(owner, other) <= MELEE_RANGE && !ability?.tags?.includes('ranged');
+  }
   return false;
 }
 
@@ -2102,7 +2107,7 @@ export function handleCastAbility(casterId, abilityName, targetIds, center = nul
   if (ability.tags?.includes('opportunity') && targets[0]) opportunityAttack(caster, targets[0]);
 
   if (ability.isAoe) {
-    S.pendingAction = { type: 'aoe', casterId, abilityName, targetIds, ability, reactorId: null, reactedIds: [], blockedIds: [], noReacts };
+    S.pendingAction = { type: 'aoe', casterId, abilityName, targetIds, ability, reactorId: null, reactedIds: [], blockedIds: [], halvedIds: [], noReacts };
     const firstReactor = noReacts ? null : targets.find(t => getReacts(t, ability).length > 0);
     if (firstReactor) {
       S.pendingAction.reactorId = firstReactor.id;
@@ -2117,7 +2122,7 @@ export function handleCastAbility(casterId, abilityName, targetIds, center = nul
   }
 
   if (ability.isCone) {
-    S.pendingAction = { type: 'cone', casterId, abilityName, targetIds, ability, reactorId: null, reactedIds: [], blockedIds: [], noReacts };
+    S.pendingAction = { type: 'cone', casterId, abilityName, targetIds, ability, reactorId: null, reactedIds: [], blockedIds: [], halvedIds: [], noReacts };
     const firstReactor = noReacts ? null : targets.find(t => getReacts(t, ability).length > 0);
     if (firstReactor) {
       S.pendingAction.reactorId = firstReactor.id;
@@ -2433,6 +2438,10 @@ export function resumePendingAction(reactAbility) {
           for (const a of covered) if (!action.blockedIds.includes(a.id)) action.blockedIds.push(a.id);
           addLog(`  ✦ The void shields ${covered.map(a => a.name).join(', ')}!`, 'spell');
         }
+      } else if (reactAbility.tags?.includes('dodge') && (action.type === 'aoe' || action.type === 'cone')) {
+        // A dodge is total against one target but only gets half out of the way of an area
+        addLog(`💨 ${reactor.name} reacts with ${reactAbility.name} — half damage from the area.`, 'spell');
+        if (!action.halvedIds.includes(reactor.id)) action.halvedIds.push(reactor.id);
       } else if (reactAbility.isBlock) {
         if (reactAbility.tags?.includes('chains')) {
           let chainsEff = reactor.statusEffects.find(e => e.name === 'chains_of_apophis');
@@ -2571,8 +2580,9 @@ export function resumePendingAction(reactAbility) {
           updateCombatantCardDOM(target);
           continue;
         }
-        const mult = aoeAtk ? areaDefense(aoeAtk, target, caster, ability) : 1;
+        let mult = aoeAtk ? areaDefense(aoeAtk, target, caster, ability) : 1;
         if (mult === 0) continue;
+        if ((action.halvedIds ?? []).includes(target.id)) mult *= 0.5;
         if (ability.tags?.includes('cleans')) applyCleanse(target);
         applyWard(ability, target);
         if (ability.dice) {
@@ -2657,8 +2667,9 @@ export function resumePendingAction(reactAbility) {
       addLog(`  🎲 ${caster.name} rolls ${coneAtk.roll.value} to land it`, 'spell');
       for (const target of allTargets) {
         if ((action.blockedIds ?? []).includes(target.id)) continue;
-        const mult = areaDefense(coneAtk, target, caster, ability);
+        let mult = areaDefense(coneAtk, target, caster, ability);
         if (mult === 0) continue;
+        if ((action.halvedIds ?? []).includes(target.id)) mult *= 0.5;
         if (ability.dice) {
           const rd = parseDice(ability.dice);
           const dmg = Math.floor(rd.total * mult);

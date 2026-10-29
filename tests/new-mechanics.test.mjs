@@ -878,3 +878,73 @@ test('terrain changes are part of the state the bot rewinds, and a new fight sta
   await newFight({ teamA: ['Kay Climber'], teamB: ['Meï'], seed: 1 });
   assert.equal(S.iceCells.size + S.driedCells.size, 0, 'fresh map');
 });
+
+// ── Passives gated on a context tag ────────────────────────────────────────
+
+test('Zed adds Close Quarters Expert to melee blows only', async () => {
+  await newFight({ teamA: ['Zed'], teamB: ['Kay Climber'], seed: 1 });
+  const zed = byName('Zed'), kay = byName('Kay Climber');
+  const far = freeRun(8);
+  place(zed, far.x, far.y); place(kay, far.x + 1, far.y);
+  zed.statusEffects.push(status('sure_hit'));
+  assert.ok(L.resolveAttack(zed, kay, null).breakdown.includes('Close Quarters Expert['), 'adjacent');
+  place(kay, far.x + 5, far.y);
+  zed.statusEffects.push(status('sure_hit'));
+  assert.ok(!L.resolveAttack(zed, kay, '1d4', { name: 'Throw', tags: ['ranged'] }).breakdown.includes('Close Quarters Expert['), 'five cells away');
+});
+
+test('Black Turtle adds Sunken Colossus while standing in water, and not on dry floor', async () => {
+  await newFight({ teamA: ['Black Turtle'], teamB: ['Kay Climber'], seed: 1 });
+  const turtle = byName('Black Turtle'), kay = byName('Kay Climber');
+  const w = waterCell(), d = dryCell();
+  place(kay, d.x + 1, d.y);
+  place(turtle, d.x, d.y);
+  turtle.statusEffects.push(status('sure_hit'));
+  assert.ok(!L.resolveAttack(turtle, kay, null).breakdown.includes('Sunken Colossus['), 'dry');
+  place(turtle, w.x, w.y); place(kay, w.x - 1, w.y);
+  turtle.statusEffects.push(status('sure_hit'));
+  assert.ok(L.resolveAttack(turtle, kay, null).breakdown.includes('Sunken Colossus['), 'in water');
+});
+
+// ── Dodge reacts against area moves ────────────────────────────────────────
+
+// Fire Tornado, sure to land, on `reactor`; returns the HP the reactor lost
+async function tornadoOn(reactor, react, seed = 3) {
+  await newFight({ teamA: ['Eragon'], teamB: [reactor], seed });
+  const eragon = byName('Eragon'), target = S.combatants.find(c => c.teamIndex === 1);
+  const far = freeRun(8);
+  place(eragon, far.x, far.y); place(target, far.x + 3, far.y);
+  eragon.statusEffects.push(status('sure_hit'));
+  toTurn('Eragon');
+  const before = target.currentHp;
+  applyPlan({ move: null, action: { type: 'cast', ability: 'Fire Tornado', targetIds: [target.id] } });
+  settleReacts(() => react ? { combatantId: target.id, abilityName: react } : null);
+  return before - target.currentHp;
+}
+
+for (const [who, react] of [['Dream Hunter', 'Hat Form'], ['Vayl-Soran', 'Lightning Flicker'], ['Zed', 'Shadow Dash'], ['Sun', 'Bunshin']]) {
+  test(`${react} halves the area damage its owner takes`, async () => {
+    const without = await tornadoOn(who, null);
+    const withReact = await tornadoOn(who, react);
+    assert.ok(without > 1, `fixture: ${who} takes ${without} without the react`);
+    assert.equal(withReact, Math.floor(without / 2));
+  });
+}
+
+test('a dodge react still avoids a single-target blow completely', async () => {
+  await newFight({ teamA: ['Eragon'], teamB: ['Dream Hunter'], seed: 1 });
+  const eragon = toTurn('Eragon'), hunter = byName('Dream Hunter');
+  place(hunter, eragon.x + 1, eragon.y);
+  eragon.statusEffects.push(status('sure_hit'));
+  const before = hunter.currentHp;
+  applyPlan({ move: null, action: { type: 'attack', targetId: hunter.id } });
+  settleReacts(() => ({ combatantId: hunter.id, abilityName: 'Hat Form' }));
+  assert.equal(hunter.currentHp, before);
+});
+
+test('pure dodge reactions are reactions only: they are not offered as moves for the turn', async () => {
+  await newFight({ teamA: ['Dream Hunter', 'Zed', 'Vayl-Soran'], teamB: ['Meï'], seed: 1 });
+  for (const [who, n] of [['Dream Hunter', 'Hat Form'], ['Zed', 'Shadow Dash'], ['Vayl-Soran', 'Lightning Flicker']]) {
+    assert.equal(byName(who).abilities.find(a => a.name === n).reactOnly, true, n);
+  }
+});

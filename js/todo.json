@@ -170,7 +170,7 @@
       "evidence": "divineSync appears nowhere in the engine. Found by the 2026-10-29 audit: every move was cast in the headless engine and the passives were checked against what combat-logic.js reads."
     },
     {
-      "id": "mech-context-conditions", "cat": "mechanics", "sev": "low",
+      "id": "mech-context-conditions", "resolution": "Implemented for attack rolls: Close Quarters Expert (Zed) applies to blows struck from an adjacent cell (not ranged moves) and Sunken Colossus (Black Turtle) applies while it stands in a water cell. Professional Diver (Kay Climber, Glysain) is still dead: it adds to a constitution roll the simulator never makes.", "cat": "mechanics", "sev": "low",
       "title": "Passives gated on a context tag never apply", "who": "Zed, Black Turtle",
       "detail": "Close Quarters Expert (Zed, +1d4+2 on melee attacks) and Sunken Colossus (Black Turtle, +1d10 in water) use contextHasTag. passiveConditionMet returns false for any condition it does not know, so they never apply. Kay Climber and Glysain's Professional Diver use the same condition on a roll the simulator never makes.",
       "where": "combat-logic.js · passiveConditionMet"
@@ -197,7 +197,7 @@
       "detail": "Tiger's Leap is described as guardbreak. It dashes and hits but can still be blocked; only moves tagged unblockabled ignore blocks."
     },
     {
-      "id": "mech-dodge-reacts", "cat": "mechanics", "sev": "med",
+      "id": "mech-dodge-reacts", "resolution": "Fixed: against an area or cone move a dodge react (Hat Form, Lightning Flicker, Zed's Shadow Dash, Bunshin) halves the damage its owner takes; against one target it still dodges completely. These reactions are now reaction-only: they no longer appear as moves to cast on your own turn, where they did nothing.", "cat": "mechanics", "sev": "med",
       "title": "Dodge reacts do not halve area damage", "who": "Sun, Dream Hunter, Vayl-Soran, Zed",
       "detail": "Bunshin, Hat Form, Lightning Flicker and Shadow Dash are written as \"instant dodge against one target, half damage against an area\". Against an area move Hat Form and Lightning Flicker change nothing (19 damage with and without the react in a test), and Bunshin shields the whole hit instead of halving it. Cast on its owner's own turn, none of them does anything.",
       "evidence": "Eragon's Fire Tornado against each reactor, same seed, with and without the react. Found by the 2026-10-29 audit: every move was cast in the headless engine and the passives were checked against what combat-logic.js reads.",
