@@ -474,6 +474,34 @@ function freeCellNear(target, from, maxRing, excludeId = -1, accept = () => true
   return null;
 }
 
+// Nearest free walkable cell to `caster`, ring by ring (ties go to the one nearest to `from`), or null
+function nearestFreeCell(caster, from, maxRing = 12) {
+  if (!S.currentMap) return null;
+  for (let ring = 1; ring <= maxRing; ring++) {
+    let best = null, bestD = Infinity;
+    for (let dx = -ring; dx <= ring; dx++) for (let dy = -ring; dy <= ring; dy++) {
+      if (Math.max(Math.abs(dx), Math.abs(dy)) !== ring) continue;
+      const x = caster.x + dx, y = caster.y + dy;
+      if (!isWalkableG(S.currentMap, x, y) || isOccupied(x, y)) continue;
+      const d = chebyshev({ x, y }, from);
+      if (d < bestD) { bestD = d; best = { x, y }; }
+    }
+    if (best) return best;
+  }
+  return null;
+}
+
+// A revived unit stands on the free cell nearest to its reviver and acts right after them
+function reviveBeside(caster, target) {
+  const cell = nearestFreeCell(caster, target);
+  if (cell) { target.x = cell.x; target.y = cell.y; }
+  else if (S.currentMap && isOccupied(target.x, target.y)) addLog(`  No free cell near ${caster.name} for ${target.name}.`, 'info');
+  const order = S.initiativeOrder, current = order[S.currentTurnIndex];
+  order.splice(order.indexOf(target.id), 1);
+  order.splice(order.indexOf(caster.id) + 1, 0, target.id);
+  S.currentTurnIndex = order.indexOf(current);
+}
+
 // Dash: the caster crosses the gap and lands next to the target
 function dashToward(c, target) {
   if (!S.currentMap || chebyshev(c, target) <= MELEE_RANGE) return;
@@ -2398,6 +2426,7 @@ export function resumePendingAction(reactAbility) {
             target.isKO = false;
             target.currentHp = Math.floor(target.maxHp * 0.5);
             addLog(`${caster.name} revives ${target.name} with ${target.currentHp}/${target.maxHp} HP!`, 'heal');
+            reviveBeside(caster, target);
             // KO clears every status, so give back innate flight
             if (target.sourceChar.passif?.some(p => p.tags?.includes('fly')))
               target.statusEffects.push({ name: 'fly', turnsLeft: 999, dice: null, damType: null, notes: '' });

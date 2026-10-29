@@ -125,6 +125,153 @@
       "id": "mech-elemental-bonus", "cat": "mechanics", "sev": "low",
       "title": "Elemental Bonus x2",
       "detail": "The condition is not implemented. Found in the first test pass."
+    },
+    {
+      "id": "bug-revive-placement", "resolution": "Fixed: the revived ally lands on the free cell nearest to the caster and takes its turn right after the caster. Applies to every revive.", "cat": "bugs", "sev": "high",
+      "title": "Resurrection Ember revives onto the fallen cell and keeps the old turn slot", "who": "Zhuqiao",
+      "detail": "The revived ally stood back up on the cell where it fell, which could be occupied by a living unit (two units on one cell), and kept its old place in the initiative order.",
+      "where": "combat-logic.js · handleCastAbility (isRevive), reviveBeside"
+    },
+    {
+      "id": "mech-wet", "cat": "mechanics", "sev": "med",
+      "title": "Wet status", "who": "Eragon, Black Turtle, Admiral Jaina",
+      "detail": "There is no wet status. Water Dragon (Eragon) and Abyssal Current (Black Turtle) carry the wet tag but only deal damage. Nothing reads it: Ice Coffin's +2d10 against a wet target, Fire Tornado removing wet, Runik Sea Bound's advantage on a wet field, and the wet immunity of Black Turtle. The combat AI spec lists the wet combos as supported; they are not.",
+      "evidence": "combat-logic.js never mentions wet. Found by the 2026-10-29 audit: every move was cast in the headless engine and the passives were checked against what combat-logic.js reads.",
+      "where": "combat-logic.js · applyStatus, resolveAttack"
+    },
+    {
+      "id": "mech-disv-riders", "cat": "mechanics", "sev": "med",
+      "title": "Disadvantage riders (disv tag)", "who": "Eragon, Meï, Vorrakan Duskbane, Morrow, Cole Climber, Jay",
+      "detail": "Moves tagged disv should leave their targets rolling with disadvantage: Ice Coffin (next saving throw), Field of Corruption (1d2 turns on attacks), Earthquake, Wind Tornado, Quake Wave, and Azure Dragon Roar (\"disadvantage on foe rolls for 1 turn\"). They only deal their damage. Smoke Screen and Gravity Up are the only moves that apply disadvantage today.",
+      "evidence": "Casting Azure Dragon Roar and Ice Coffin leaves no disadvantage status on any target. Found by the 2026-10-29 audit: every move was cast in the headless engine and the passives were checked against what combat-logic.js reads."
+    },
+    {
+      "id": "mech-passive-advantage", "cat": "mechanics", "sev": "med",
+      "title": "Passive advantage is never rolled", "who": "White, Hela, Sylvanas Nightmare, Jeagen, Jhin, Eragon, Kadgar",
+      "detail": "Advantage written on a passive does nothing: White (Sword of Space: always advantage, attacks from anywhere), Hela (True Weapon Goddess: advantage on all attacks), Sylvanas Nightmare (Banshee: advantage on defense), Jeagen (Wind Step: advantage on defense, dodges through walls), Jhin (Sword Master: advantage on sword rolls), Eragon (Know Advantage) and Kadgar (Knowledge): advantage on spell rolls. The engine reads advantage only from domains, a move's own adv tag and one-shot statuses.",
+      "evidence": "Hela attacked 20 times in a test and no advantage roll was logged. Found by the 2026-10-29 audit: every move was cast in the headless engine and the passives were checked against what combat-logic.js reads.",
+      "where": "combat-logic.js · rollAttackD20, rollD20For"
+    },
+    {
+      "id": "mech-magic-roll", "cat": "mechanics", "sev": "med",
+      "title": "Spell roll bonuses (magicRoll)", "who": "Kadgar",
+      "detail": "Archmage (+3), Great Staff (+2 and no critical fails) and Runik Mage (+1d12) are applied on magicRoll, which the engine never reads. Kadgar's spells get none of them.",
+      "where": "combat-logic.js · resolveAttack, the atkRoll passive loop"
+    },
+    {
+      "id": "mech-divine-sync", "cat": "mechanics", "sev": "med",
+      "title": "Divine Beast synergy (divineSync)", "who": "Jeagen, Jay, Zhuqiao, Black Turtle",
+      "detail": "The divineSync block is never read. With another Divine Beast present each should gain: Jeagen +1d12 attack and +3 speed for allies; Jay +1d8 attack and 1d6 regen for allies; Zhuqiao +1d10 attack and 1d8 healing plus one debuff removed per ally each turn; Black Turtle -1d8 damage taken for allies and +2 defense.",
+      "evidence": "divineSync appears nowhere in the engine. Found by the 2026-10-29 audit: every move was cast in the headless engine and the passives were checked against what combat-logic.js reads."
+    },
+    {
+      "id": "mech-context-conditions", "cat": "mechanics", "sev": "low",
+      "title": "Passives gated on a context tag never apply", "who": "Zed, Black Turtle",
+      "detail": "Close Quarters Expert (Zed, +1d4+2 on melee attacks) and Sunken Colossus (Black Turtle, +1d10 in water) use contextHasTag. passiveConditionMet returns false for any condition it does not know, so they never apply. Kay Climber and Glysain's Professional Diver use the same condition on a roll the simulator never makes.",
+      "where": "combat-logic.js · passiveConditionMet"
+    },
+    {
+      "id": "mech-relentless-stacks", "cat": "mechanics", "sev": "low",
+      "title": "Relentless Warrior stacks", "who": "Kay Climber",
+      "detail": "The passive has maxStacks 10 and the allyKO condition, so it presumably grows with each fallen ally. The engine gives the bonus once whenever any ally is down and ignores maxStacks.",
+      "where": "combat-logic.js · passiveConditionMet (allyKO)"
+    },
+    {
+      "id": "mech-opportunity-attack", "cat": "mechanics", "sev": "low",
+      "title": "Opportunity attacks", "who": "Kaelgrym, Astrid Nightmare",
+      "detail": "Fire Rush and Shadow Dash dash to the target but never trigger the opportunity attack their description promises. The engine has no opportunity attacks."
+    },
+    {
+      "id": "mech-knockback", "cat": "mechanics", "sev": "low",
+      "title": "Knockback and immovable", "who": "Oslo, Black Turtle",
+      "detail": "Bone Shatter should knock enemies back and strip Oslo's Bone Armor until it regrows; only the damage happens. Black Turtle's Northern Bastion (cannot be moved, knocked back or grounded) does nothing, and pull moves still drag it."
+    },
+    {
+      "id": "mech-guardbreak", "cat": "mechanics", "sev": "low",
+      "title": "Guardbreak", "who": "Jeagen",
+      "detail": "Tiger's Leap is described as guardbreak. It dashes and hits but can still be blocked; only moves tagged unblockabled ignore blocks."
+    },
+    {
+      "id": "mech-dodge-reacts", "cat": "mechanics", "sev": "med",
+      "title": "Dodge reacts do not halve area damage", "who": "Sun, Dream Hunter, Vayl-Soran, Zed",
+      "detail": "Bunshin, Hat Form, Lightning Flicker and Shadow Dash are written as \"instant dodge against one target, half damage against an area\". Against an area move Hat Form and Lightning Flicker change nothing (19 damage with and without the react in a test), and Bunshin shields the whole hit instead of halving it. Cast on its owner's own turn, none of them does anything.",
+      "evidence": "Eragon's Fire Tornado against each reactor, same seed, with and without the react. Found by the 2026-10-29 audit: every move was cast in the headless engine and the passives were checked against what combat-logic.js reads.",
+      "where": "combat-logic.js · resumePendingAction (generic react branch)"
+    },
+    {
+      "id": "mech-react-buffs", "cat": "mechanics", "sev": "med",
+      "title": "Timed react buffs behave as a single block", "who": "Cole Climber, Napoléon",
+      "detail": "Stone Skin should take 10 flat damage off every hit for 3 turns; Wind's Whim should give +4 on defense rolls against ranged attacks for 2 turns. Both fall into the generic react branch: they block one attack and last no turns. Cast on the owner's own turn they do nothing, and attacks are not tagged ranged.",
+      "where": "combat-logic.js · resumePendingAction (generic react branch)"
+    },
+    {
+      "id": "mech-destiny-gamble", "cat": "mechanics", "sev": "med",
+      "title": "Destiny Gamble", "who": "Napoléon",
+      "detail": "Roll a d6: 1 deals 10 damage to himself, 2-5 gives +2d8 on the next attack, 6 is a sure hit and a crit (x2). Casting it only logs \"uses Destiny Gamble\".",
+      "evidence": "Found by the 2026-10-29 audit: every move was cast in the headless engine and the passives were checked against what combat-logic.js reads."
+    },
+    {
+      "id": "mech-dual-wielder", "cat": "mechanics", "sev": "low",
+      "title": "Dual Wielder", "who": "Napoléon",
+      "detail": "Attacks twice when the first attack lands. Napoléon gets one attack per action."
+    },
+    {
+      "id": "mech-djinn-luck", "cat": "mechanics", "sev": "low",
+      "title": "Djinn's Luck", "who": "Napoléon",
+      "detail": "Rerolls a 1 once per turn (not Destiny Gamble). No reroll exists."
+    },
+    {
+      "id": "mech-authority", "cat": "mechanics", "sev": "med",
+      "title": "Authority only pierces Perfect Reflection", "who": "Hela, Alicia, Vorrakan Duskbane, Vayl-Soran",
+      "detail": "\"Authority 5/7/8\" on Mace of Vulkan Strike, Tambours de Kamowakeikazuchi, Chains of Apophis and Balmung is ignored, and Hela's Anti-Magic (immune to magic and status below Authority 8) is a flat immunity that no authority ever pierces. Authority is read for Perfect Reflection and one domain effect, nothing else.",
+      "where": "combat-logic.js · reflectSpell, applyDamage, applyStatus"
+    },
+    {
+      "id": "mech-hela-passives", "cat": "mechanics", "sev": "low",
+      "title": "Death Presence and Anti-magic Slash rider", "who": "Hela",
+      "detail": "Death Presence (every foe has disadvantage on its first attack each fight) is not applied. Anti-magic Slash does not disable the target's passives for 1 turn.",
+      "evidence": "Anti-magic Slash cast on two foes: damage only, no status. Found by the 2026-10-29 audit: every move was cast in the headless engine and the passives were checked against what combat-logic.js reads."
+    },
+    {
+      "id": "mech-nine-lives", "cat": "mechanics", "sev": "med",
+      "title": "Nine Lives", "who": "Heracles",
+      "detail": "Nine times per fight, return to life with 1 HP when killed. The passive uses deathRoll with maxStacks 9, neither of which the engine reads, so Heracles dies like anyone else. Alicia's Loki's Blessing (two death saves) has no counterpart either: the simulator has no death saves.",
+      "where": "combat-logic.js · applyDamage (the Resurrection check is the model)"
+    },
+    {
+      "id": "mech-battle-tactician", "cat": "mechanics", "sev": "low",
+      "title": "Battle Tactician", "who": "Future Zane",
+      "detail": "+2 to allies' attack rolls when giving orders. Future Zane has no move that gives orders and the passive has no applyOn, so it does nothing. The combat AI spec lists it as supported; it is not."
+    },
+    {
+      "id": "mech-poison-passives", "cat": "mechanics", "sev": "low",
+      "title": "Poison and corruption passives", "who": "Spheras Nightmare, Astrid Nightmare, Dream Hunter",
+      "detail": "Poison Breath (Spheras Nightmare: 1d2 poison or 1d12+8 toxic on nearby enemies each turn) and Toxic Daggers (Astrid Nightmare: 1d2 poison or 1d12 extra on each attack) do nothing. Corruption Bolt (Dream Hunter) adds its +1d10 but never builds up corruption on the target."
+    },
+    {
+      "id": "mech-slot-restore", "cat": "mechanics", "sev": "low",
+      "title": "Spell slot restoration", "who": "Vorrakan Duskbane, Kaelgrym",
+      "detail": "Vorrakan's Vorpal Slash should restore 5 spell slots after its lifesteal; Kaelgrym's Ifrit's Bane should absorb fire damage to restore spell slots. The lifesteal works, the slots never come back."
+    },
+    {
+      "id": "mech-cleanse-riders", "cat": "mechanics", "sev": "low",
+      "title": "Cleanse riders", "who": "Nya Léviathan, Eragon",
+      "detail": "Bénédiction of the Moon should also grant 2 turns of immunity after removing a debuff. Fire Tornado should remove wet and disadvantage from allies in the area. Neither rider exists."
+    },
+    {
+      "id": "mech-gunrang-bonus", "cat": "mechanics", "sev": "low",
+      "title": "GunRang delayed bonus", "who": "Rig",
+      "detail": "The boomerang should add 1d4 damage on the next turn. The bounce works, the follow-up does not."
+    },
+    {
+      "id": "mech-mecha-bonus", "cat": "mechanics", "sev": "low",
+      "title": "Force Lightning vs mecha", "who": "Vorrakan Duskbane",
+      "detail": "+2d12 against mecha targets. No unit carries a mecha tag and the engine does not look for one."
+    },
+    {
+      "id": "mech-element-choice", "cat": "mechanics", "sev": "low",
+      "title": "Dragon Breath element", "who": "Kadgar",
+      "detail": "The cone should be of a chosen element. It is always untyped magic, so element immunities and the fire/ice interactions never apply to it."
     }
   ]
 }

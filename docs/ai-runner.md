@@ -201,15 +201,13 @@ lives in `S.aiTeam`. The wiring is `js/combat-ai-driver.js`:
   not built). One react prompt that mixes bot and human reactors would be settled by the bot's brain for all
   of them; no current move produces one.
 
-## Engine bug found by the runner
+## Engine bug found by the runner (fixed)
 
-- **A revive lands on an occupied cell.** `handleCastAbility` (`js/combat-logic.js`, the `isRevive` branch)
-  sets the fallen unit back to life on the cell it fell on without checking that the cell is free. When an
-  ally (or a foe) stands there, two living units share a cell. Reproduce: before the candidate filter below,
-  `node tools/sim.mjs "Zhuqiao, Vermillion Bird; Jay, Azure Dragon; Jeagen, White Tiger; Black Turtle; Meï"
-  "Admiral Jaina; Thormak, The Titan Slayer; Susano; Alicia; Sensei Lloyd" --fights 2 --brain-a ai --swap
-  --budget 200 --seed 1` gave `cell-conflict` at seed 2, round 13 (Zhuqiao revives Jay while standing on
-  Jay's cell). Left for the owner; the brain no longer offers a revive whose landing cell is taken.
+- **A revive landed on an occupied cell.** `handleCastAbility` (`js/combat-logic.js`, the `isRevive` branch) set
+  the fallen unit back to life on the cell it fell on without checking that the cell was free, so two living
+  units could share a cell (`cell-conflict` at seed 2, round 13 of the spec 5v5 with `--brain-a ai --swap
+  --budget 200 --seed 1`). Fixed: `reviveBeside` puts the revived unit on the free cell nearest to its reviver
+  and moves it to the turn right after the reviver. The brain no longer filters revive targets by cell.
 
 ## Results of the last full acceptance run
 
