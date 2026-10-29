@@ -12,6 +12,7 @@ import {
 } from './combat-logic.js';
 
 import { loadManifest, loadMapMeta } from './dungeon-loader.js';
+import { fieldStripHTML } from './field-strip.js';
 import { bindSelectionEvents, bindCombatEvents, bindReactEvents, bindFreeActionEvents } from './combat-events.js';
 import { scheduleAI, controlledByAi, pendingAiDecision, aiStatusHTML } from './combat-ai-driver.js';
 
@@ -332,6 +333,7 @@ export function actionPanelHTML(c) {
         </div>`
       : `<div class="action-section"><span class="domain-active-badge is-spent">${domain.name} — no charges left</span></div>`) : '';
 
+  const fieldStrip = fieldStripHTML();
   const activeDomainStrip = S.activeDomains.length > 0
     ? `<ul class="active-domain-strip" aria-label="Active domains">${S.activeDomains.map(d => {
         const owner = getCombatant(d.casterId);
@@ -345,6 +347,7 @@ export function actionPanelHTML(c) {
   if (ctrl) {
     return `
     ${activeDomainStrip}
+    ${fieldStrip}
     <section class="action-panel" aria-labelledby="action-title">
       <h3 class="action-panel-title" id="action-title">${c.name}'s turn</h3>
       <p class="action-blocked">${statusName(ctrl.name)} — cannot act this turn.</p>
@@ -356,6 +359,7 @@ export function actionPanelHTML(c) {
 
   return `
     ${activeDomainStrip}
+    ${fieldStrip}
     <section class="action-panel" aria-labelledby="action-title">
       <h3 class="action-panel-title" id="action-title">${c.name}'s turn</h3>
       ${budget}

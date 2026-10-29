@@ -3610,3 +3610,22 @@ header.nav-open .nav-toggle span:nth-child(3) { transform: translateY(-9px) rota
   .todo-overview { grid-template-columns: 1fr; }
   .todo-detail, .todo-meta { margin-left: 0; }
 }
+
+.active-field-strip {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 0 0 4px;
+  padding: 6px 10px;
+  list-style: none;
+}
+.field-strip-entry {
+  font-family: var(--tga-font-body);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: var(--tga-r-xs);
+  border: 1px solid transparent;
+}
+.field-strip-entry.field-foes   { border-color: #8c5aaa; background: rgba(140, 90, 170, 0.18); }
+.field-strip-entry.field-allies { border-color: #5ab46e; background: rgba(90, 180, 110, 0.18); }

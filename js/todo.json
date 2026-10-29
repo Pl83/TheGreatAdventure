@@ -204,9 +204,15 @@
       "detail": "evaluate.js does not count the damage a Burn, Poison, Bleed or Hemoragie will deal, so it neither prefers nor avoids stacking them, and it walks freely while bleeding."
     },
     {
+      "id": "mech-fields-both", "cat": "mechanics", "sev": "low",
+      "title": "Meï keeps both fields up (resolved)", "who": "Mei",
+      "resolution": "Field of Flower is now a five-round field of allies: those inside are cleansed and heal 10 HP at the cast and at the start of each of their turns (once per round). Fields have a side (foes or allies) and coexist freely; recasting the same field moves it instead of stacking. The map draws them in two colours and a strip above the action panel lists each with its rounds left.",
+      "detail": "Field of Flower was an instant area heal and regen; only Field of Corruption lingered. Assumed: Flower lasts 5 rounds like Corruption, and its old regen status is replaced by the field."
+    },
+    {
       "id": "mech-field-bot", "cat": "mechanics", "sev": "low",
       "title": "The bot does not understand lingering fields", "who": "Mei",
-      "detail": "The bot casts Field of Corruption as if it were an area spell aimed at a foe: it does not value the four turns of exposure, and no unit ever walks out of a field it stands in or avoids walking into one."
+      "detail": "The bot casts Field of Corruption as if it were an area spell aimed at a foe, and Field of Flower as a one-shot heal: it does not value the four turns of exposure, and no unit ever walks out of a field it stands in or avoids walking into one."
     },
     {
       "id": "mech-passive-advantage", "resolution": "Implemented: a passive tagged adv rolls advantage on its attack, defense or spell rolls (Jhin only with sword moves). White also has no range limit and ignores walls within 10 cells; Wind Step no longer promises dodging through walls. Death Presence: every foe of a living Hela makes its first attack of the fight at disadvantage.", "cat": "mechanics", "sev": "med",

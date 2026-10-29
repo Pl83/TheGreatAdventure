@@ -1145,9 +1145,10 @@
       },
       {
         "category": "Art",
-        "base": { "nom": "Field of Flower", "dices": "10", "tags": ["cleans", "heal", "regen"] },
+        "base": { "nom": "Field of Flower", "dices": "10", "tags": ["cleans", "heal", "field"] },
+        "field": { "turns": 5, "affects": "allies", "cleanse": true, "heal": "10" },
         "target": "aoe", "range": 6, "radius": 4,
-        "description": "Remove debuffs + heal 10hp/t.",
+        "description": "A field that lasts 5 turns. Each turn, every ally in it is cleansed of debuffs and heals 10 HP.",
         "kiCost": 5
       },
       {

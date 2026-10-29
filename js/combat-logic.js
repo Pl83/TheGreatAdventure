@@ -71,7 +71,7 @@ export const S = {
   reachableCells: new Map(),
   iceCells:       new Set(),   // water cells frozen by Convert (Freeze): plain floor, "x,y" keys
   driedCells:     new Set(),   // water cells evaporated by Convert (Evaporate)
-  fields:         [],          // lingering areas (Field of Corruption): { name, ability, casterId, teamIndex, x, y, radius, roundsLeft, effect, exposed }
+  fields:         [],          // lingering areas (Field of Corruption, Field of Flower): { name, kind ('foes'|'allies'), ability, casterId, teamIndex, x, y, radius, roundsLeft, effect, exposed }
   // ── Aim / targeting ───────────────────────────────────────────────────────
   aimMode:     false,
   aimAbility:  null,
@@ -240,7 +240,7 @@ export function resolveAbilitiesFromList(moveList) {
       slotRegen:     move.slotRegen ?? 0,
       bonusVs:       move.bonusVs ?? null,   // { vs: 'wet' | a unit tag, dice }: extra damage against such a target
       precastDice:   move.precastDice ?? null,
-      field:         move.field ?? null,     // { turns, effect }: leaves a lingering area that works on the foes inside each round
+      field:         move.field ?? null,     // { turns, affects: 'foes'|'allies', effect, cleanse, heal }: leaves a lingering area that works on the units inside each round
       inflicts:      move.inflicts ?? null,  // { status, turns, chance? }: a timed hindrance on each target the move reaches
       grants:        move.grants ?? null,   // { status, amount, turns, label }: a timed buff the move puts on its user
       maxCharges:    move.charges ?? 0,
@@ -1009,7 +1009,7 @@ export function drawMap() {
 
   // Lingering fields
   for (const f of S.fields) {
-    ctx.fillStyle = 'rgba(140, 90, 170, 0.22)';
+    ctx.fillStyle = f.kind === 'allies' ? 'rgba(90, 180, 110, 0.22)' : 'rgba(140, 90, 170, 0.22)';
     for (let gx = f.x - f.radius; gx <= f.x + f.radius; gx++) for (let gy = f.y - f.radius; gy <= f.y + f.radius; gy++) {
       if (isWalkableG(S.currentMap, gx, gy)) ctx.fillRect(gx * cp, gy * cp, cp, cp);
     }
@@ -1720,14 +1720,23 @@ function inflict(ability, target, guaranteed) {
   }
 }
 
-// A lingering area: it works on each foe standing in it once per round, from the cast until it fades
+// A lingering area works once per round on each unit of the side it is meant for standing in it (a field of
+// foes hurts the caster's enemies, a field of allies helps the caster's team), from the cast until it fades
 function inField(f, c) {
   return chebyshev(c, { x: f.x, y: f.y }) <= f.radius;
 }
 
+const fieldTouches = (f, c) => (c.teamIndex === f.teamIndex) === (f.kind === 'allies');
+
 function exposeToField(f, c) {
   if (c.isKO || f.exposed[c.id] === S.roundNumber) return;
   f.exposed[c.id] = S.roundNumber;
+  if (f.kind === 'allies') {
+    addLog(`  🌸 ${c.name} stands in the ${f.name}.`, 'heal');
+    if (f.cleanse) applyCleanse(c);
+    if (f.heal) applyHeal(c, f.heal, f.name);
+    return;
+  }
   addLog(`  🌫 ${c.name} is caught in the ${f.name}.`, 'status');
   applyStatus(c, f.effect);
   if (f.ability.inflicts) inflict(f.ability, c, false);
@@ -1735,13 +1744,15 @@ function exposeToField(f, c) {
 
 function raiseField(caster, ability, center) {
   const f = {
-    name: ability.name, ability, casterId: caster.id, teamIndex: caster.teamIndex,
+    name: ability.name, kind: ability.field.affects === 'allies' ? 'allies' : 'foes', ability, casterId: caster.id, teamIndex: caster.teamIndex,
     x: center.x, y: center.y, radius: ability.radius > 0 ? ability.radius : 1,
-    roundsLeft: ability.field.turns, effect: ability.field.effect, exposed: {},
+    roundsLeft: ability.field.turns, effect: ability.field.effect, cleanse: !!ability.field.cleanse, heal: ability.field.heal ?? null, exposed: {},
   };
+  // Casting a field again moves it: the caster keeps one of each
+  S.fields = S.fields.filter(old => !(old.name === f.name && old.casterId === caster.id));
   S.fields.push(f);
   addLog(`🌫 ${caster.name} spreads the ${f.name} around (${f.x}, ${f.y}) for ${f.roundsLeft} rounds.`, 'spell');
-  for (const foe of enemies(caster)) if (inField(f, foe)) exposeToField(f, foe);
+  for (const u of S.combatants) if (fieldTouches(f, u) && inField(f, u)) exposeToField(f, u);
 }
 
 // A new round: every field has one round less in it
@@ -2389,7 +2400,7 @@ export function handleCastAbility(casterId, abilityName, targetIds, center = nul
   // Effects that never prompt a react: friendly buffs, unblockable moves, and moves that deal no damage or status
   const noReacts = ability.targetKind === 'ally' || !!ability.tags?.some(t => t === 'unblockabled' || t === 'taunt');
   const hasMechanics = ability.dice || ability.effect || ability.precastDice || ability.slotRegen > 0 || ability.isRevive
-    || ability.isBlock || ability.targetKind === 'self'
+    || ability.isBlock || ability.targetKind === 'self' || ability.field
     || ability.isContest || ability.tags?.some(t => ['dash', 'fly', 'teleportation', 'cleans', 'pull', 'taunt', 'smoke', 'adv_next', 'orders', 'ward', 'dry'].includes(t));
   if (!hasMechanics) addLog(`  ⚠ ${ability.name} has no mechanical effect in the simulator yet.`, 'info');
 
@@ -3453,7 +3464,7 @@ export function beginTurn(c) {
   }
 
   // Lingering fields work on the foes who start a turn inside them
-  for (const f of S.fields) if (f.teamIndex !== c.teamIndex && inField(f, c)) exposeToField(f, c);
+  for (const f of S.fields) if (fieldTouches(f, c) && inField(f, c)) exposeToField(f, c);
 
   // Domain auras tick on whoever starts a turn inside the area
   for (const entry of S.activeDomains) {
