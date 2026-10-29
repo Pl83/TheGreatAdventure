@@ -55,6 +55,7 @@ export const S = {
   activeDomains: [],  // { casterId, domain } for currently active domains
   log: [],
   winnerTeam: null,
+  aiTeam: null,         // team the bot plays (0 | 1), or null for two human players
   turnSerial: 0,        // bumped on every turn change; stale timers compare against it
   hasActed:    false,   // active combatant used their action this turn
   // ── Map system ──────────────────────────────────────────────────────────

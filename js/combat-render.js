@@ -13,6 +13,7 @@ import {
 
 import { loadManifest, loadMapMeta } from './dungeon-loader.js';
 import { bindSelectionEvents, bindCombatEvents, bindReactEvents } from './combat-events.js';
+import { scheduleAI, controlledByAi, pendingAiDecision, aiStatusHTML } from './combat-ai-driver.js';
 
 export const root = document.getElementById('combat-root');
 
@@ -369,7 +370,7 @@ export function actionPanelHTML(c) {
 }
 
 export function reactPromptHTML() {
-  if (!S.awaitingReact || !S.reactOptions.length) return '';
+  if (!S.awaitingReact || !S.reactOptions.length || pendingAiDecision() === 'react') return '';
   const reactor  = getCombatant(S.reactOptions[0].combatantId);
   const action   = S.pendingAction;
   const attacker = getCombatant(action?.attackerId ?? action?.casterId);
@@ -576,6 +577,11 @@ export function renderSelectionScreen(opts = {}) {
       </div>
       <div class="selection-teams">${team(0)}${team(1)}</div>
       <div class="selection-footer">
+        <fieldset class="opponent-picker">
+          <legend>Opponent</legend>
+          ${[[null, 'Two players'], [1, 'Bot plays Team II'], [0, 'Bot plays Team I']].map(([v, label]) => `
+          <label><input type="radio" name="ai-team" value="${v ?? ''}"${S.aiTeam === v ? ' checked' : ''}> ${label}</label>`).join('')}
+        </fieldset>
         <button class="combat-start-btn" id="btn-start" ${canStart ? '' : 'disabled aria-describedby="start-hint"'}>
           Next: choose the battlefield
         </button>
@@ -719,7 +725,7 @@ export function renderCombatScreen() {
       .filter(c => c.teamIndex === teamIdx)
       .map(c => combatantCardHTML(c, active?.id === c.id))
       .join('');
-    const panel = (active && isActiveTeam && S.phase === 'combat')
+    const panel = (active && isActiveTeam && S.phase === 'combat' && !controlledByAi(active))
       ? actionPanelHTML(active)
       : '';
     return `
@@ -734,6 +740,7 @@ export function renderCombatScreen() {
     <div class="combat-layout-3col">
       <div class="combat-turn-track">
         <span class="round-badge">Round ${S.roundNumber}</span>
+        ${aiStatusHTML()}
         ${initiativeStripHTML()}
       </div>
       <div class="combat-arena">
@@ -773,14 +780,18 @@ export function renderCombatScreen() {
   const ab0 = active?.abilities.find(a => a.name === document.querySelector('input[name="ability"]:checked')?.value);
   const prevEl = document.getElementById('ability-preview');
   if (prevEl) prevEl.innerHTML = abilityPreviewHTML(ab0);
+  scheduleAI();
 }
 
 export function renderReactOverlay() {
   document.getElementById('react-overlay')?.remove();
   const wrapper = document.createElement('div');
   wrapper.innerHTML = reactPromptHTML();
-  document.body.appendChild(wrapper.firstElementChild);
-  bindReactEvents();
+  if (wrapper.firstElementChild) {
+    document.body.appendChild(wrapper.firstElementChild);
+    bindReactEvents();
+  }
+  scheduleAI();
 }
 
 export function renderVictoryScreen() {

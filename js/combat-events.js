@@ -14,6 +14,7 @@ import {
   addLog, goToMapChoice,
 } from './combat-logic.js';
 
+import { setAiTeam } from './combat-ai-driver.js';
 import { abilityPreviewHTML, abilityFireLabel, pickAbility, renderCombatScreen, renderSelectionScreen } from './combat-render.js';
 
 // ── §13  Event Binding ─────────────────────────────────────────────────────
@@ -48,6 +49,9 @@ export function bindSelectionEvents() {
       saveTeams();
       renderSelectionScreen({ focus: { name, team }, announce: `${name} removed from Team ${team === 0 ? 'I' : 'II'}.` });
     });
+  });
+  root.querySelectorAll('input[name="ai-team"]').forEach(radio => {
+    radio.addEventListener('change', e => setAiTeam(e.target.value === '' ? null : parseInt(e.target.value)));
   });
   document.getElementById('btn-start')?.addEventListener('click', async () => {
     const btn = document.getElementById('btn-start');

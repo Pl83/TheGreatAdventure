@@ -183,6 +183,24 @@ settleReacts(() => brain.chooseReact());
   thread for its budget; the screen should use a short clock budget or run the brain in a Web Worker
   (not built yet).
 
+## The bot in the combat page
+
+`combat.html` can play one team with the bot. On the selection screen, **Opponent** picks "Two players" (the
+default), "Bot plays Team II" or "Bot plays Team I"; the choice is kept in `localStorage` (`combatAiTeam`) and
+lives in `S.aiTeam`. The wiring is `js/combat-ai-driver.js`:
+
+- `combat-render.js` calls `scheduleAI()` at the end of `renderCombatScreen` and `renderReactOverlay`. When a
+  bot unit is up (or a react prompt is aimed at a bot unit), it waits 700 ms, then `stepAI()` asks the brain
+  (`{ ms: 2000 }`, `AI_BUDGET`) and plays the plan through `applyPlan` / `settleReacts`. An instant cast leaves
+  the turn open, so the next render queues the bot's next decision.
+- The action panel and the react overlay are hidden for bot units (`controlledByAi`, `pendingAiDecision`); a
+  "Bot (Team II) is thinking..." line shows in the turn track. Prompts aimed at the person still appear.
+- A puppet follows the side that controls it (`decidingTeam`), as in the runner.
+- If the brain throws, the driver passes the turn or declines the react, so a fight never waits on the bot.
+- Limits: the search is synchronous and freezes the page for up to 2 s per decision (a Web Worker is the fix,
+  not built). One react prompt that mixes bot and human reactors would be settled by the bot's brain for all
+  of them; no current move produces one.
+
 ## Engine bug found by the runner
 
 - **A revive lands on an occupied cell.** `handleCastAbility` (`js/combat-logic.js`, the `isRevive` branch)
