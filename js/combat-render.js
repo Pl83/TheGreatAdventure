@@ -6,7 +6,7 @@ import {
   _R, S, SPELL_RANGE, allChars,
   activeCombatant, livingCombatants, koAllies, getCombatant,
   enemies, targetPool, abilityAvailable, hasSilence, hasValidTarget, hasControlEffect,
-  chebyshev, targetInRange,
+  chebyshev, targetInRange, moveSpeed,
   drawMap, setupCanvasClickHandler,
   clearAimState, startCombat, goToMapChoice, confirmMap, activeAllyDomain,
 } from './combat-logic.js';
@@ -31,6 +31,8 @@ export function statusEmoji(name) {
   if (n.includes('blind'))                                        return '🙈';
   if (n.includes('regen') || n.includes('regenerat'))            return '💚';
   if (n === 'fly')                                               return '🦅';
+  if (n === 'sure_hit')                                          return '🎯';
+  if (n.startsWith('lost:'))                                     return '🦴';
   if (n === 'chains_of_apophis')                                 return '⛓';
   if (n === 'living_blade_armor')                                return '⚔';
   if (n === 'final_reckoning')                                   return '💀';
@@ -77,9 +79,10 @@ export function resourceHTML(c) {
 const STATUS_NAMES = {
   damage_shield: 'Shield', living_blade_armor: 'Blade armor', chains_of_apophis: 'Chains of Apophis',
   runik_precast: 'Runic precast', final_reckoning: 'Final reckoning', smoke_screen: 'Smoke screen',
-  para: 'Paralysed', gel: 'Frozen', adv: 'Advantage',
+  para: 'Paralysed', gel: 'Frozen', adv: 'Advantage', sure_hit: 'Sure hit',
 };
-export const statusName = n => STATUS_NAMES[n] ?? n.replace(/_/g, ' ').replace(/^\w/, ch => ch.toUpperCase());
+// "lost:Bone Armor" is a passive switched off for a while
+export const statusName = n => STATUS_NAMES[n] ?? (n.startsWith('lost:') ? `${n.slice(5)} lost` : n.replace(/_/g, ' ').replace(/^\w/, ch => ch.toUpperCase()));
 
 export function statusBadgesHTML(c) {
   if (!c.statusEffects.length) return '';
@@ -238,7 +241,7 @@ export function actionPanelHTML(c) {
       ${S.moveMode
         ? `<button class="action-btn map-cancel-move-btn" id="btn-cancel-move">Cancel move</button>
            <span class="move-hint">Click a highlighted cell on the map</span>`
-        : `<button class="action-btn map-move-btn" id="btn-move">Move <span class="btn-aside">up to ${c.speed} cells</span></button>`}
+        : `<button class="action-btn map-move-btn" id="btn-move">Move <span class="btn-aside">up to ${moveSpeed(c)} cells</span></button>`}
     </div>`;
 
   // Every move the panel can fire, unavailable ones included (greyed, with the reason)

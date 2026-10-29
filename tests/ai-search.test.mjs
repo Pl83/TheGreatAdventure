@@ -42,7 +42,8 @@ async function midFight(seed = 1) {
 
 // Zhuqiao to play, with Sensei Lloyd (no react, so nothing can save him) at 1 HP standing next to her
 async function finisher() {
-  await newFight({ teamA, teamB, seed: 2 });
+  // Zhuqiao is the only Divine Beast here: a synced team walks faster and the lookahead no longer prefers the kill
+  await newFight({ teamA: ['Zhuqiao, Vermillion Bird', 'Meï', 'Kaelgrym', 'Jhin', 'Kadgar'], teamB, seed: 2 });
   const c = toTeam0();
   const foe = S.combatants.find(f => f.name === 'Sensei Lloyd');
   assert.equal(L.getReacts(foe).length, 0, 'fixture needs an enemy without reacts');

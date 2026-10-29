@@ -3,7 +3,7 @@
 import {
   S, activeCombatant, bfsReachable, isOccupied, abilityAvailable, hasValidTarget, targetInRange,
   aoeCenterValid, aoeCombatantHits, blastReaches, coneCells, enemies, tauntSource, targetPool,
-  allies, trappingDomainOwner, SPELL_RANGE,
+  allies, trappingDomainOwner, SPELL_RANGE, moveSpeed,
 } from '../combat-logic.js';
 import { foeDistance } from './paths.js';
 
@@ -121,7 +121,7 @@ const chooseAction = c => healCast(c) ?? offence(c);
 function approachCell(c, foes) {
   const dist = foeDistance(foes);
   let best = null, bestD = dist(c.x, c.y);
-  for (const [k] of bfsReachable(c.x, c.y, c.speed)) {
+  for (const [k] of bfsReachable(c.x, c.y, moveSpeed(c))) {
     const [x, y] = k.split(',').map(Number);
     const d = dist(x, y);
     if (d >= bestD || isOccupied(x, y, c.id) || trappingDomainOwner(c, x, y)) continue;
@@ -137,7 +137,7 @@ export function greedyTurn(c) {
     if (strike) return { move: null, action: healCast(c) ?? strike };
     const foes = targetPool(c);
     const rooted = c.statusEffects.some(e => e.name.toLowerCase() === 'root');
-    const move = foes.length && !rooted && c.speed > 0 ? approachCell(c, foes) : null;
+    const move = foes.length && !rooted && moveSpeed(c) > 0 ? approachCell(c, foes) : null;
     // Cannot get closer to any foe (stalled): a heal is still worth casting, else pass
     if (!move) return { move: null, action: healCast(c) ?? { type: 'pass' } };
     // Judge the action from the cell the unit is about to stand on

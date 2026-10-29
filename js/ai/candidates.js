@@ -5,7 +5,7 @@ import {
   S, activeCombatant, getCombatant, bfsReachable, isOccupied, trappingDomainOwner, abilityAvailable,
   targetInRange, aoeCenterValid, aoeCombatantHits, blastReaches, coneCellTargets, tauntSource, targetPool,
   enemies, livingCombatants, koAllies, hasControlEffect, hasSilence, hasLos, chebyshev, activeAllyDomain,
-  MELEE_RANGE, SPELL_RANGE,
+  MELEE_RANGE, SPELL_RANGE, moveSpeed,
 } from '../combat-logic.js';
 import { isWalkableG } from '../dungeon-loader.js';
 import { walkDistance } from './paths.js';
@@ -41,7 +41,7 @@ function bestCell(cells, score) {
 // Free cells c may walk to this turn with their step counts, under enterMoveMode's domain rule
 function walkableCells(c) {
   const out = new Map();
-  for (const [k, d] of bfsReachable(c.x, c.y, c.speed)) {
+  for (const [k, d] of bfsReachable(c.x, c.y, moveSpeed(c))) {
     const { x, y } = cellOf(k);
     if (!isOccupied(x, y, c.id) && !trappingDomainOwner(c, x, y)) out.set(k, d);
   }
@@ -65,7 +65,7 @@ function attackRanges(c, silenced) {
 function moveChoices(c, maxMoves, silenced) {
   const moves = [null];
   const threats = enemies(c);
-  if (maxMoves <= 1 || !S.currentMap || !threats.length || !(c.speed > 0) || isRooted(c)) return moves;
+  if (maxMoves <= 1 || !S.currentMap || !threats.length || !(moveSpeed(c) > 0) || isRooted(c)) return moves;
   if (c === activeCombatant() && S.hasMoved) return moves;
   const cells = walkableCells(c);
   if (!cells.size) return moves;

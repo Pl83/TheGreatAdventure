@@ -846,8 +846,8 @@
     "moveSet": [
       {
         "category": "technique",
-        "base": { "nom": "Hunter Instinct", "tags": ["buff", "adv"] },
-        "target": "mono", "range": 8,
+        "base": { "nom": "Hunter Instinct", "tags": ["buff", "sure_hit"] },
+        "target": "self", "range": 0,
         "description": "Next attack is a sure hit.",
         "cooldown": 3
       }
@@ -957,7 +957,7 @@
     "moveSet": [
       {
         "category": "spell",
-        "base": { "nom": "Fire Rush", "tags": ["fire", "magic", "dash"] },
+        "base": { "nom": "Fire Rush", "tags": ["fire", "magic", "dash", "opportunity"] },
         "target": "mono", "range": 6,
         "description": "Dash to target, triggers opportunity attack.",
         "spellCost": 1
@@ -1628,7 +1628,7 @@
       },
       {
         "category": "spell",
-        "base": { "nom": "Shadow Dash", "tags": ["magic", "dash", "react"] },
+        "base": { "nom": "Shadow Dash", "tags": ["magic", "dash", "react", "opportunity"] },
         "target": "mono", "range": 8,
         "description": "Dash to target, opportunity attack.",
         "spellCost": 1
@@ -1950,7 +1950,7 @@
       },
       {
         "category": "technique",
-        "base": { "nom": "Bone Shatter", "dices": "2d8+4", "tags": ["physical"] },
+        "base": { "nom": "Bone Shatter", "dices": "2d8+4", "tags": ["physical", "knockback", "shatter_armor"] },
         "target": "aoe", "range": 3, "radius": 3,
         "description": "Knockback. Lose Bone Armor until it regrows.",
         "cooldown": 2
@@ -2454,11 +2454,12 @@
           "dices": "2d10+10",
           "tags": [
             "physical",
-            "dash"
+            "dash",
+            "guardbreak"
           ]
         },
         "target": "mono",
-        "range": 12,
+        "range": 6,
         "description": "Dash to target at divine speed, guardbreak.",
         "kiCost": 5
       },
@@ -2960,7 +2961,8 @@
       {
         "nom": "Northern Bastion",
         "tags": [
-          "buff"
+          "buff",
+          "immovable"
         ],
         "applyOn": [
           "defRoll"

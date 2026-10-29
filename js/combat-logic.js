@@ -278,6 +278,7 @@ export function buildCombatant(char, teamIndex, id) {
     domainActive:     false,
     domainCharges:    char.domain ? Math.max(1, Math.floor((char.domain.rafinement ?? 0) / 3)) : 0,
     shadowCounterBonus: 0,
+    stacks: {},   // stacking passives (Relentless Warrior): passive name -> stacks gained this fight
     x: 0,
     y: 0,
   };
@@ -502,6 +503,51 @@ function reviveBeside(caster, target) {
   S.currentTurnIndex = order.indexOf(current);
 }
 
+// A basic attack made outside the attacker's own turn (counter-attack, opportunity attack)
+function freeAttack(attacker, target) {
+  const r = resolveAttack(attacker, target, null);
+  logAttackResult(attacker, target, r);
+  if (r.hit && !r.fumble) {
+    const tags = attacker.transformedBaseAtk?.tags ?? attacker.sourceChar.baseAtk?.tags ?? [];
+    applyDamage(target, r.damage, damTypeFromTags(tags), tags);
+  }
+  return r;
+}
+
+// A dash that ends beside its target is followed by one free basic attack on it
+function opportunityAttack(attacker, target) {
+  if (attacker.isKO || target.isKO) return;
+  if (S.currentMap && !targetInRange(attacker, target, null).inRange) {
+    addLog(`  ${attacker.name} cannot reach ${target.name} for an opportunity attack.`, 'info');
+    return;
+  }
+  addLog(`⚔ ${attacker.name} seizes an opportunity attack on ${target.name}!`, 'crit');
+  freeAttack(attacker, target);
+}
+
+// Black Turtle's Northern Bastion: it cannot be pulled, knocked back or grounded
+const isImmovable = c => !!c.sourceChar.passif?.some(p => p.tags?.includes('immovable'));
+
+const KNOCKBACK_CELLS = 2;
+// Pushes `target` straight away from `source`, up to `cells`, stopping before a wall, a unit or a domain wall
+function knockBack(source, target, cells = KNOCKBACK_CELLS) {
+  if (!S.currentMap || target.isKO) return;
+  if (isImmovable(target)) { addLog(`  ⚓ ${target.name} cannot be knocked back.`, 'info'); return; }
+  const dx = target.x - source.x, dy = target.y - source.y;
+  const step = Math.max(Math.abs(dx), Math.abs(dy));
+  if (!step) return;
+  const from = { x: target.x, y: target.y };
+  let moved = 0;
+  for (let i = 1; i <= cells; i++) {
+    const x = Math.round(from.x + dx / step * i), y = Math.round(from.y + dy / step * i);
+    if (!isWalkableG(S.currentMap, x, y) || isOccupied(x, y, target.id) || trappingDomainOwner(target, x, y)) break;
+    target.x = x; target.y = y; moved = i;
+  }
+  addLog(moved
+    ? `  💨 ${target.name} is knocked back ${moved} cell${moved > 1 ? 's' : ''} to (${target.x}, ${target.y}).`
+    : `  💨 ${target.name} is thrown against an obstacle and stays put.`, 'info');
+}
+
 // Dash: the caster crosses the gap and lands next to the target
 function dashToward(c, target) {
   if (!S.currentMap || chebyshev(c, target) <= MELEE_RANGE) return;
@@ -516,6 +562,7 @@ function dashToward(c, target) {
 // Pull: drag the target next to the caster
 function pullTarget(caster, target) {
   if (!S.currentMap || chebyshev(caster, target) <= MELEE_RANGE) return;
+  if (isImmovable(target)) { addLog(`  ⚓ ${target.name} cannot be pulled.`, 'info'); return; }
   const cell = freeCellAdjacentTo(caster, target, target.id);
   if (!cell) return;
   const trap = trappingDomainOwner(target, cell.x, cell.y);
@@ -709,7 +756,7 @@ export function enterMoveMode() {
     return;
   }
   S.moveMode = true;
-  S.reachableCells = bfsReachable(c.x, c.y, c.speed);
+  S.reachableCells = bfsReachable(c.x, c.y, moveSpeed(c));
 
   // Remove cells that exit a non-open active enemy domain (only if already inside it)
   for (const ad of S.activeDomains) {
@@ -1176,6 +1223,14 @@ export function applyDamage(combatant, amount, damType = null, atkTags = [], ign
     amount = Math.max(0, amount - r.total);
     addLog(`🛡 ${combatant.name}'s "${p.nom}" reduces incoming damage by ${before - amount}! (${before} → ${amount})`, 'info');
   }
+  // Divine Beast synergy (Northern Depths): "-1d8" off every hit taken by the allies of a synced Beast
+  for (const e of divineEffects(combatant, 'incomingDam')) {
+    if (ignoreDR || amount <= 0 || !e.dices || !String(e.dices).trim().startsWith('-')) continue;
+    const r = parseDice(String(e.dices).trim().slice(1).trim());
+    const before = amount;
+    amount = Math.max(0, amount - r.total);
+    addLog(`🛡 ${e.nom} reduces ${combatant.name}'s damage by ${before - amount}! (${before} → ${amount})`, 'info');
+  }
   // Lethal-hit passives (Unkillable): a coin flip to survive, at the cost of dropping to 1 HP
   for (const p of combatant.sourceChar.passif ?? []) {
     if (!p.applyOn?.includes('incomingDam') || !p.condition?.incomingIsLethal || p.chance == null) continue;
@@ -1203,6 +1258,7 @@ export function applyDamage(combatant, amount, damType = null, atkTags = [], ign
       combatant.statusEffects.push({ name: 'final_reckoning', turnsLeft: 999, dice: '2d12', damType: null, notes: '+2d12 atk bonus' });
     } else {
       combatant.isKO = true;
+      noteFallen(combatant);
       combatant.statusEffects = [];   // the dead keep no buffs or damage-over-time
       addLog(`💀 ${combatant.name} is KO!`, 'death');
       if (combatant.domainActive) suppressDomain(combatant);
@@ -1302,16 +1358,28 @@ export function applyHpPerHitPassives(combatant) {
 export function removeFlying(target) {
   const idx = target.statusEffects.findIndex(e => e.name.toLowerCase() === 'fly');
   if (idx !== -1) {
+    if (isImmovable(target)) { addLog(`⚓ ${target.name} cannot be grounded.`, 'info'); return; }
     target.statusEffects.splice(idx, 1);
     addLog(`⬇ ${target.name} is grounded — fly removed!`, 'status');
     updateCombatantCardDOM(target);
   }
 }
 
+const NEGATIVE_STATUSES = ['para','gel','freeze','burn','bleed','stun','root','fear','silence','blind','toxic','poison'];
+const isDebuff = e => NEGATIVE_STATUSES.some(n => e.name.toLowerCase().includes(n));
+
+// Lifts one debuff (the first it finds), the way Phoenix Grace does
+function cleanseOne(target, source) {
+  const bad = target.statusEffects.find(isDebuff);
+  if (!bad) return;
+  target.statusEffects = target.statusEffects.filter(e => e !== bad);
+  addLog(`✨ ${source} lifts ${bad.name} from ${target.name}.`, 'heal');
+  updateCombatantCardDOM(target);
+}
+
 export function applyCleanse(target) {
-  const NEGATIVE = ['para','gel','freeze','burn','bleed','stun','root','fear','silence','blind','toxic','poison'];
-  const removed = target.statusEffects.filter(e => NEGATIVE.some(n => e.name.toLowerCase().includes(n)));
-  target.statusEffects = target.statusEffects.filter(e => !NEGATIVE.some(n => e.name.toLowerCase().includes(n)));
+  const removed = target.statusEffects.filter(isDebuff);
+  target.statusEffects = target.statusEffects.filter(e => !isDebuff(e));
   if (removed.length > 0)
     addLog(`✨ ${target.name}'s ${removed.map(e => e.name).join(', ')} cleansed!`, 'heal');
   else
@@ -1353,6 +1421,69 @@ function passiveConditionMet(p, owner, other, ability) {
     return (atk?.tags ?? []).includes(w) || (atk?.nom ?? '').toLowerCase().includes(w);
   }
   return false;
+}
+
+// ── Passive helpers: lost passives, stacks, Divine Beast synergy ────────────
+
+// A passive can be switched off for a while (Oslo's Bone Armor after Bone Shatter)
+const passiveLost = (c, p) => c.statusEffects.some(e => e.name === `lost:${p.nom}`);
+
+// Off for the owner's next `turns` turns, back on the one after (statuses tick when the owner's turn starts)
+function losePassive(c, nom, turns) {
+  c.statusEffects = c.statusEffects.filter(e => e.name !== `lost:${nom}`);
+  c.statusEffects.push({ name: `lost:${nom}`, turnsLeft: turns + 1, dice: null, damType: null, notes: `Back after ${turns} turns` });
+  addLog(`🦴 ${c.name}'s ${nom} is gone for ${turns} turns.`, 'status');
+}
+
+// An ally falling feeds the stacking passives of the fighters still standing (Relentless Warrior)
+function noteFallen(fallen) {
+  for (const o of livingCombatants(fallen.teamIndex)) {
+    for (const p of o.sourceChar.passif ?? []) {
+      if (!p.maxStacks || !p.condition?.allyKO) continue;
+      o.stacks[p.nom] = Math.min(p.maxStacks, (o.stacks[p.nom] ?? 0) + 1);
+    }
+  }
+}
+
+// Divine Beast synergy: a Beast's bonuses switch on while another Beast of its team stands
+export function divineSyncActive(c) {
+  return !!c.sourceChar.divineSync && !c.isKO
+    && S.combatants.some(o => o.id !== c.id && o.teamIndex === c.teamIndex && !o.isKO && o.sourceChar.divineSync);
+}
+
+// The synergy effects of c's team that reach c for one kind of roll or tick
+function divineEffects(c, applyOn) {
+  const out = [];
+  for (const owner of livingCombatants(c.teamIndex)) {
+    if (!divineSyncActive(owner)) continue;
+    for (const e of owner.sourceChar.divineSync.effects ?? []) {
+      if (!e.applyOn?.includes(applyOn)) continue;
+      if (e.target === 'self' ? owner.id === c.id : e.target === 'allies') out.push(e);
+    }
+  }
+  return out;
+}
+
+// Cells a unit may walk in one move (Western Gale adds to its allies)
+export function moveSpeed(c) {
+  let speed = c.speed;
+  for (const e of divineEffects(c, 'speed')) speed += parseDice(e.dices).total;
+  return speed;
+}
+
+// The dice that add to one of `owner`'s rolls: passives (a stacking one counts once per stack) and synergy effects
+function rollBonuses(owner, applyOn, other, ability) {
+  const out = [];
+  for (const p of owner.sourceChar.passif ?? []) {
+    if (!p.applyOn?.includes(applyOn) || !p.dices || passiveLost(owner, p)) continue;
+    if (p.maxStacks && p.condition?.allyKO) {
+      for (let i = owner.stacks[p.nom] ?? 0; i > 0; i--) out.push({ nom: p.nom, dices: p.dices });
+    } else if (passiveConditionMet(p, owner, other, ability)) {
+      out.push({ nom: p.nom, dices: p.dices });
+    }
+  }
+  for (const e of divineEffects(owner, applyOn)) if (e.dices) out.push({ nom: e.nom, dices: e.dices });
+  return out;
 }
 
 // ── Status helpers ─────────────────────────────────────────────────────────
@@ -1416,6 +1547,7 @@ function selfDestruct(caster, ability) {
   }
   caster.currentHp = 0;
   caster.isKO = true;
+  noteFallen(caster);
   caster.statusEffects = [];
   addLog(`💀 ${caster.name} is KO!`, 'death');
   if (caster.domainActive) suppressDomain(caster);
@@ -1431,6 +1563,7 @@ function executeStrike(caster, target, ability) {
   }
   target.currentHp = 0;
   target.isKO = true;
+  noteFallen(target);
   target.statusEffects = [];
   addLog(`💀 ${target.name} is executed by ${ability.name} — not even resurrection can save them!`, 'death');
   if (target.domainActive) suppressDomain(target);
@@ -1481,18 +1614,21 @@ function relocateAllies(leader, origin, radius) {
 function rollAttackD20(attacker, ability) {
   const domainAtkEffs = getDomainEffects(attacker, { applyOn: 'atkRoll', ability });
   const adv     = domainAtkEffs.some(e => e.tags?.includes('adv'))         || !!ability?.tags?.includes('adv');
-  const sureHit = domainAtkEffs.some(e => e.tags?.includes('undodgeable')) || !!ability?.tags?.includes('undodgeable');
+  // Hunter Instinct: the next attack lands, and arming it is spent by the swing
+  const armed = attacker.statusEffects.find(e => e.name === 'sure_hit');
+  if (armed) {
+    attacker.statusEffects = attacker.statusEffects.filter(e => e !== armed);
+    addLog(`🎯 ${attacker.name}'s Hunter Instinct guides the blow!`, 'spell');
+  }
+  const sureHit = !!armed || domainAtkEffs.some(e => e.tags?.includes('undodgeable')) || !!ability?.tags?.includes('undodgeable');
 
   return { roll: rollD20For(attacker, adv), sureHit };
 }
 
-function defenseBonus(defender, attacker, ability) {
+export function defenseBonus(defender, attacker, ability) {
   if (ability?.tags?.includes('arPen')) return 0;   // armour piercing: defense-roll passives (armour) do not count
   let bonus = 0;
-  for (const p of defender.sourceChar.passif ?? []) {
-    if (!p.applyOn?.includes('defRoll') || !p.dices) continue;
-    if (passiveConditionMet(p, defender, attacker, ability)) bonus += parseDice(p.dices).total;
-  }
+  for (const b of rollBonuses(defender, 'defRoll', attacker, ability)) bonus += parseDice(b.dices).total;
   return bonus;
 }
 
@@ -1568,13 +1704,10 @@ export function resolveAttack(attacker, defender, diceExpr, ability = null) {
 
     let passiveBonus = 0;
     const passiveParts = [];
-    for (const p of attacker.sourceChar.passif ?? []) {
-      if (!p.applyOn?.includes('atkRoll') || !p.dices) continue;
-      if (passiveConditionMet(p, attacker, defender, ability)) {
-        const pr = parseDice(p.dices);
-        passiveBonus += pr.total;
-        passiveParts.push(`${p.nom}[${pr.breakdown}]`);
-      }
+    for (const b of rollBonuses(attacker, 'atkRoll', defender, ability)) {
+      const pr = parseDice(b.dices);
+      passiveBonus += pr.total;
+      passiveParts.push(`${b.nom}[${pr.breakdown}]`);
     }
 
     const frStatus = attacker.statusEffects.find(e => e.name === 'final_reckoning');
@@ -1646,6 +1779,8 @@ export function getReacts(target, incoming = null) {
   return target.abilities.filter(ab => {
     if (!ab.isReact && !ab.isInstant && !ab.isBlock) return false;
     if (ab.isTransform) return false;
+    // Guardbreak beats every block but not a dodge: teleports, dashes and the like still get away
+    if (incoming?.tags?.includes('guardbreak') && ab.isBlock && !ab.tags?.some(t => ['dodge', 'dash', 'teleportation'].includes(t))) return false;
     if (ab.tags?.includes('reflect') && !isSpellMove(incoming)) return false;
     if (insideClosedDomain && ab.tags?.includes('teleportation')) return false;
     return abilityAvailable(target, ab);
@@ -1755,6 +1890,7 @@ export function handleCastAbility(casterId, abilityName, targetIds) {
   if (!ability.isInstant) S.hasActed = true;
 
   addLog(`${caster.name} uses ${ability.name}!`, ability.source === 'spell' ? 'spell' : 'tech');
+  if (ability.tags?.includes('shatter_armor')) losePassive(caster, 'Bone Armor', 2);
 
   // Shadow Gate: a random stored move is launched in place of the gate itself. The gate opens beside the
   // target, so the stored move's own range does not matter; area moves burst around the target.
@@ -1779,6 +1915,7 @@ export function handleCastAbility(casterId, abilityName, targetIds) {
 
   // Dash: close the distance to the target before the move resolves
   if (ability.tags?.includes('dash') && ability.targetKind === 'enemy' && targets[0]) dashToward(caster, targets[0]);
+  if (ability.tags?.includes('opportunity') && targets[0]) opportunityAttack(caster, targets[0]);
 
   if (ability.isAoe) {
     S.pendingAction = { type: 'aoe', casterId, abilityName, targetIds, ability, reactorId: null, reactedIds: [], blockedIds: [], noReacts };
@@ -1857,7 +1994,7 @@ export function handleCastAbility(casterId, abilityName, targetIds) {
   const target = targets[0];
   if (!target) { addLog(`No valid target selected.`, 'info'); return; }
 
-  const preShieldSpell = target.statusEffects.find(e => e.name.toLowerCase() === 'water_shield');
+  const preShieldSpell = ability.tags?.includes('guardbreak') ? null : target.statusEffects.find(e => e.name.toLowerCase() === 'water_shield');
   if (preShieldSpell) {
     addLog(`🛡 ${target.name}'s pre-armed shield blocks ${caster.name}'s ${ability.name}!`, 'spell');
     target.statusEffects = target.statusEffects.filter(e => e !== preShieldSpell);
@@ -2242,7 +2379,7 @@ export function resumePendingAction(reactAbility) {
           }
           continue;
         }
-        const fullBlock = target.statusEffects.find(e => e.name.toLowerCase() === 'water_shield');
+        const fullBlock = ability.tags?.includes('guardbreak') ? null : target.statusEffects.find(e => e.name.toLowerCase() === 'water_shield');
         if (fullBlock) {
           addLog(`🛡 ${target.name}'s shield blocks the AoE!`, 'spell');
           target.statusEffects = target.statusEffects.filter(e => e !== fullBlock);
@@ -2270,6 +2407,7 @@ export function resumePendingAction(reactAbility) {
             applyDamage(target, totalDmg, damType, ability.tags, aoeIgnoreDR);
             if (ability.isHeal) applyHeal(caster, String(totalDmg));
             if (ability.tags?.includes('grounded')) removeFlying(target);
+            if (ability.tags?.includes('knockback')) knockBack(caster, target);
           }
         }
         if (ability.effect) applyStatus(target, ability.effect);
@@ -2418,6 +2556,9 @@ export function resumePendingAction(reactAbility) {
             }
           }
           if (ability.tags?.includes('cleans')) applyCleanse(target);
+          if (ability.tags?.includes('sure_hit') && pushStatus(target, { name: 'sure_hit', turnsLeft: 2 }, true)) {
+            addLog(`🎯 ${target.name}'s next attack cannot miss!`, 'spell');
+          }
           if (ability.tags?.includes('adv_next') && pushStatus(target, { name: 'advantage', turnsLeft: 2, uses: 1 }, true)) {
             addLog(`🎲 ${target.name} will roll their next d20 with advantage!`, 'spell');
           }
@@ -2500,13 +2641,7 @@ export function resumePendingAction(reactAbility) {
     if (canReach) addLog(`⚡ ${counter.name} gets a free counter-attack!`, 'crit');
     else addLog(`⚡ ${counter.name} could counter-attack, but ${counterTarget.name} is out of reach.`, 'info');
     if (canReach && counterTarget && !counterTarget.isKO) {
-      const cr = resolveAttack(counter, counterTarget, null);
-      logAttackResult(counter, counterTarget, cr);
-      if (cr.hit && !cr.fumble) {
-        const counterAtkTags = counter.transformedBaseAtk?.tags ?? counter.sourceChar.baseAtk?.tags ?? [];
-        const damType = damTypeFromTags(counterAtkTags);
-        applyDamage(counterTarget, cr.damage, damType, counterAtkTags);
-      }
+      freeAttack(counter, counterTarget);
     }
     const winner2 = checkVictory();
     if (winner2 !== null) { endCombat(winner2); return; }
@@ -2651,6 +2786,17 @@ export function beginTurn(c) {
       for (const ally of livingCombatants(c.teamIndex)) applyHeal(ally, p.dices);
     } else {
       applyHeal(c, p.dices);
+    }
+  }
+
+  // Divine Beast synergy: the healing auras of a synced Beast tick on its own turns
+  if (divineSyncActive(c)) {
+    for (const e of c.sourceChar.divineSync.effects ?? []) {
+      if (!e.applyOn?.includes('hpPerTurn') || !e.dices || e.target !== 'allies') continue;
+      for (const ally of livingCombatants(c.teamIndex)) {
+        applyHeal(ally, e.dices, e.nom);
+        if (e.tags?.includes('cleans')) cleanseOne(ally, e.nom);
+      }
     }
   }
 

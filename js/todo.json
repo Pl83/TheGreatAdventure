@@ -97,7 +97,7 @@
       "detail": "Scan the area for enemies and hidden elements."
     },
     {
-      "id": "mech-hunter-instinct", "cat": "mechanics", "sev": "med",
+      "id": "mech-hunter-instinct", "resolution": "Implemented: a self technique that ends the turn; the owner's next attack roll is a sure hit (a natural 1 still fumbles).", "cat": "mechanics", "sev": "med",
       "title": "Hunter Instinct", "who": "Ras",
       "detail": "Next attack is a sure hit."
     },
@@ -159,7 +159,7 @@
       "where": "combat-logic.js · resolveAttack, the atkRoll passive loop"
     },
     {
-      "id": "mech-divine-sync", "cat": "mechanics", "sev": "med",
+      "id": "mech-divine-sync", "resolution": "Implemented: with another living Divine Beast on the team, each Beast gains its own attack/defense dice, Western Gale (+3 speed, allies), Northern Depths (-1d8 damage taken, allies) and the Dragon Blessing / Phoenix Grace healing at the Beast's turn start (Phoenix Grace also lifts one debuff).", "cat": "mechanics", "sev": "med",
       "title": "Divine Beast synergy (divineSync)", "who": "Jeagen, Jay, Zhuqiao, Black Turtle",
       "detail": "The divineSync block is never read. With another Divine Beast present each should gain: Jeagen +1d12 attack and +3 speed for allies; Jay +1d8 attack and 1d6 regen for allies; Zhuqiao +1d10 attack and 1d8 healing plus one debuff removed per ally each turn; Black Turtle -1d8 damage taken for allies and +2 defense.",
       "evidence": "divineSync appears nowhere in the engine. Found by the 2026-10-29 audit: every move was cast in the headless engine and the passives were checked against what combat-logic.js reads."
@@ -171,23 +171,23 @@
       "where": "combat-logic.js · passiveConditionMet"
     },
     {
-      "id": "mech-relentless-stacks", "cat": "mechanics", "sev": "low",
+      "id": "mech-relentless-stacks", "resolution": "Implemented: one stack per ally that falls, kept for the whole fight, capped at 10; the bonus dice are rolled once per stack.", "cat": "mechanics", "sev": "low",
       "title": "Relentless Warrior stacks", "who": "Kay Climber",
       "detail": "The passive has maxStacks 10 and the allyKO condition, so it presumably grows with each fallen ally. The engine gives the bonus once whenever any ally is down and ignores maxStacks.",
       "where": "combat-logic.js · passiveConditionMet (allyKO)"
     },
     {
-      "id": "mech-opportunity-attack", "cat": "mechanics", "sev": "low",
+      "id": "mech-opportunity-attack", "resolution": "Implemented for dash moves: Fire Rush and Shadow Dash end with one free basic attack on the target. Astrid's reaction version of Shadow Dash is still not implemented.", "cat": "mechanics", "sev": "low",
       "title": "Opportunity attacks", "who": "Kaelgrym, Astrid Nightmare",
       "detail": "Fire Rush and Shadow Dash dash to the target but never trigger the opportunity attack their description promises. The engine has no opportunity attacks."
     },
     {
-      "id": "mech-knockback", "cat": "mechanics", "sev": "low",
+      "id": "mech-knockback", "resolution": "Implemented: Bone Shatter pushes each enemy it hits back 2 cells (stopped by walls, units and domain walls) and Bone Armor is gone for 2 turns. Black Turtle cannot be knocked back, pulled or grounded. Only the area branch knocks back.", "cat": "mechanics", "sev": "low",
       "title": "Knockback and immovable", "who": "Oslo, Black Turtle",
       "detail": "Bone Shatter should knock enemies back and strip Oslo's Bone Armor until it regrows; only the damage happens. Black Turtle's Northern Bastion (cannot be moved, knocked back or grounded) does nothing, and pull moves still drag it."
     },
     {
-      "id": "mech-guardbreak", "cat": "mechanics", "sev": "low",
+      "id": "mech-guardbreak", "resolution": "Implemented: guardbreak ignores block reactions and pre-armed shields; dodge, dash and teleport reactions still work. Tiger's Leap range is now 6.", "cat": "mechanics", "sev": "low",
       "title": "Guardbreak", "who": "Jeagen",
       "detail": "Tiger's Leap is described as guardbreak. It dashes and hits but can still be blocked; only moves tagged unblockabled ignore blocks."
     },

@@ -141,7 +141,7 @@ test('plans are unique, moves are legal, and a rooted unit stays put', async () 
     const plans = enumeratePlans(c);
     const keys = plans.map(p => JSON.stringify(p));
     assert.equal(new Set(keys).size, keys.length, `${c.name} has duplicate plans`);
-    const reach = L.bfsReachable(c.x, c.y, c.speed);
+    const reach = L.bfsReachable(c.x, c.y, L.moveSpeed(c));
     const cells = new Set(plans.filter(p => p.move).map(p => `${p.move.x},${p.move.y}`));
     assert.ok(cells.size <= 5, `${c.name} has ${cells.size} move cells`);
     for (const k of cells) {
