@@ -2246,6 +2246,7 @@ export function checkVictory() {
 const isSpellMove = ab => !!ab && (ab.source === 'spell' || ab.source === 'technoSpell' || !!ab.tags?.includes('magic'));
 
 export function getReacts(target, incoming = null) {
+  if (hasControlEffect(target)) return [];   // gel, stun, cocoon and fear: it can neither act nor react
   const insideClosedDomain = S.activeDomains.some(d => {
     const owner = getCombatant(d.casterId);
     if (!owner || owner.isKO || owner.teamIndex === target.teamIndex) return false;

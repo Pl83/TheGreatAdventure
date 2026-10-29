@@ -194,7 +194,7 @@
       "detail": "Calcinated exists as a status but nothing in characters.json inflicts it; the old Burn-upgrade moves still apply plain Burn. Decide which moves should upgrade."
     },
     {
-      "id": "mech-para-reacts", "cat": "mechanics", "sev": "low",
+      "id": "mech-para-reacts", "resolution": "Fixed: getReacts returns nothing for a unit under gel, stun, cocoon or fear, so it gets no react prompt. A unit that is only paralysed (and not stunned this turn) still reacts. Root still only blocks movement.", "cat": "mechanics", "sev": "low",
       "title": "A paralysed unit can still react", "who": "all",
       "detail": "Gel, stun and fear (and a turn lost to a para stun) make a unit skip its turn, but getReacts still offers it reactions while the status lasts. Root only blocks movement. Decide whether control effects should also forbid reacts."
     },
