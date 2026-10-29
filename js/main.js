@@ -255,7 +255,7 @@ export const EFFECTS = [
     { name: "Calcinated", dice: "2d4", type: "fire", notes: "fire dam each turn for 5 turns" },
     { name: "Poison", dice: "1d4", type: "poison", notes: "poison dam each turn for 3 turns" },
     { name: "Toxic", dice: "2d4", type: "poison", notes: "poison dam each turn for 5 turns" },
-    { name: "Para", dice: "1d2", type: "—", notes: "unable to move / act" },
+    { name: "Para", dice: "1d2", type: "—", notes: "lasts 3 turns, each turn a 1d2 chance to stun (lose the turn)" },
     { name: "Gel", dice: "1d2", type: "ice", notes: "unable to move / act" },
     { name: "Bleed", dice: "1d4", type: "physical", notes: "loose hp once each time it moves, for 3 turns. Mechas are immune" },
     { name: "Hemoragie", dice: "2d4", type: "physical", notes: "loose hp for each cell it walks, for 5 turns. Mechas are immune" },

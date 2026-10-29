@@ -186,7 +186,7 @@ const DOTS = {
 };
 const TICKING_DOTS = Object.keys(DOTS).filter(n => !DOTS[n].moving);
 // Statuses that last longer than the default (turnsLeft counts the owner's turns plus one)
-const STATUS_TURNS = { wet: 3 };
+const STATUS_TURNS = { wet: 3, para: 4 };   // para: three of its owner's turns
 // A status and the tag it is applied from are interchangeable for immunity checks
 const STATUS_ALIASES = { gel: 'freeze', freeze: 'gel' };
 // Self/ally buffs are never blocked by a "status" immunity
@@ -404,7 +404,7 @@ export function hasSilence(c) {
 }
 
 export function hasControlEffect(c) {
-  const controls = ['para', 'gel', 'stun', 'cocoon', 'fear'];  // root removed: only blocks movement, not action
+  const controls = ['gel', 'stun', 'cocoon', 'fear'];  // root removed: only blocks movement, not action. Para only rolls for a stun each turn
   return c.statusEffects.find(e => controls.includes(e.name.toLowerCase())) ?? null;
 }
 
@@ -3430,6 +3430,9 @@ export function beginTurn(c) {
     if (w !== null) { endCombat(w); return; }
     advanceTurn(); return;   // died to damage-over-time: no turn to play
   }
+
+  // Paralysed: each turn it lasts, a 1d2 chance that the body locks up and the turn is lost (a stun that ends with it)
+  if (c.statusEffects.some(e => e.name.toLowerCase() === 'para')) applyStatus(c, '1d2 stun', 1);
 
   // Absorb shield refreshed every turn (grantDamageShield keeps the larger value, so it never stacks)
   for (const p of c.sourceChar.passif ?? []) {

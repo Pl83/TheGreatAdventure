@@ -196,7 +196,7 @@
     {
       "id": "mech-para-reacts", "cat": "mechanics", "sev": "low",
       "title": "A paralysed unit can still react", "who": "all",
-      "detail": "Para, gel, stun and fear make a unit skip its turn, but getReacts still offers it reactions while the status lasts. Root only blocks movement. Decide whether control effects should also forbid reacts."
+      "detail": "Gel, stun and fear (and a turn lost to a para stun) make a unit skip its turn, but getReacts still offers it reactions while the status lasts. Root only blocks movement. Decide whether control effects should also forbid reacts."
     },
     {
       "id": "mech-dots-bot", "cat": "mechanics", "sev": "low",
@@ -208,6 +208,12 @@
       "title": "Meï keeps both fields up (resolved)", "who": "Mei",
       "resolution": "Field of Flower is now a five-round field of allies: those inside are cleansed and heal 10 HP at the cast and at the start of each of their turns (once per round). Fields have a side (foes or allies) and coexist freely; recasting the same field moves it instead of stacking. The map draws them in two colours and a strip above the action panel lists each with its rounds left.",
       "detail": "Field of Flower was an instant area heal and regen; only Field of Corruption lingered. Assumed: Flower lasts 5 rounds like Corruption, and its old regen status is replaced by the field."
+    },
+    {
+      "id": "mech-para-rework", "cat": "mechanics", "sev": "low",
+      "title": "Para lasts 3 turns with a 1d2 stun chance each turn (resolved)", "who": "all",
+      "resolution": "Para no longer skips turns by itself. It lasts three of its owner's turns, and at the start of each one a 1d2 roll (a 2) stuns the unit for that turn only. A stun immunity resists the roll. Re-applying refreshes the duration, it does not add a copy.",
+      "detail": "Para used to be a plain one-turn skip, the same as gel."
     },
     {
       "id": "mech-field-bot", "cat": "mechanics", "sev": "low",
