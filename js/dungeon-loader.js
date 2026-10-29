@@ -45,7 +45,17 @@ export async function loadMap(slug, perTeam = 4) {
 export function buildMap({ slug, data, image, perTeam = 4 }) {
   const grid   = buildWalkableGrid(data.rects, data.doors);
   const starts = deriveSpawnPoints(data.rects, grid, perTeam);
-  return { slug, name: data.title, story: data.story || '', image, grid, starts };
+  return { slug, name: data.title, story: data.story || '', image, grid, starts, water: waterCells(data.water, grid) };
+}
+
+/** Pure: the map's water cells ("x,y" keys in grid space) from the JSON's `water` list. */
+function waterCells(water = [], grid) {
+  const cells = new Set();
+  for (const w of water) {
+    const gx = w.x - grid.minX + BORDER, gy = w.y - grid.minY + BORDER;
+    if (gx >= 0 && gy >= 0 && gx < grid.cols && gy < grid.rows) cells.add(`${gx},${gy}`);
+  }
+  return cells;
 }
 
 /** True when the image divides into square, whole-pixel cells for this grid. */

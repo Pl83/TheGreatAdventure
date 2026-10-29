@@ -513,3 +513,75 @@ test('Death Presence and advantage cancel out on the first attack', async () => 
   L.resolveAttack(white, hela, null);
   assert.equal(advantageLogs('White'), 1, 'advantage is back from the second attack');
 });
+
+// ── Water on the map ───────────────────────────────────────────────────────
+
+const waterCell = () => {
+  const [x, y] = [...S.currentMap.water][0].split(',').map(Number);
+  return { x, y };
+};
+const dryCell = () => freeRun(2);
+const hpLost = (c, fn) => { const before = c.currentHp; fn(); return before - c.currentHp; };
+
+test('the Manor map hands its water cells to combat', async () => {
+  await newFight({ teamA: ['Kay Climber'], teamB: ['Meï'], seed: 1 });
+  assert.equal(S.currentMap.water.size, 3);
+  // JSON (5,9) and (6,9) are inside the room; (7,9) sits just past its wall, so units can only stand on two
+  const floor = [...S.currentMap.water].filter(k => isWalkableG(S.currentMap, ...k.split(',').map(Number)));
+  assert.deepEqual(floor.sort(), ['20,21', '21,21']);
+});
+
+test('standing on water makes a unit wet; flying over it or being immune does not', async () => {
+  await newFight({ teamA: ['Kay Climber', 'Black Turtle'], teamB: ['Meï'], seed: 1 });
+  const kay = byName('Kay Climber'), turtle = byName('Black Turtle');
+  const w = waterCell(), d = dryCell();
+  place(kay, d.x, d.y);
+  assert.equal(L.isWet(kay), false);
+  place(kay, w.x, w.y);
+  assert.equal(L.isWet(kay), true);
+  kay.statusEffects.push(status('fly', 999));
+  assert.equal(L.isWet(kay), false, 'flying');
+  place(turtle, w.x, w.y);
+  assert.equal(L.isWet(turtle), false, 'Black Turtle is immune to wet');
+});
+
+test('a unit standing on water walks at 0.8 of its speed, rounded down', async () => {
+  await newFight({ teamA: ['Kay Climber'], teamB: ['Meï'], seed: 1 });
+  const kay = byName('Kay Climber');
+  const d = dryCell(), w = waterCell();
+  place(kay, d.x, d.y);
+  const dry = L.moveSpeed(kay);
+  place(kay, w.x, w.y);
+  assert.equal(L.moveSpeed(kay), Math.floor(dry * 0.8));
+  assert.ok(L.moveSpeed(kay) < dry);
+});
+
+test('lightning hits a wet unit for half again as much, other damage is unchanged', async () => {
+  await newFight({ teamA: ['Kay Climber'], teamB: ['Meï'], seed: 1 });
+  const kay = byName('Kay Climber'), mei = byName('Meï');
+  const d = dryCell(), w = waterCell();
+  place(kay, d.x, d.y);
+  assert.equal(hpLost(kay, () => L.applyDamage(kay, 10, 'lightning', ['lightning'], true)), 10);
+  place(kay, w.x, w.y);
+  assert.equal(hpLost(kay, () => L.applyDamage(kay, 10, 'lightning', ['lightning'], true)), 15);
+  assert.equal(hpLost(kay, () => L.applyDamage(kay, 10, 'fire', ['fire'], true)), 10);
+  place(mei, d.x, d.y);
+  assert.equal(hpLost(mei, () => L.applyDamage(mei, 10, 'lightning', ['lightning'], true)), 10);
+});
+
+test('ice on a wet target: a 1d2 freeze becomes certain, a plain ice move gets a 1d2 freeze', async () => {
+  await newFight({ teamA: ['Future Zane', 'Susano'], teamB: ['Meï'], seed: 1 });
+  const zane = byName('Future Zane'), susano = byName('Susano'), mei = byName('Meï');
+  const ab = (c, n) => c.abilities.find(a => a.name === n);
+  const cryo = ab(zane, 'Cryo Beam'), cone = ab(zane, 'Ice Cone'), coffin = ab(susano, 'Ice Coffin');
+  const d = dryCell(), w = waterCell();
+  place(mei, d.x, d.y);
+  assert.equal(L.effectFor(cryo, mei), cryo.effect, 'dry: as written');
+  assert.equal(L.effectFor(cone, mei), cone.effect, 'dry: nothing added');
+  place(mei, w.x, w.y);
+  assert.match(L.effectFor(cryo, mei), /^(gel|freeze)$/i, 'wet: the chance is now certain');
+  assert.match(L.effectFor(cone, mei), /^1d2 (gel|freeze)$/i, 'wet: a 1d2 chance appears');
+  assert.equal(L.effectFor(coffin, mei), coffin.effect, 'a move that already freezes is unchanged');
+  const fire = byName('Susano').abilities.find(a => !a.tags.includes('ice') && a.dice);
+  assert.equal(L.effectFor(fire, mei), fire.effect, 'only ice damage');
+});

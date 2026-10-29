@@ -6,7 +6,7 @@ import {
   _R, S, SPELL_RANGE, allChars,
   activeCombatant, livingCombatants, koAllies, getCombatant,
   enemies, targetPool, abilityAvailable, hasSilence, hasValidTarget, hasControlEffect,
-  chebyshev, targetInRange, moveSpeed,
+  chebyshev, targetInRange, moveSpeed, isWet,
   drawMap, setupCanvasClickHandler,
   clearAimState, startCombat, goToMapChoice, confirmMap, activeAllyDomain,
 } from './combat-logic.js';
@@ -85,8 +85,9 @@ const STATUS_NAMES = {
 export const statusName = n => STATUS_NAMES[n] ?? (n.startsWith('lost:') ? `${n.slice(5)} lost` : n.replace(/_/g, ' ').replace(/^\w/, ch => ch.toUpperCase()));
 
 export function statusBadgesHTML(c) {
-  if (!c.statusEffects.length) return '';
-  const badges = c.statusEffects.map(e => {
+  const wet = isWet(c) ? '<li class="status-badge status-ice" title="Standing in water: slower, lightning hits harder, ice freezes">Wet</li>' : '';
+  if (!c.statusEffects.length && !wet) return '';
+  const badges = wet + c.statusEffects.map(e => {
     const dur = e.name === 'damage_shield' ? `${e.shieldHp} HP`
       : e.turnsLeft === 999 ? 'lasting'
       : `${e.turnsLeft} turn${e.turnsLeft === 1 ? '' : 's'}`;

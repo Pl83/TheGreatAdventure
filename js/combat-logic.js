@@ -1178,6 +1178,13 @@ export function applyDamage(combatant, amount, damType = null, atkTags = [], ign
     addLog(`🛡 ${combatant.name} is immune to ${immuneTypes.join('/')} — only the rest of the hit lands (${before} → ${amount}).`, 'info');
   }
 
+  // Lightning conducts through water (a mixed hit is raised in proportion to its lightning share)
+  if (types.includes('lightning') && isWet(combatant)) {
+    const before = amount;
+    amount = Math.floor(amount * (1 + (WET_LIGHTNING - 1) / types.length));
+    addLog(`💧 ${combatant.name} is wet — the lightning bites harder (${before} → ${amount}).`, 'hit');
+  }
+
   // Living Blade Armor: halve incoming physical before any absorption
   const bladeArmor = combatant.statusEffects.find(e => e.name === 'living_blade_armor');
   if (bladeArmor && atkTags.includes('physical')) {
@@ -1468,11 +1475,33 @@ function divineEffects(c, applyOn) {
   return out;
 }
 
-// Cells a unit may walk in one move (Western Gale adds to its allies)
+// Standing in water soaks a unit (a flier above it stays dry, and so does anything immune to wet)
+export function isWet(c) {
+  if (!S.currentMap?.water?.has(`${c.x},${c.y}`)) return false;
+  if (c.statusEffects.some(e => e.name.toLowerCase() === 'fly')) return false;
+  return !(c.sourceChar.immunities ?? []).some(i => i.toLowerCase() === 'wet');
+}
+
+const WET_SPEED = 0.8;
+const WET_LIGHTNING = 1.5;
+
+// Cells a unit may walk in one move (Western Gale adds to its allies; water slows)
 export function moveSpeed(c) {
   let speed = c.speed;
   for (const e of divineEffects(c, 'speed')) speed += parseDice(e.dices).total;
-  return speed;
+  return isWet(c) ? Math.floor(speed * WET_SPEED) : speed;
+}
+
+// The status string a damaging move applies to `target`. Water makes ice bite: a 1dN freeze becomes certain,
+// and an ice move with no freeze gets a 1d2 chance of one.
+export function effectFor(ability, target) {
+  const base = ability.effect;
+  if (!isWet(target) || !ability.tags?.includes('ice') || !ability.dice || ability.isHeal) return base;
+  const parts = base ? base.split(',').map(p => p.trim()) : [];
+  const freeze = parts.findIndex(p => /^(1d\d+\s+)?(gel|freeze)$/i.test(p));
+  if (freeze === -1) return [...parts, '1d2 gel'].join(', ');
+  parts[freeze] = parts[freeze].replace(/^1d\d+\s+/i, '');
+  return parts.join(', ');
 }
 
 // Does a passive of `owner` grant advantage on this kind of roll? (tag "adv" on the passive; a weapon condition
@@ -1564,7 +1593,7 @@ function selfDestruct(caster, ability) {
   const caught = S.combatants.filter(x => !x.isKO && x.id !== caster.id && (!S.currentMap || chebyshev(caster, x) <= radius));
   for (const x of caught) {
     applyDamage(x, dmg, damTypeFromTags(ability.tags), ability.tags);
-    if (ability.effect) applyStatus(x, ability.effect);
+    applyStatus(x, effectFor(ability, x));
   }
   caster.currentHp = 0;
   caster.isKO = true;
@@ -2437,7 +2466,7 @@ export function resumePendingAction(reactAbility) {
             if (ability.tags?.includes('knockback')) knockBack(caster, target);
           }
         }
-        if (ability.effect) applyStatus(target, ability.effect);
+        applyStatus(target, effectFor(ability, target));
         if (isPureHeal && ability.slotRegen > 0) {
           const gained = Math.min(ability.slotRegen, target.maxSpellSlots - target.spellSlots);
           if (gained > 0) {
@@ -2478,7 +2507,7 @@ export function resumePendingAction(reactAbility) {
           if (result.hit && !result.fumble && ability.dice) {
             const ignoreDR = ignoresDR(caster, ability);
             applyDamage(current, result.damage, damType, ability.tags, ignoreDR);
-            if (ability.effect) applyStatus(current, ability.effect);
+            applyStatus(current, effectFor(ability, current));
             if (ability.tags?.includes('grounded')) removeFlying(current);
           }
           if (result.fumble) current.hasCounterAttack = true;
@@ -2514,7 +2543,7 @@ export function resumePendingAction(reactAbility) {
           applyDamage(target, dmg, damType, ability.tags, coneIgnoreDR);
           if (ability.tags?.includes('grounded')) removeFlying(target);
         }
-        if (ability.effect) applyStatus(target, ability.effect);
+        applyStatus(target, effectFor(ability, target));
       }
 
     } else if (action.type === 'splash') {
@@ -2541,12 +2570,12 @@ export function resumePendingAction(reactAbility) {
                 const splashDmg = Math.floor(rd.total / 2 * mult);
                 addLog(`  ${t.name} is caught by the splash for ${splashDmg}.`, 'hit');
                 applyDamage(t, splashDmg, damType, ability.tags);
-                if (ability.effect) applyStatus(t, ability.effect);
+                applyStatus(t, effectFor(ability, t));
               }
             }
           }
         }
-        if (ability.effect) applyStatus(primary, ability.effect);
+        applyStatus(primary, effectFor(ability, primary));
       }
 
     } else if (action.type === 'ability') {
@@ -2609,7 +2638,7 @@ export function resumePendingAction(reactAbility) {
               applyHeal(target, ability.dice);
             }
           }
-          if (ability.effect) applyStatus(target, ability.effect);
+          applyStatus(target, effectFor(ability, target));
           if (ability.tags?.includes('fly') && !target.statusEffects.some(e => e.name.toLowerCase() === 'fly')) {
             target.statusEffects.push({ name: 'fly', turnsLeft: ability.duration > 0 ? ability.duration : 999, dice: null, damType: null, notes: '' });
             addLog(`🦅 ${target.name} is now flying!`, 'spell');
@@ -2630,7 +2659,7 @@ export function resumePendingAction(reactAbility) {
               applyHpPerHitPassives(caster);
               if (ability.tags?.includes('grounded')) removeFlying(target);
             }
-            if (ability.effect) applyStatus(target, ability.effect);
+            applyStatus(target, effectFor(ability, target));
             if (ability.tags?.includes('pull') && !target.isKO) pullTarget(caster, target);
             if (ability.tags?.includes('disv_next') && pushStatus(target, { name: 'disadvantage', turnsLeft: 2, uses: 1 })) {
               addLog(`⬇ ${target.name} is weighed down — next d20 at disadvantage!`, 'status');
