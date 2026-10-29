@@ -66,6 +66,8 @@ export const S = {
   hasMoved:       false,
   moveMode:       false,
   reachableCells: new Map(),
+  iceCells:       new Set(),   // water cells frozen by Convert (Freeze): plain floor, "x,y" keys
+  driedCells:     new Set(),   // water cells evaporated by Convert (Evaporate)
   // ── Aim / targeting ───────────────────────────────────────────────────────
   aimMode:     false,
   aimAbility:  null,
@@ -890,11 +892,12 @@ export function setupCanvasClickHandler() {
       if (S.aimAbility.isAoe) {
         if (aoeCenterValid(active, S.aimAbility, gx, gy)) {
           const hits = aoeCombatantHits(S.aimAbility, active, gx, gy);
-          if (hits.length === 0) { addLog('No valid target in that area — pick another cell.', 'info'); return; }
+          const converting = isConvert(S.aimAbility);
+          if (hits.length === 0 && !converting) { addLog('No valid target in that area — pick another cell.', 'info'); return; }
           exitAimMode();
           const hintEl = document.getElementById('aim-hint-ability');
           if (hintEl) hintEl.style.display = 'none';
-          handleCastAbility(active.id, abilityName, hits.map(t => t.id));
+          handleCastAbility(active.id, abilityName, hits.map(t => t.id), converting ? { x: gx, y: gy } : null);
         }
         return;
       } else if (S.aimAbility.isCone) {
@@ -959,6 +962,14 @@ export function drawMap() {
   const cp     = cellPxOf(S.currentMap);
   const active = activeCombatant();
   ctx.drawImage(image, 0, 0);
+  // Water that Convert has frozen or boiled away
+  for (const [cells, fill] of [[S.iceCells, 'rgba(200,235,250,0.85)'], [S.driedCells, 'rgba(214,196,160,0.9)']]) {
+    ctx.fillStyle = fill;
+    for (const k of cells ?? []) {
+      const [gx, gy] = k.split(',').map(Number);
+      ctx.fillRect(gx * cp, gy * cp, cp, cp);
+    }
+  }
 
   // Draw active domain zones
   if (S.activeDomains.length > 0) {
@@ -1433,6 +1444,28 @@ function restoreSlots(unit, amount, source) {
   updateCombatantCardDOM(unit);
 }
 
+// Wyldfire's Convert: the water cells in the blast turn to ice or steam; everyone wet in it is frozen or dried
+function convertArea(caster, ability, at) {
+  const radius = ability.radius > 0 ? ability.radius : 1;
+  const freeze = ability.tags.includes('convert_ice');
+  const inBlast = (x, y) => blastReaches(at.x, at.y, x, y, radius);
+  const cells = [...(S.currentMap?.water ?? [])].filter(k => {
+    const [x, y] = k.split(',').map(Number);
+    return isWaterCell(x, y) && inBlast(x, y);
+  });
+  const caught = S.combatants.filter(x => !x.isKO && inBlast(x.x, x.y));
+  const soaked = caught.filter(isWet);   // read before the cells change
+  addLog(freeze ? `❄ ${caster.name} freezes the water around (${at.x}, ${at.y})!` : `♨ ${caster.name} boils the water around (${at.x}, ${at.y}) away!`, 'spell');
+  for (const k of cells) (freeze ? S.iceCells : S.driedCells).add(k);
+  if (cells.length) addLog(`  ${cells.length} water cell${cells.length > 1 ? 's' : ''} ${freeze ? 'turn to ice' : 'evaporate'}.`, 'info');
+  for (const u of soaked) {
+    dropWetStatus(u);
+    if (freeze) applyStatus(u, 'gel');
+    else addLog(`  ♨ ${u.name} is dried.`, 'info');
+  }
+  for (const u of caught) updateCombatantCardDOM(u);
+}
+
 // Fire Tornado: allies within the blast shed wet and every disadvantage
 function dryAllies(caster, ability, center) {
   const radius = ability.radius > 0 ? ability.radius : 1;
@@ -1540,6 +1573,12 @@ function divineEffects(c, applyOn) {
   return out;
 }
 
+// A map water cell that Convert has not frozen or boiled away
+const isWaterCell = (x, y) => {
+  const k = `${x},${y}`;
+  return !!S.currentMap?.water?.has(k) && !S.iceCells?.has(k) && !S.driedCells?.has(k);
+};
+const isConvert = ab => !!ab.tags?.some(t => t === 'convert_ice' || t === 'convert_steam');
 const hasWetStatus = c => c.statusEffects.some(e => e.name === 'wet');
 const dropWetStatus = c => { c.statusEffects = c.statusEffects.filter(e => e.name !== 'wet'); };
 
@@ -1548,7 +1587,7 @@ const dropWetStatus = c => { c.statusEffects = c.statusEffects.filter(e => e.nam
 export function isWet(c) {
   if ((c.sourceChar.immunities ?? []).some(i => i.toLowerCase() === 'wet')) return false;
   if (hasWetStatus(c)) return true;
-  if (!S.currentMap?.water?.has(`${c.x},${c.y}`)) return false;
+  if (!isWaterCell(c.x, c.y)) return false;
   return !c.statusEffects.some(e => e.name.toLowerCase() === 'fly');
 }
 
@@ -1977,7 +2016,7 @@ export function handleAttack(attackerId, defenderId) {
   resumePendingAction(null);
 }
 
-export function handleCastAbility(casterId, abilityName, targetIds) {
+export function handleCastAbility(casterId, abilityName, targetIds, center = null) {
   const caster  = getCombatant(casterId);
   let ability = caster?.abilities.find(a => a.name === abilityName);
   if (!ability || !abilityAvailable(caster, ability)) return;
@@ -1995,13 +2034,14 @@ export function handleCastAbility(casterId, abilityName, targetIds) {
     }
   }
   if (ability.targetKind === 'enemy' && targets.length > 0 && tauntViolation(caster, targets)) return;
+  if (isConvert(ability) && !center && !targets[0]) { addLog('Pick a cell to convert.', 'info'); return; }
   if (!ability.isAoe && !ability.isCone && ability.targetKind !== 'self' && ability.targetKind !== 'ally' && !ability.isSplash && targets.length === 0) {
     addLog(`No valid target selected.`, 'info');
     return;
   }
 
   // Nothing is spent on a cast that cannot do anything
-  if ((ability.isAoe || ability.isCone) && targets.length === 0) {
+  if ((ability.isAoe || ability.isCone) && targets.length === 0 && !isConvert(ability)) {
     addLog(`⚠ ${ability.name} has no valid target in that area.`, 'info');
     return;
   }
@@ -2027,6 +2067,11 @@ export function handleCastAbility(casterId, abilityName, targetIds) {
 
   addLog(`${caster.name} uses ${ability.name}!`, ability.source === 'spell' ? 'spell' : 'tech');
   if (ability.tags?.includes('shatter_armor')) losePassive(caster, 'Bone Armor', 2);
+  if (isConvert(ability)) {
+    convertArea(caster, ability, center ?? { x: targets[0].x, y: targets[0].y });
+    if (ability.isInstant) R.renderCombatScreen(); else advanceTurn();
+    return;
+  }
   if (ability.tags?.includes('awaken') && pushStatus(caster, { name: 'relic_awake', turnsLeft: 999 }, true)) {
     addLog(`🔥 ${caster.name}'s relic wakes — it no longer drinks fire, and its blade burns.`, 'spell');
   }
@@ -2859,6 +2904,8 @@ export async function startInitiative() {
 }
 
 export function startCombat() {
+  S.iceCells = new Set();
+  S.driedCells = new Set();
   S.phase = 'combat';
   S.currentTurnIndex = 0;
   S.turnSerial++;

@@ -803,3 +803,78 @@ test('Ifrit\'s Bane starts asleep, and striking with the Awake form wakes it for
   assert.equal(L.abilityAvailable(kael, sleeping), false, 'the Sleeping form is gone');
   assert.equal(L.abilityAvailable(kael, awake), true);
 });
+
+// ── Wyldfire's Convert: freeze or evaporate the water in an area ───────────
+
+async function convertFight() {
+  await newFight({ teamA: ['Wyldfire', 'Kay Climber'], teamB: ['Meï'], seed: 1 });
+  const wyld = toTurn('Wyldfire'), kay = byName('Kay Climber'), mei = byName('Meï');
+  const centre = waterCell();
+  const far = freeRun(8);
+  place(wyld, far.x, far.y);
+  place(kay, centre.x - 2, centre.y + 1);    // in the room, within 4 of the water
+  place(mei, far.x + 6, far.y);              // well outside the blast
+  assert.ok(L.chebyshev(mei, centre) > 4, 'fixture: the far unit is outside the area');
+  return { wyld, kay, mei, centre };
+}
+const hasStatus = (c, n) => c.statusEffects.some(e => e.name.toLowerCase() === n);
+
+test('Convert is two spells: one freezes water, one evaporates it', async () => {
+  const wyld = chars.find(c => c.nom === 'Wyldfire');
+  assert.ok(!wyld.moveSet.some(m => m.base.nom === 'Convert'));
+  for (const n of ['Convert (Freeze)', 'Convert (Evaporate)']) {
+    const m = wyld.moveSet.find(x => x.base.nom === n);
+    assert.ok(m, n);
+    assert.equal(m.target, 'aoe'); assert.equal(m.spellCost, 1);
+  }
+});
+
+test('Convert (Freeze) turns the water cells in the area to ice and freezes the wet', async () => {
+  const { wyld, kay, mei, centre } = await convertFight();
+  const standing = byName('Wyldfire');
+  L.applyStatus(kay, 'wet');
+  L.applyStatus(mei, 'wet');
+  place(standing, centre.x + 1, centre.y);        // a unit in the water itself
+  assert.equal(L.isWet(standing), true);
+  const serial = S.turnSerial, slots = wyld.spellSlots;
+  L.handleCastAbility(wyld.id, 'Convert (Freeze)', [], { x: centre.x, y: centre.y });
+  if (S.awaitingReact) settleReacts(() => null);
+  assert.notEqual(S.turnSerial, serial, 'the turn ended');
+  assert.equal(wyld.spellSlots, slots - 1);
+  assert.ok(S.iceCells.has(`${centre.x},${centre.y}`), 'the cell is ice');
+  assert.equal(hasStatus(kay, 'gel'), true, 'the soaked ally is frozen');
+  assert.equal(hasStatus(kay, 'wet'), false);
+  assert.equal(hasStatus(wyld, 'gel'), true, 'so is whoever stood in the water');
+  assert.equal(L.isWet(wyld), false, 'ice is plain floor: no longer wet');
+  assert.equal(hasStatus(mei, 'gel'), false, 'outside the area: untouched');
+  assert.equal(hasStatus(mei, 'wet'), true);
+});
+
+test('Convert (Evaporate) dries the cells and the soaked in the area, freezing nobody', async () => {
+  const { wyld, kay, mei, centre } = await convertFight();
+  L.applyStatus(kay, 'wet');
+  L.applyStatus(mei, 'wet');
+  L.handleCastAbility(wyld.id, 'Convert (Evaporate)', [], { x: centre.x, y: centre.y });
+  if (S.awaitingReact) settleReacts(() => null);
+  assert.ok(S.driedCells.has(`${centre.x},${centre.y}`));
+  assert.equal(hasStatus(kay, 'wet'), false);
+  assert.equal(hasStatus(kay, 'gel'), false);
+  place(kay, centre.x, centre.y);
+  assert.equal(L.isWet(kay), false, 'the water is gone');
+  assert.equal(hasStatus(mei, 'wet'), true, 'outside the area: still wet');
+});
+
+test('terrain changes are part of the state the bot rewinds, and a new fight starts with the water back', async () => {
+  const { snapshot, restore } = await import('../js/ai/snapshot.js');
+  const { wyld, centre } = await convertFight();
+  const snap = snapshot();
+  L.handleCastAbility(wyld.id, 'Convert (Freeze)', [], { x: centre.x, y: centre.y });
+  if (S.awaitingReact) settleReacts(() => null);
+  assert.ok(S.iceCells.size > 0);
+  restore(snap);
+  assert.equal(S.iceCells.size, 0, 'rewound');
+  L.handleCastAbility(wyld.id, 'Convert (Evaporate)', [], { x: centre.x, y: centre.y });
+  if (S.awaitingReact) settleReacts(() => null);
+  await newFight({ teamA: ['Kay Climber'], teamB: ['Meï'], seed: 1 });
+  assert.equal(S.iceCells.size + S.driedCells.size, 0, 'fresh map');
+});

@@ -58,7 +58,7 @@ export function applyPlan(plan) {
     case 'pass':      handlePass(); break;
     case 'attack':    handleAttack(c.id, a.targetId); break;
     case 'cast':
-      handleCastAbility(c.id, a.ability, a.targetIds ?? []);
+      handleCastAbility(c.id, a.ability, a.targetIds ?? [], a.center ?? null);
       if (S.teleportMode && !S.pendingTeleportReact) completeTeleport(a.dest);
       break;
     case 'domain':    handleActivateDomain(c.id); break;

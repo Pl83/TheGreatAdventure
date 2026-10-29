@@ -660,9 +660,16 @@
     "moveSet": [
       {
         "category": "spell",
-        "base": { "nom": "Convert", "tags": ["magic", "water", "ice", "fire"] },
+        "base": { "nom": "Convert (Freeze)", "tags": ["magic", "ice", "convert_ice"] },
         "target": "aoe", "range": 8, "radius": 4,
-        "description": "Freeze or evaporate water in area.",
+        "description": "Turns the water cells in the area to ice and freezes everyone wet in it.",
+        "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": { "nom": "Convert (Evaporate)", "tags": ["magic", "fire", "convert_steam"] },
+        "target": "aoe", "range": 8, "radius": 4,
+        "description": "Evaporates the water cells in the area and dries everyone wet in it.",
         "spellCost": 1
       },
       {

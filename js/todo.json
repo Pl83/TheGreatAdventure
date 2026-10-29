@@ -102,7 +102,7 @@
       "detail": "Next attack is a sure hit."
     },
     {
-      "id": "mech-convert", "cat": "mechanics", "sev": "low",
+      "id": "mech-convert", "resolution": "Implemented as two spells, Convert (Freeze) and Convert (Evaporate), each aimed at a cell (radius 4, 1 slot). Freeze turns the water cells in the blast to ice (plain floor) and freezes everyone wet in it (soaked, or standing in that water). Evaporate boils the cells away and dries everyone in the blast. Ice and dried cells are drawn on the map. The bot may cast them but does not aim them deliberately: it centres them on a foe.", "cat": "mechanics", "sev": "low",
       "title": "Convert", "who": "Wyldfire",
       "detail": "Freeze or evaporate water in area."
     },
