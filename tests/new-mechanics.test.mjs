@@ -759,3 +759,47 @@ test('Fire Tornado dries the allies in its area and takes the disadvantage off t
   cast(eragon, 'Fire Tornado', [mei.id]);
   assert.ok(!kay.statusEffects.some(e => ['wet', 'disadvantage', 'smoke_screen'].includes(e.name)), 'dried and clear-eyed');
 });
+
+// ── Loki's Blessing: Alicia's death save ───────────────────────────────────
+
+test('Alicia gets one death save per fight, rolled twice (10+ on either keeps her up at 1 HP)', async () => {
+  let kept = 0, fell = 0;
+  for (let seed = 1; seed <= 40; seed++) {
+    await newFight({ teamA: ['Alicia'], teamB: ['Meï'], seed });
+    const alicia = byName('Alicia');
+    L.applyDamage(alicia, 9999, 'physical', ['physical'], true);
+    if (alicia.isKO) { fell++; continue; }
+    kept++;
+    assert.equal(alicia.currentHp, 1);
+    L.applyDamage(alicia, 9999, 'physical', ['physical'], true);
+    assert.equal(alicia.isKO, true, `seed ${seed}: the save is spent`);
+  }
+  assert.ok(kept > fell && fell > 0, `kept ${kept}, fell ${fell}: two rolls at 10+ is about 80%`);
+});
+
+test('nobody but Alicia gets a death save', async () => {
+  for (let seed = 1; seed <= 10; seed++) {
+    await newFight({ teamA: ['Kay Climber'], teamB: ['Meï'], seed });
+    L.applyDamage(byName('Kay Climber'), 9999, 'physical', ['physical'], true);
+    assert.equal(byName('Kay Climber').isKO, true);
+  }
+});
+
+// ── Ifrit's Bane: Sleeping absorbs fire, the first Awake strike wakes it for good ──
+
+test('Ifrit\'s Bane starts asleep, and striking with the Awake form wakes it for the rest of the fight', async () => {
+  await newFight({ teamA: ['Kaelgrym'], teamB: ['Meï'], seed: 1 });
+  const kael = toTurn('Kaelgrym'), mei = byName('Meï');
+  place(mei, kael.x + 1, kael.y);
+  const sleeping = kael.abilities.find(a => a.name === "Ifrit's Bane (Sleeping)");
+  const awake = kael.abilities.find(a => a.name === "Ifrit's Bane (Awake)");
+  kael.spellSlots = 3;
+  assert.equal(hpLost(kael, () => L.applyDamage(kael, 20, 'fire', ['fire'], true)), 0, 'asleep: absorbed');
+  assert.equal(L.abilityAvailable(kael, sleeping), true);
+  kael.statusEffects.push(status('sure_hit'));
+  cast(kael, "Ifrit's Bane (Awake)", [mei.id]);
+  assert.ok(kael.statusEffects.some(e => e.name === 'relic_awake'), 'awake');
+  assert.equal(hpLost(kael, () => L.applyDamage(kael, 20, 'fire', ['fire'], true)), 20, 'awake: fire hurts');
+  assert.equal(L.abilityAvailable(kael, sleeping), false, 'the Sleeping form is gone');
+  assert.equal(L.abilityAvailable(kael, awake), true);
+});

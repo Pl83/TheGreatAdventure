@@ -364,6 +364,7 @@ export function abilityAvailable(c, ab) {
     if (domainNoCD.length === 0) return false;
   }
   if (ab.isOncePerFight && c.usedThisFight.includes(ab.name)) return false;
+  if (ab.tags?.includes('sleeping') && c.statusEffects.some(e => e.name === 'relic_awake')) return false;
   if (ab.maxCharges > 0 && (c.remainingCharges[ab.name] ?? ab.maxCharges) <= 0) return false;
   if (ab.cost) {
     if (ab.cost.type === 'ki'    && c.ki < ab.cost.amount)         return false;
@@ -1170,7 +1171,8 @@ export function applyDamage(combatant, amount, damType = null, atkTags = [], ign
     .filter(t => t && DAMAGE_TYPES.includes(String(t).toLowerCase()))
     .map(t => String(t).toLowerCase()))];
   const immune = (combatant.sourceChar.immunities ?? []).map(i => i.toLowerCase());
-  const absorbsFire = combatant.sourceChar.passif?.some(p => p.tags?.includes('absorbFire'));
+  const absorbsFire = combatant.sourceChar.passif?.some(p => p.tags?.includes('absorbFire'))
+    && !combatant.statusEffects.some(e => e.name === 'relic_awake');
   if (absorbsFire) immune.push('fire');
   const immuneTypes = types.filter(t => immune.includes(t));
   if (absorbsFire && types.includes('fire')) restoreSlots(combatant, 1, "Ifrit's Bane");
@@ -1277,7 +1279,19 @@ export function applyDamage(combatant, amount, damType = null, atkTags = [], ign
       combatant.currentHp = 1;
       addLog(`✨ ${combatant.name}'s ${lives.nom} brings them back with 1 HP! (${used}/${lives.maxStacks})`, 'crit');
     }
-    const resAb = lives ? null : combatant.abilities.find(a =>
+    // A death save (Alicia's Loki's Blessing): once per fight, two d20s, 10 or more on either keeps them up
+    const saveP = lives ? null : combatant.sourceChar.passif?.find(p =>
+      p.applyOn?.includes('deathRoll') && !p.maxStacks && !combatant.deathSaves[p.nom]);
+    let saved = false;
+    if (saveP) {
+      combatant.deathSaves[saveP.nom] = 1;
+      const rolls = [rollD20().value, rollD20().value];
+      saved = rolls.some(v => v >= 10);
+      addLog(`🎲 ${combatant.name} makes a death save (${rolls.join(' & ')})${saved ? ` — ${saveP.nom} keeps them up with 1 HP!` : ' — and fails.'}`, saved ? 'crit' : 'death');
+      if (saved) combatant.currentHp = 1;
+    }
+    const survived = !!lives || saved;
+    const resAb = survived ? null : combatant.abilities.find(a =>
       a.name === 'Resurrection' && a.isOncePerFight && !combatant.usedThisFight.includes('Resurrection')
     );
     if (resAb) {
@@ -1285,7 +1299,7 @@ export function applyDamage(combatant, amount, damType = null, atkTags = [], ign
       combatant.usedThisFight.push('Resurrection');
       addLog(`💀✨ ${combatant.name} RESURRECTS with 150 HP — Final Reckoning activates!`, 'crit');
       combatant.statusEffects.push({ name: 'final_reckoning', turnsLeft: 999, dice: '2d12', damType: null, notes: '+2d12 atk bonus' });
-    } else if (!lives) {
+    } else if (!survived) {
       combatant.isKO = true;
       noteFallen(combatant);
       combatant.statusEffects = [];   // the dead keep no buffs or damage-over-time
@@ -2013,6 +2027,9 @@ export function handleCastAbility(casterId, abilityName, targetIds) {
 
   addLog(`${caster.name} uses ${ability.name}!`, ability.source === 'spell' ? 'spell' : 'tech');
   if (ability.tags?.includes('shatter_armor')) losePassive(caster, 'Bone Armor', 2);
+  if (ability.tags?.includes('awaken') && pushStatus(caster, { name: 'relic_awake', turnsLeft: 999 }, true)) {
+    addLog(`🔥 ${caster.name}'s relic wakes — it no longer drinks fire, and its blade burns.`, 'spell');
+  }
 
   // Shadow Gate: a random stored move is launched in place of the gate itself. The gate opens beside the
   // target, so the stored move's own range does not matter; area moves burst around the target.

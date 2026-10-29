@@ -140,7 +140,7 @@
       "where": "combat-logic.js · applyStatus, resolveAttack"
     },
     {
-      "id": "mech-ifrit-state", "cat": "mechanics", "sev": "low",
+      "id": "mech-ifrit-state", "resolution": "Implemented: the relic starts asleep and absorbs fire. The first strike with the Awake form wakes it for the rest of the fight: no more absorption, the Sleeping form can no longer be used, and a badge shows that Ifrit is awake.", "cat": "mechanics", "sev": "low",
       "title": "Ifrit's Bane Sleeping / Awake", "who": "Kaelgrym",
       "detail": "Kaelgrym has both relic attacks but no state tells which form he wields, so the fire absorption of the Sleeping form is always on, even when he uses the Awake form. Awake should presumably end the absorption."
     },
@@ -238,7 +238,7 @@
       "evidence": "Anti-magic Slash cast on two foes: damage only, no status. Found by the 2026-10-29 audit: every move was cast in the headless engine and the passives were checked against what combat-logic.js reads."
     },
     {
-      "id": "mech-nine-lives", "resolution": "Implemented: Heracles returns to life with 1 HP each time he is killed, up to 9 times per fight. Alicia's Loki's Blessing (death saves) is still not modelled.", "cat": "mechanics", "sev": "med",
+      "id": "mech-nine-lives", "resolution": "Implemented: Heracles returns to life with 1 HP each time he is killed, up to 9 times per fight. Alicia's Loki's Blessing is modelled too: once per fight she rolls two d20s when she would fall, and 10 or more on either keeps her up at 1 HP. Nobody else gets a death save.", "cat": "mechanics", "sev": "med",
       "title": "Nine Lives", "who": "Heracles",
       "detail": "Nine times per fight, return to life with 1 HP when killed. The passive uses deathRoll with maxStacks 9, neither of which the engine reads, so Heracles dies like anyone else. Alicia's Loki's Blessing (two death saves) has no counterpart either: the simulator has no death saves.",
       "where": "combat-logic.js · applyDamage (the Resurrection check is the model)"
@@ -254,7 +254,7 @@
       "detail": "Poison Breath (Spheras Nightmare: 1d2 poison or 1d12+8 toxic on nearby enemies each turn) and Toxic Daggers (Astrid Nightmare: 1d2 poison or 1d12 extra on each attack) do nothing. Corruption Bolt (Dream Hunter) adds its +1d10 but never builds up corruption on the target."
     },
     {
-      "id": "mech-slot-restore", "resolution": "Implemented: Vorpal Slash (Vorrakan) restores 5 spell slots with its lifesteal. Kaelgrym absorbs incoming fire: the hit does nothing and restores 1 slot. The Sleeping/Awake state of Ifrit's Bane is not modelled, so the absorption is always on.", "cat": "mechanics", "sev": "low",
+      "id": "mech-slot-restore", "resolution": "Implemented: Vorpal Slash (Vorrakan) restores 5 spell slots with its lifesteal. Kaelgrym absorbs incoming fire: the hit does nothing and restores 1 slot. The absorption only works while Ifrit's Bane sleeps (see the Sleeping / Awake item).", "cat": "mechanics", "sev": "low",
       "title": "Spell slot restoration", "who": "Vorrakan Duskbane, Kaelgrym",
       "detail": "Vorrakan's Vorpal Slash should restore 5 spell slots after its lifesteal; Kaelgrym's Ifrit's Bane should absorb fire damage to restore spell slots. The lifesteal works, the slots never come back."
     },
