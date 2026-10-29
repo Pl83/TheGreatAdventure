@@ -6,13 +6,13 @@ import {
   _R, S, SPELL_RANGE, allChars,
   activeCombatant, livingCombatants, koAllies, getCombatant,
   enemies, targetPool, abilityAvailable, hasSilence, hasValidTarget, hasControlEffect,
-  chebyshev, targetInRange, moveSpeed, isWet,
+  chebyshev, targetInRange, moveSpeed, isWet, freeActionOptions,
   drawMap, setupCanvasClickHandler,
   clearAimState, startCombat, goToMapChoice, confirmMap, activeAllyDomain,
 } from './combat-logic.js';
 
 import { loadManifest, loadMapMeta } from './dungeon-loader.js';
-import { bindSelectionEvents, bindCombatEvents, bindReactEvents } from './combat-events.js';
+import { bindSelectionEvents, bindCombatEvents, bindReactEvents, bindFreeActionEvents } from './combat-events.js';
 import { scheduleAI, controlledByAi, pendingAiDecision, aiStatusHTML } from './combat-ai-driver.js';
 
 export const root = document.getElementById('combat-root');
@@ -422,6 +422,34 @@ export function reactPromptHTML() {
     </div>`;
 }
 
+// A fumbling foe or a natural 20 defense leaves this unit a free action against the attacker
+export function freeActionPromptHTML() {
+  const pending = S.awaitingFree;
+  if (!pending) return '';
+  const actor = getCombatant(pending.actorId), foe = getCombatant(pending.targetId);
+  if (!actor || !foe) return '';
+  const options = freeActionOptions(actor, foe).map(o => {
+    if (o.type === 'attack') {
+      return `<button class="react-yes-btn" data-free="attack"${o.ok ? '' : ' disabled'}>${o.ok ? 'Dash in and strike' : 'Out of reach'}</button>`;
+    }
+    if (o.type === 'spell') {
+      const meta = [costText(o.ability.cost), ...abilityTraits(o.ability)].filter(Boolean).join(' · ');
+      return `<button class="react-no-btn free-spell-btn" data-free="spell" data-ability="${o.ability.name}">${o.ability.name}<span class="react-option-meta">${meta}</span></button>`;
+    }
+    return `<button class="react-no-btn" data-free="none">Do nothing</button>`;
+  }).join('');
+  return `
+    <div id="free-overlay" class="react-overlay">
+      <div class="react-dialog ${actor.teamIndex === 0 ? 'team-a' : 'team-b'}" role="alertdialog" aria-modal="true"
+           aria-labelledby="free-title">
+        <span class="react-eyebrow">Free action · Team ${actor.teamIndex === 0 ? 'I' : 'II'}</span>
+        <h2 class="react-title" id="free-title">${actor.name} has an opening</h2>
+        <p class="react-desc-text"><strong>${foe.name}</strong> left themself open. Strike back, cast a spell at them, or let it pass.</p>
+        <div class="react-buttons free-options">${options}</div>
+      </div>
+    </div>`;
+}
+
 // ── Battle log ─────────────────────────────────────────────────────────────
 // Rounds are headings, each turn is a section headed by the acting combatant, and every
 // line inside it belongs to that turn. Indented lines ("  …") are details of the line above.
@@ -764,7 +792,8 @@ export function renderCombatScreen() {
         ${teamColHTML(1)}
       </div>
     </div>
-    ${S.awaitingReact ? reactPromptHTML() : ''}`;
+    ${S.awaitingReact ? reactPromptHTML() : ''}
+    ${S.awaitingFree ? freeActionPromptHTML() : ''}`;
 
   const log = root.querySelector('#combat-log');
   if (log) log.scrollTop = log.scrollHeight;
@@ -776,6 +805,7 @@ export function renderCombatScreen() {
   if (now) strip.scrollLeft = now.offsetLeft - strip.offsetLeft - (strip.clientWidth - now.offsetWidth) / 2;
 
   bindCombatEvents();
+  bindFreeActionEvents();
 
   const canvas = document.getElementById('dungeon-canvas');
   if (canvas && S.moveMode) canvas.classList.add('move-mode');
@@ -795,6 +825,17 @@ export function renderReactOverlay() {
   if (wrapper.firstElementChild) {
     document.body.appendChild(wrapper.firstElementChild);
     bindReactEvents();
+  }
+  scheduleAI();
+}
+
+export function renderFreeActionOverlay() {
+  document.getElementById('free-overlay')?.remove();
+  const wrapper = document.createElement('div');
+  wrapper.innerHTML = freeActionPromptHTML();
+  if (wrapper.firstElementChild) {
+    document.body.appendChild(wrapper.firstElementChild);
+    bindFreeActionEvents();
   }
   scheduleAI();
 }
@@ -853,7 +894,7 @@ export function renderVictoryScreen() {
 
   document.getElementById('btn-rematch')?.addEventListener('click', async () => {
     S.combatants = []; S.initiativeOrder = []; S.log = []; S.winnerTeam = null;
-    S.awaitingReact = false; S.pendingAction = null; S.reactOptions = [];
+    S.awaitingReact = false; S.pendingAction = null; S.reactOptions = []; S.awaitingFree = null;
     S.currentMap = null; S.mapViewFilter = 'both';
     S.hasMoved = false; S.hasActed = false; S.moveMode = false; S.reachableCells = new Map();
     clearAimState();
@@ -866,7 +907,7 @@ export function renderVictoryScreen() {
     Object.assign(S, {
       phase: 'selection', teamNames: [[], []], combatants: [],
       initiativeOrder: [], log: [], winnerTeam: null,
-      awaitingReact: false, pendingAction: null, reactOptions: [],
+      awaitingReact: false, pendingAction: null, reactOptions: [], awaitingFree: null,
       currentMap: null, mapChoice: null, mapLoading: false, mapViewFilter: 'both',
       hasMoved: false, hasActed: false, moveMode: false, reachableCells: new Map(),
     });
@@ -878,5 +919,6 @@ export function renderVictoryScreen() {
 _R.render              = render;
 _R.renderCombatScreen  = renderCombatScreen;
 _R.renderReactOverlay  = renderReactOverlay;
+_R.renderFreeActionOverlay = renderFreeActionOverlay;
 _R.renderVictoryScreen = renderVictoryScreen;
 _R.appendLog           = appendLog;

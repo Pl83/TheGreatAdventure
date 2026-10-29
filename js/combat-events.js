@@ -8,7 +8,7 @@ import {
   hasValidTarget, drawMap,
   handlePass, handleAttack, handleCastAbility,
   handleTransform, handleActivateDomain,
-  handleReactYes, handleReactNo,
+  handleReactYes, handleReactNo, handleFreeAction,
   enterMoveMode, exitMoveMode,
   enterAimMode, exitAimMode, cancelAim, koAllies,
   addLog, goToMapChoice,
@@ -183,6 +183,14 @@ export function bindCombatEvents() {
     if (ab) pickAbility(active, ab.name);
     syncAbilityBtn();
   });
+}
+
+// The free-action prompt: one button per choice
+export function bindFreeActionEvents() {
+  for (const btn of document.querySelectorAll('#free-overlay [data-free]')) {
+    btn.addEventListener('click', () => handleFreeAction({ type: btn.dataset.free, abilityName: btn.dataset.ability }));
+  }
+  document.querySelector('#free-overlay [data-free]:not([disabled])')?.focus();
 }
 
 export function bindReactEvents() {

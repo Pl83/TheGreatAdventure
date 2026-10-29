@@ -218,7 +218,7 @@ for (const [who, move, foe] of [['Kaelgrym', 'Fire Rush', 'Jhin'], ['Astrid Nigh
       const texts = logText();
       const at = texts.findIndex(t => t.includes('opportunity attack'));
       assert.ok(at >= 0, 'the free attack is announced');
-      assert.ok(texts.slice(at).some(t => new RegExp(`${me.name} (hits|misses) ${target.name}|CRITICAL|FUMBLE`).test(t)), 'and rolled');
+      assert.ok(texts.slice(at).some(t => new RegExp(`${me.name} (hits|misses) ${target.name}|CRITICAL|FUMBLE|natural 20 — ${me.name} misses`).test(t)), 'and rolled');
       if (target.currentHp < hp) hurt++;
     }
     assert.ok(hurt > 0, 'it hurts when it lands');

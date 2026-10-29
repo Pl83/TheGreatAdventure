@@ -13,6 +13,7 @@ export const _R = {
   render:              () => {},
   renderCombatScreen:  () => {},
   renderReactOverlay:  () => {},
+  renderFreeActionOverlay: () => {},
   renderVictoryScreen: () => {},
   appendLog:           () => {},
 };
@@ -52,6 +53,8 @@ export const S = {
   pendingAction: null,
   awaitingReact: false,
   reactOptions: [],
+  awaitingFree: null,     // { actorId, targetId, instant } while a person chooses a free action
+  promptFreeAction: false, // headless only: ask for the choice instead of letting the policy decide
   activeDomains: [],  // { casterId, domain } for currently active domains
   log: [],
   winnerTeam: null,
@@ -136,8 +139,9 @@ export function parseDice(expr, ctx = {}) {
   }
   s = s.replace(/-\d+d\d+/gi, '');  // strip negatives before positive pass
   const diceRe = /(\d+)d(\d+)/gi;
+  const diceMult = ctx.diceMult ?? 1;   // a bonus hit rolls more dice, the flat part stays
   while ((m = diceRe.exec(s)) !== null) {
-    const count = parseInt(m[1]), sides = parseInt(m[2]);
+    const count = parseInt(m[1]) * diceMult, sides = parseInt(m[2]);
     const rolls = [];
     let sub = 0;
     for (let i = 0; i < count; i++) { const r = rollDie(sides); rolls.push(r); sub += r; }
@@ -277,7 +281,7 @@ export function buildCombatant(char, teamIndex, id) {
     statusEffects: char.passif?.some(p => p.tags?.includes('fly'))
       ? [{ name: 'fly', turnsLeft: 999, dice: null, damType: null, notes: '' }]
       : [],
-    hasCounterAttack: false,
+    freeActionTarget: null,   // id of the foe this unit may now answer with a free action
     isTransformed:    false,
     transformedBaseAtk: null,
     domainActive:     false,
@@ -515,9 +519,10 @@ function reviveBeside(caster, target) {
 function freeAttack(attacker, target) {
   const r = resolveAttack(attacker, target, null);
   logAttackResult(attacker, target, r);
-  if (r.hit && !r.fumble) {
+  if (r.hit) {
     const tags = attacker.transformedBaseAtk?.tags ?? attacker.sourceChar.baseAtk?.tags ?? [];
     applyDamage(target, r.damage, damTypeFromTags(tags), tags);
+    strikeBack(attacker, r, damTypeFromTags(tags), tags);
   }
   return r;
 }
@@ -1520,12 +1525,12 @@ export function unitHasTag(c, tag) {
 }
 
 // The extra dice a move deals to this target (Force Lightning vs mechas, Ice Coffin vs the wet), or null
-function bonusVsFor(ability, target) {
+function bonusVsFor(ability, target, diceMult = 1) {
   const b = ability?.bonusVs;
   if (!b || !target) return null;
   const applies = b.vs === 'wet' ? isWet(target) : unitHasTag(target, b.vs);
   if (!applies) return null;
-  const r = parseDice(b.dice);
+  const r = parseDice(b.dice, { diceMult });
   return { total: r.total, label: `${ability.name} vs ${b.vs}[${r.breakdown}]` };
 }
 
@@ -1642,9 +1647,11 @@ export function effectFor(ability, target) {
 }
 
 // Applies what a landed move does to its target; ice spends the soaking it just used
-export function applyMoveEffect(ability, target) {
+// A bonus hit (`guaranteed`) makes the 1d2 riders certain
+export function applyMoveEffect(ability, target, guaranteed = false) {
   const soaked = hasWetStatus(target);
-  applyStatus(target, effectFor(ability, target));
+  const effect = effectFor(ability, target);
+  applyStatus(target, guaranteed && effect ? effect.replace(/(^|,\s*)1d2\s+/gi, '$1') : effect);
   if (soaked && bitesIce(ability) && !target.isKO) dropWetStatus(target);
 }
 
@@ -1884,6 +1891,26 @@ function areaDefense(atk, target, caster, ability) {
   return 0.5;
 }
 
+// How the attacker's d20 and the defender's d20 settle one blow. A natural 20 or 1 on either side changes
+// more than the comparison: the roll that lands a bonus hit rolls extra dice and makes the 1d2 riders certain,
+// and a natural 1 or a natural 20 defense that turns the blow away gives the defender a free action.
+//   atk 1  / def 1       both fumble: the blow is rolled, each side takes half
+//   atk 1  / def other   the attack fails, the defender earns a free action
+//   atk 20 / def 20      a plain hit
+//   atk 20 / def 1       a hit with the dice rolled four times
+//   atk 20 / def other   a hit with the dice doubled
+//   atk other / def 1    a hit with the dice doubled
+//   atk other / def 20   a miss, the defender earns a free action
+//   otherwise            the totals compare, the attacker wins a tie
+function clash(atk, def, effectiveDefRoll) {
+  const plain = { hit: false, mutual: false, bonusMult: 1, freeAction: false };
+  if (atk.isNat1) return def.isNat1 ? { ...plain, hit: true, mutual: true } : { ...plain, freeAction: true };
+  if (atk.isNat20) return { ...plain, hit: true, bonusMult: def.isNat20 ? 1 : def.isNat1 ? 4 : 2 };
+  if (def.isNat1)  return { ...plain, hit: true, bonusMult: 2 };
+  if (def.isNat20) return { ...plain, freeAction: true };
+  return { ...plain, hit: atk.value >= effectiveDefRoll };
+}
+
 export function resolveAttack(attacker, defender, diceExpr, ability = null) {
   const { roll: atkRoll, sureHit: domainSureHit } = rollAttackD20(attacker, ability, defender);
 
@@ -1893,25 +1920,29 @@ export function resolveAttack(attacker, defender, diceExpr, ability = null) {
   const domainForcesHit = domainSureHit && !atkRoll.isNat1;
   if (domainForcesHit) addLog(`  🎯 Sure-Hit — attack cannot be dodged!`, 'spell');
 
-  const hit    = atkRoll.isNat20 || domainForcesHit || (!atkRoll.isNat1 && atkRoll.value >= effectiveDefRoll);
+  const outcome = clash(atkRoll, defRoll, effectiveDefRoll);
+  const hit = outcome.hit || domainForcesHit;
+  const { mutual, bonusMult } = outcome;
+  const freeAction = outcome.freeAction && !hit;
   const crit   = atkRoll.isNat20;
   const fumble = atkRoll.isNat1;
 
-  let damage = 0, breakdown = '—';
+  let damage = 0, recoil = 0, breakdown = '—';
 
-  if (hit && !fumble) {
+  if (hit) {
+    const pd = expr => parseDice(expr, { diceMult: bonusMult });
     const raw = diceExpr || (attacker.transformedBaseAtk?.dices ?? attacker.sourceChar.baseAtk?.dices) || '1d4';
-    const rolled = parseDice(raw, { missingHp: defender.maxHp - defender.currentHp });
+    const rolled = parseDice(raw, { missingHp: defender.maxHp - defender.currentHp, diceMult: bonusMult });
 
     let passiveBonus = 0;
     const passiveParts = [];
     for (const b of rollBonuses(attacker, 'atkRoll', defender, ability)) {
-      const pr = parseDice(b.dices);
+      const pr = pd(b.dices);
       passiveBonus += pr.total;
       passiveParts.push(`${b.nom}[${pr.breakdown}]`);
     }
 
-    const versus = bonusVsFor(ability, defender);
+    const versus = bonusVsFor(ability, defender, bonusMult);
     if (versus) {
       passiveBonus += versus.total;
       passiveParts.push(versus.label);
@@ -1919,14 +1950,14 @@ export function resolveAttack(attacker, defender, diceExpr, ability = null) {
 
     const frStatus = attacker.statusEffects.find(e => e.name === 'final_reckoning');
     if (frStatus?.dice) {
-      const fr = parseDice(frStatus.dice);
+      const fr = pd(frStatus.dice);
       passiveBonus += fr.total;
       passiveParts.push(`FinalReckoning[${fr.breakdown}]`);
     }
 
     const precastSt = attacker.statusEffects.find(e => e.name === 'runik_precast');
     if (precastSt?.dice) {
-      const pr = parseDice(precastSt.dice);
+      const pr = pd(precastSt.dice);
       passiveBonus += pr.total;
       passiveParts.push(`RuniquePrecast[${pr.breakdown}]`);
       attacker.statusEffects = attacker.statusEffects.filter(e => e !== precastSt);
@@ -1938,15 +1969,24 @@ export function resolveAttack(attacker, defender, diceExpr, ability = null) {
       attacker.shadowCounterBonus = 0;
     }
 
-    const baseTotal = rolled.total + passiveBonus;
-    damage    = crit ? baseTotal * 2 : baseTotal;
+    damage = rolled.total + passiveBonus;
+    if (mutual) damage = Math.floor(damage / 2);
+    recoil = mutual ? damage : 0;
     const passiveStr = passiveParts.length ? ` + ${passiveParts.join(' ')}` : '';
-    breakdown = crit
-      ? `CRIT ×2: ${rolled.breakdown}${passiveStr} = ${damage}`
-      : `${rolled.breakdown}${passiveStr} = ${damage}`;
+    breakdown = `${bonusMult > 1 ? `CRIT dice ×${bonusMult}: ` : mutual ? 'HALVED: ' : ''}${rolled.breakdown}${passiveStr} = ${damage}`;
   }
 
-  return { hit, crit, fumble, damage, atkRoll: atkRoll.value, defRoll: defRoll.value, effectiveDefRoll, breakdown, domainSureHit: domainForcesHit };
+  return {
+    hit, crit, fumble, mutual, freeAction, recoil, bonusMult, guaranteed: bonusMult > 1,
+    damage, atkRoll: atkRoll.value, defRoll: defRoll.value, effectiveDefRoll, breakdown, domainSureHit: domainForcesHit,
+  };
+}
+
+// A mutual fumble: the attacker is hurt by the same half they dealt
+function strikeBack(attacker, result, damType, tags) {
+  if (!(result.recoil > 0) || attacker.isKO) return;
+  addLog(`  💥 ${attacker.name} takes ${result.recoil} from the botched blow!`, 'miss');
+  applyDamage(attacker, result.recoil, damType, tags);
 }
 
 export function logAttackResult(atk, def, r) {
@@ -1954,13 +1994,18 @@ export function logAttackResult(atk, def, r) {
   const defStr = r.effectiveDefRoll !== r.defRoll
     ? `${r.defRoll}+${r.effectiveDefRoll - r.defRoll}=${r.effectiveDefRoll}`
     : String(r.defRoll);
-  if (r.crit) {
-    addLog(`⚔ CRITICAL! ${atk.name} rolls 20 vs ${def.name}'s ${defStr}. ${r.breakdown}`, 'crit');
+  if (r.mutual) {
+    addLog(`💥 BOTH FUMBLE! ${atk.name} and ${def.name} roll 1 — the blow lands for half on each. ${r.breakdown}`, 'crit');
   } else if (r.fumble) {
-    addLog(`💥 FUMBLE! ${atk.name} rolls 1 — ${def.name} gets a free counter-attack!`, 'miss');
+    addLog(`💥 FUMBLE! ${atk.name} rolls 1 — the attack fails${r.freeAction ? ` and ${def.name} earns a free action!` : '.'}`, 'miss');
+  } else if (r.hit && r.bonusMult > 1) {
+    const why = r.crit ? `${atk.name} rolls 20 vs ${def.name}'s ${defStr}` : `${def.name} rolls 1 against ${atk.name}'s ${r.atkRoll}`;
+    addLog(`⚔ CRITICAL! ${why}. ${r.breakdown}`, 'crit');
   } else if (r.hit) {
     const cmp = r.domainSureHit && r.atkRoll < r.effectiveDefRoll ? 'sure hit' : `${r.atkRoll} ≥ ${defStr}`;
     addLog(`${atk.name} hits ${def.name}! (${cmp}) ${r.breakdown}`, 'hit');
+  } else if (r.freeAction) {
+    addLog(`🛡 ${def.name} rolls a natural 20 — ${atk.name} misses and ${def.name} earns a free action!`, 'miss');
   } else {
     addLog(`${atk.name} misses ${def.name}. (${r.atkRoll} < ${defStr})`, 'miss');
   }
@@ -2551,14 +2596,15 @@ export function resumePendingAction(reactAbility) {
       const def = getCombatant(action.defenderId);
       if (atk && def) {
         logAttackResult(atk, def, action.result);
-        if (action.result.hit && !action.result.fumble) {
+        if (action.result.hit) {
           const atkTags = atk.transformedBaseAtk?.tags ?? atk.sourceChar.baseAtk?.tags ?? [];
           const damType = damTypeFromTags(atkTags);
           const ignoreDR = getDomainEffects(atk, { applyOn: 'atkRoll' }).some(e => e.tags?.includes('unblockabled'));
           applyDamage(def, action.result.damage, damType, atkTags, ignoreDR);
+          strikeBack(atk, action.result, damType, atkTags);
           applyHpPerHitPassives(atk);
           if (atkTags.includes('grounded')) removeFlying(def);
-        } else if (!action.result.hit && !action.result.fumble) {
+        } else if (!action.result.hit && !action.result.freeAction) {
           const shadowEffs = getDomainEffects(def, { applyOn: 'atkRoll', foeJustMissed: true });
           if (shadowEffs.length > 0 && shadowEffs[0].dices) {
             const bonus = parseDice(shadowEffs[0].dices).total;
@@ -2566,7 +2612,7 @@ export function resumePendingAction(reactAbility) {
             addLog(`🌑 ${def.name}'s shadows stir — +${bonus} on next attack! (Shadow Counter)`, 'spell');
           }
         }
-        if (action.result.fumble) def.hasCounterAttack = true;
+        if (action.result.freeAction) def.freeActionTarget = atk.id;
       }
 
     } else if (action.type === 'aoe') {
@@ -2665,13 +2711,14 @@ export function resumePendingAction(reactAbility) {
         } else {
           const result = resolveAttack(caster, current, ability.dice, ability);
           logAttackResult(caster, current, result);
-          if (result.hit && !result.fumble && ability.dice) {
+          if (result.hit && ability.dice) {
             const ignoreDR = ignoresDR(caster, ability);
             applyDamage(current, result.damage, damType, ability.tags, ignoreDR);
-            applyMoveEffect(ability, current);
+            strikeBack(caster, result, damType, ability.tags);
+            applyMoveEffect(ability, current, result.guaranteed);
             if (ability.tags?.includes('grounded')) removeFlying(current);
           }
-          if (result.fumble) current.hasCounterAttack = true;
+          if (result.freeAction) current.freeActionTarget = caster.id;
         }
 
         const next = pool
@@ -2719,9 +2766,10 @@ export function resumePendingAction(reactAbility) {
       if (caster && primary) {
         const damType = damTypeFromTags(ability.tags);
         logAttackResult(caster, primary, action.result);
-        if (action.result.fumble) primary.hasCounterAttack = true;
-        if (action.result.hit && !action.result.fumble && ability.dice) {
+        if (action.result.freeAction) primary.freeActionTarget = caster.id;
+        if (action.result.hit && ability.dice) {
           applyDamage(primary, action.result.damage, damType, ability.tags);
+          strikeBack(caster, action.result, damType, ability.tags);
           if (ability.radius > 0) {
             const splashTargets = enemies(caster)
               .filter(t => t.id !== primary.id && blastReaches(primary.x, primary.y, t.x, t.y, ability.radius));
@@ -2741,7 +2789,7 @@ export function resumePendingAction(reactAbility) {
             }
           }
         }
-        applyMoveEffect(ability, primary);
+        applyMoveEffect(ability, primary, action.result.guaranteed);
       }
 
     } else if (action.type === 'ability') {
@@ -2820,17 +2868,18 @@ export function resumePendingAction(reactAbility) {
           updateCombatantCardDOM(target);
         } else {
           logAttackResult(caster, target, action.result);
-          if (action.result.hit && !action.result.fumble) {
+          if (action.result.hit) {
             const damType = damTypeFromTags(ability.tags);
             if (ability.dice && action.result.damage > 0) {
               const ignoreDR = ignoresDR(caster, ability);
               applyDamage(target, action.result.damage, damType, ability.tags, ignoreDR);
+              strikeBack(caster, action.result, damType, ability.tags);
               if (ability.isHeal) applyHeal(caster, String(action.result.damage));
               if (ability.isHeal && ability.slotRegen > 0) restoreSlots(caster, ability.slotRegen, ability.name);
               applyHpPerHitPassives(caster);
               if (ability.tags?.includes('grounded')) removeFlying(target);
             }
-            applyMoveEffect(ability, target);
+            applyMoveEffect(ability, target, action.result.guaranteed);
             if (ability.tags?.includes('pull') && !target.isKO) pullTarget(caster, target);
             if (ability.tags?.includes('disv_next') && pushStatus(target, { name: 'disadvantage', turnsLeft: 2, uses: 1 })) {
               addLog(`⬇ ${target.name} is weighed down — next d20 at disadvantage!`, 'status');
@@ -2839,7 +2888,7 @@ export function resumePendingAction(reactAbility) {
               addLog(`🎭 ${caster.name} seizes ${target.name}'s shadow — they decide what ${target.name} does next turn!`, 'spell');
             }
             if (ability.tags?.includes('execute')) executeStrike(caster, target, ability);
-          } else if (!action.result.hit && !action.result.fumble) {
+          } else if (!action.result.hit && !action.result.freeAction) {
             const shadowEffs = getDomainEffects(target, { applyOn: 'atkRoll', foeJustMissed: true });
             if (shadowEffs.length > 0 && shadowEffs[0].dices) {
               const bonus = parseDice(shadowEffs[0].dices).total;
@@ -2847,7 +2896,7 @@ export function resumePendingAction(reactAbility) {
               addLog(`🌑 ${target.name}'s shadows stir — +${bonus} on next attack! (Shadow Counter)`, 'spell');
             }
           }
-          if (action.result.fumble) target.hasCounterAttack = true;
+          if (action.result.freeAction) target.freeActionTarget = caster.id;
         }
       }
     }
@@ -2857,26 +2906,151 @@ export function resumePendingAction(reactAbility) {
   const winner = checkVictory();
   if (winner !== null) { endCombat(winner); return; }
 
-  // ── Counter-attack from fumble ─────────────────────────────────────────
-  const prevActive = activeCombatant();
-  const counter    = S.combatants.find(c => c.hasCounterAttack && !c.isKO);
-  if (counter) {
-    counter.hasCounterAttack = false;
-    const counterTarget = prevActive;
-    // A counter-attack is a melee swing: it needs the attacker within reach, like any basic attack
-    const canReach = !S.currentMap || !counterTarget || targetInRange(counter, counterTarget, null).inRange;
-    if (canReach) addLog(`⚡ ${counter.name} gets a free counter-attack!`, 'crit');
-    else addLog(`⚡ ${counter.name} could counter-attack, but ${counterTarget.name} is out of reach.`, 'info');
-    if (canReach && counterTarget && !counterTarget.isKO) {
-      freeAttack(counter, counterTarget);
+  // The action is over; anyone it earned a free action answers before the turn moves on
+  concludeAction(!!(action.ability?.isInstant));
+}
+
+// Victory check, then the free actions, then the next turn (an instant move leaves the turn open)
+function concludeAction(instant) {
+  const winner = checkVictory();
+  if (winner !== null) { endCombat(winner); return; }
+
+  if (runFreeActions(instant)) return;   // waiting on a person
+  const winner2 = checkVictory();
+  if (winner2 !== null) { endCombat(winner2); return; }
+
+  if (instant && !S.hasActed) { R.renderCombatScreen(); return; }
+  advanceTurn();
+}
+
+// ── Free actions ───────────────────────────────────────────────────────────
+// A fumbling foe, or a natural 20 defense, leaves the defender one free action against the attacker:
+// dash in and strike, do nothing, or cast a spell at them. It sits outside the turn order.
+
+const asksPerson = c => S.promptFreeAction || (!headless && S.aiTeam !== c.teamIndex);
+
+// Can `actor` dash next to `foe` and strike? (A map-less fight always can.)
+function canDashStrike(actor, foe) {
+  if (!S.currentMap) return true;
+  if (targetInRange(actor, foe, null).inRange) return true;
+  const speed = moveSpeed(actor);
+  if (chebyshev(actor, foe) > speed + MELEE_RANGE) return false;
+  const cell = freeCellAdjacentTo(foe, actor, actor.id);
+  return !!cell && chebyshev(actor, cell) <= speed && !trappingDomainOwner(actor, cell.x, cell.y);
+}
+
+// The offensive spells `actor` could cast at `foe` right now: single target or area (centred on the foe), in reach
+function freeSpellsFor(actor, foe) {
+  if (hasSilence(actor)) return [];
+  return actor.abilities.filter(ab =>
+    isSpellMove(ab) && ab.targetKind === 'enemy' && ab.dice && !ab.reactOnly && !ab.isBlock && !ab.isInstant
+    && !ab.isCone && !ab.isSplash && !ab.isGate && !ab.isRevive && !ab.isTransform && !ab.isContest && !(ab.maxBounce > 0)
+    && !ab.tags?.some(t => ['dash', 'teleportation', 'pull', 'taunt', 'execute', 'puppet'].includes(t))
+    && abilityAvailable(actor, ab)
+    && (!S.currentMap || (ab.isAoe
+      ? chebyshev(actor, foe) <= (ab.range ?? SPELL_RANGE) && hasLos(actor.x, actor.y, foe.x, foe.y)
+      : targetInRange(actor, foe, ab).inRange)));
+}
+
+export function freeActionOptions(actor, foe) {
+  const options = [{ type: 'attack', ok: canDashStrike(actor, foe) }, { type: 'none', ok: true }];
+  for (const ability of freeSpellsFor(actor, foe)) options.push({ type: 'spell', ok: true, ability });
+  return options;
+}
+
+// What the bot (and a headless fight) does with a free action: strike when it can get there, else let it go
+const autoFreeChoice = (actor, foe) => canDashStrike(actor, foe) ? { type: 'attack' } : { type: 'none' };
+
+function freeSpell(actor, foe, ab) {
+  spendResource(actor, ab);
+  if (ab.cooldownTurns > 0) actor.cooldowns[ab.name] = ab.cooldownTurns + 1;
+  if (ab.isOncePerFight) actor.usedThisFight.push(ab.name);
+  if (ab.maxCharges > 0) {
+    if (actor.remainingCharges[ab.name] == null) actor.remainingCharges[ab.name] = ab.maxCharges;
+    actor.remainingCharges[ab.name]--;
+  }
+  addLog(`⚡ ${actor.name} casts ${ab.name} at ${foe.name} as a free action!`, 'crit');
+  const damType = damTypeFromTags(ab.tags);
+  const ignoreDR = ignoresDR(actor, ab);
+
+  if (ab.isAoe) {
+    // The caster rolls the attack once; everyone in the blast, the foe included, defends against it
+    const hits = S.currentMap ? aoeCombatantHits(ab, actor, foe.x, foe.y) : enemies(actor);
+    const atk = rollAttackD20(actor, ab);
+    addLog(`  🎲 ${actor.name} rolls ${atk.roll.value} to land it`, 'spell');
+    for (const t of hits) {
+      if (t.isKO) continue;
+      const mult = areaDefense(atk, t, actor, ab);
+      if (mult === 0) continue;
+      const rd = parseDice(ab.dice);
+      const dmg = Math.floor(rd.total * mult);
+      addLog(`  ${t.name} is hit for ${dmg} (${rd.breakdown}${mult < 1 ? ' ×½' : ''})`, 'hit');
+      applyDamage(t, dmg, damType, ab.tags, ignoreDR);
+      applyMoveEffect(ab, t);
     }
-    const winner2 = checkVictory();
-    if (winner2 !== null) { endCombat(winner2); return; }
+    return;
   }
 
-  // Instant moves (e.g. Fire Shield) do not use the action: the turn stays open
-  if (action.ability?.isInstant && !S.hasActed) { R.renderCombatScreen(); return; }
-  advanceTurn();
+  const result = resolveAttack(actor, foe, ab.dice, ab);
+  logAttackResult(actor, foe, result);
+  if (result.hit) {
+    applyDamage(foe, result.damage, damType, ab.tags, ignoreDR);
+    strikeBack(actor, result, damType, ab.tags);
+    applyMoveEffect(ab, foe, result.guaranteed);
+    if (ab.isHeal) applyHeal(actor, String(result.damage));
+  }
+  // A free action answering a free action does not chain: it is spent
+}
+
+export function resolveFreeAction(actor, foe, choice) {
+  if (!actor || !foe || actor.isKO || foe.isKO) return;
+  const ctrl = hasControlEffect(actor);
+  if (ctrl) { addLog(`⚡ ${actor.name} is ${ctrl.name} and cannot use the free action.`, 'info'); return; }
+
+  if (choice?.type === 'attack') {
+    if (!canDashStrike(actor, foe)) { addLog(`⚡ ${actor.name} cannot reach ${foe.name} for the free action.`, 'info'); return; }
+    addLog(`⚡ ${actor.name} takes a free action against ${foe.name}!`, 'crit');
+    dashToward(actor, foe);
+    freeAttack(actor, foe);
+    return;
+  }
+  if (choice?.type === 'spell') {
+    const ab = freeSpellsFor(actor, foe).find(a => a.name === choice.abilityName);
+    if (ab) { freeSpell(actor, foe, ab); return; }
+    addLog(`⚡ ${actor.name} cannot cast ${choice.abilityName} now.`, 'info');
+    return;
+  }
+  addLog(`⚡ ${actor.name} lets the opening pass.`, 'info');
+}
+
+// Plays every free action that is owed. Returns true when it stopped to ask a person.
+function runFreeActions(instant) {
+  for (let guard = 0; guard < S.combatants.length * 2; guard++) {
+    const actor = S.combatants.find(c => c.freeActionTarget != null);
+    if (!actor) return false;
+    const foe = getCombatant(actor.freeActionTarget);
+    actor.freeActionTarget = null;
+    if (actor.isKO || !foe || foe.isKO) continue;
+    if (asksPerson(actor)) {
+      S.awaitingFree = { actorId: actor.id, targetId: foe.id, instant };
+      R.renderFreeActionOverlay();
+      return true;
+    }
+    resolveFreeAction(actor, foe, autoFreeChoice(actor, foe));
+    const w = checkVictory();
+    if (w !== null) { endCombat(w); return true; }
+  }
+  return false;
+}
+
+// The person's answer to the free-action prompt: { type: 'attack' | 'none' } or { type: 'spell', abilityName }
+export function handleFreeAction(choice) {
+  const pending = S.awaitingFree;
+  if (!pending) return;
+  S.awaitingFree = null;
+  if (!headless) document.getElementById('free-overlay')?.remove();
+  resolveFreeAction(getCombatant(pending.actorId), getCombatant(pending.targetId), choice);
+  concludeAction(pending.instant);
 }
 
 // ── §11  Turn Flow ─────────────────────────────────────────────────────────

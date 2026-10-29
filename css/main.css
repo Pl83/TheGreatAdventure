@@ -3297,6 +3297,9 @@ header.nav-open .nav-toggle span:nth-child(3) { transform: translateY(-9px) rota
 .react-yes-btn:hover { background: var(--tga-crimson); }
 .react-no-btn { background: transparent; color: var(--rx-text); border: 1px solid var(--rx-soft); }
 .react-no-btn:hover { background: var(--tga-ink-2); }
+.react-yes-btn:disabled { opacity: .45; cursor: not-allowed; }
+.free-options { margin-top: var(--tga-s-4); }
+.free-spell-btn { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; }
 
 /* =============================================================================
    7 · VICTORY

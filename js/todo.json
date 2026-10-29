@@ -150,6 +150,28 @@
       "detail": "Runik Sea Bound should roll with advantage when the field is wet, and its stun and root should each be a 1d2 chance. The spell has no attack roll in the engine (it deals no damage), so there is nothing to give advantage to, and both statuses always land."
     },
     {
+      "id": "bug-crit-rules", "resolution": "Implemented as specified for single-target blows (basic attacks, single-target moves, bounces, the primary target of a splash). Nat 1 vs nat 1: the blow is rolled and both take half. Nat 1 vs anything else, or a nat 20 defense against an ordinary roll: the attack fails and the defender earns a free action. Nat 20 vs nat 20: a plain hit. Nat 20 vs nat 1: dice x4, and a nat 20 vs an ordinary roll or an ordinary roll vs a nat 1: dice x2; the flat part is not multiplied and 1d2 riders are certain on these hits. A sure-hit still lands on a nat 20 defense. The free action is dash in and strike, do nothing, or cast a spell at the attacker (a single-target spell is one attack roll against them; an area spell is centred on them with the caster rolling the attack and everyone in the blast rolling defense). A person is asked; the bot and headless fights strike when the dash reaches, else pass. A stunned or frozen unit gets nothing.", "cat": "bugs", "sev": "high",
+      "title": "Crits (nat 20 / nat 1) are frustrating: a nat 20 does nothing when the foe is out of range",
+      "detail": "Redesign the attack outcome around the attacker's AND the defender's d20. Attacker A hits defender C. (1) nat 1 vs nat 1: damage is rolled and both take half of it. (2) nat 1 vs nat 20: A's attack fails and C gets a free turn to use as they want. (3) nat 20 vs nat 20: a plain hit, no bonus damage. (4) nat 20 vs nat 1: a hit with bonus: 1d2 effects are guaranteed and every damage die is quadrupled (1d6 becomes 4d6). (5) nat 1 vs an ordinary roll: A misses and C may dash to A and make a normal attack, do nothing, or cast a spell. (6) ordinary roll vs nat 1: a hit with bonus: 1d2 effects guaranteed and damage dice doubled (1d6 becomes 2d6). (7) nat 20 vs an ordinary roll: same bonus as (6). (8) ordinary roll vs nat 20: A misses and C gets the same free action as (5). If C answers with a spell, C must make an attack roll, always against A; if the spell is an area, C rolls the attack and A's allies caught in it roll the defence.",
+      "evidence": "Today resolveAttack (combat-logic.js:1896) lets a nat 20 hit and a nat 1 miss whatever the defender rolled, and a crit only pays off when the target is in reach. Open points to settle before building: how the free action fits the turn order, whether it consumes C's own turn, and whether the 'ordinary roll' cases need a threshold.",
+      "where": "combat-logic.js · resolveAttack, rollAttackD20, areaDefense, reaction flow; js/ai/* must learn the free action"
+    },
+    {
+      "id": "mech-crit-areas", "cat": "mechanics", "sev": "med",
+      "title": "Crits do not reach area moves",
+      "detail": "The new nat 20 / nat 1 matrix only governs single-target blows. Area, cone and splash-bystander moves still use the old rule: the caster's nat 20 is a full-damage hit, defenders roll against it, and a caster's nat 1 does nothing special. No bonus dice, no free action for a nat 20 defender, no mutual fumble."
+    },
+    {
+      "id": "mech-free-spell-react", "cat": "mechanics", "sev": "low",
+      "title": "Free-action spells give the target no react",
+      "detail": "A spell cast as a free action resolves at once: the attacked unit is not offered a react (Phoenix Shroud, shields, reflects), and a pre-armed shield does not stop it. It also never chains into another free action."
+    },
+    {
+      "id": "mech-free-bot-spell", "cat": "mechanics", "sev": "low",
+      "title": "The bot never casts a spell on a free action",
+      "detail": "The bot (and headless fights) strike when the dash reaches and otherwise pass; they never choose a spell, and do not weigh striking against a spell or against doing nothing."
+    },
+    {
       "id": "mech-disv-riders", "cat": "mechanics", "sev": "med",
       "title": "Disadvantage riders (disv tag)", "who": "Eragon, Meï, Vorrakan Duskbane, Morrow, Cole Climber, Jay",
       "detail": "Moves tagged disv should leave their targets rolling with disadvantage: Ice Coffin (next saving throw), Field of Corruption (1d2 turns on attacks), Earthquake, Wind Tornado, Quake Wave, and Azure Dragon Roar (\"disadvantage on foe rolls for 1 turn\"). They only deal their damage. Smoke Screen and Gravity Up are the only moves that apply disadvantage today.",

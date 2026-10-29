@@ -43,6 +43,7 @@ export function loadAiTeam() {
 /** Who has to decide now: 'react' (a prompt for a bot unit), 'turn' (a bot unit is up), or null. */
 export function pendingAiDecision() {
   if (S.aiTeam === null || S.aiTeam === undefined || S.phase !== 'combat' || S.teleportMode) return null;
+  if (S.awaitingFree) return null;   // a person is choosing a free action
   if (S.awaitingReact) {
     const reactor = getCombatant(S.reactOptions[0]?.combatantId);
     return reactor && reactor.teamIndex === S.aiTeam ? 'react' : null;
