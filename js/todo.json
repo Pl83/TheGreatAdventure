@@ -184,6 +184,26 @@
       "where": "characters.json · Mei, Field of Corruption"
     },
     {
+      "id": "mech-dots-rework", "cat": "mechanics", "sev": "low",
+      "title": "Damage-over-time rework (resolved)", "who": "all",
+      "resolution": "Implemented in the engine, the status table and the data renames (Roses, Kaelgrym, Swamp Tribe, Field of Corruption).", "detail": "Done: Toxic is now Poison and Toxic shock is Toxic; Calcinated (2d4 fire) is added. Burn, Poison and Bleed last 3 turns, Calcinated, Toxic and Hemoragie 5. Burn, Poison, Calcinated and Toxic hurt at the start of each turn; Bleed costs its dice once per move, Hemoragie per cell walked. Every application is its own copy with its own timer. Wet puts out Burn (not Calcinated). Mecha are immune to Bleed and Hemoragie; an immunity to the basic form covers the upgrade."
+    },
+    {
+      "id": "mech-calcinated-source", "cat": "mechanics", "sev": "low",
+      "title": "No move applies Calcinated yet", "who": "all",
+      "detail": "Calcinated exists as a status but nothing in characters.json inflicts it; the old Burn-upgrade moves still apply plain Burn. Decide which moves should upgrade."
+    },
+    {
+      "id": "mech-para-reacts", "cat": "mechanics", "sev": "low",
+      "title": "A paralysed unit can still react", "who": "all",
+      "detail": "Para, gel, stun and fear make a unit skip its turn, but getReacts still offers it reactions while the status lasts. Root only blocks movement. Decide whether control effects should also forbid reacts."
+    },
+    {
+      "id": "mech-dots-bot", "cat": "mechanics", "sev": "low",
+      "title": "The bot does not value damage over time", "who": "all",
+      "detail": "evaluate.js does not count the damage a Burn, Poison, Bleed or Hemoragie will deal, so it neither prefers nor avoids stacking them, and it walks freely while bleeding."
+    },
+    {
       "id": "mech-field-bot", "cat": "mechanics", "sev": "low",
       "title": "The bot does not understand lingering fields", "who": "Mei",
       "detail": "The bot casts Field of Corruption as if it were an area spell aimed at a foe: it does not value the four turns of exposure, and no unit ever walks out of a field it stands in or avoids walking into one."

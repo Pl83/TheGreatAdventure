@@ -251,13 +251,14 @@ export const capacitis = [
 
 
 export const EFFECTS = [
-    { name: "Burn", dice: "1d4", type: "fire", notes: "fire dam" },
-    { name: "Toxic", dice: "1d4", type: "poison", notes: "poison dam" },
-    { name: "Toxic shock", dice: "2d4", type: "poison", notes: "poison dam" },
+    { name: "Burn", dice: "1d4", type: "fire", notes: "fire dam each turn for 3 turns, put out by wet" },
+    { name: "Calcinated", dice: "2d4", type: "fire", notes: "fire dam each turn for 5 turns" },
+    { name: "Poison", dice: "1d4", type: "poison", notes: "poison dam each turn for 3 turns" },
+    { name: "Toxic", dice: "2d4", type: "poison", notes: "poison dam each turn for 5 turns" },
     { name: "Para", dice: "1d2", type: "—", notes: "unable to move / act" },
     { name: "Gel", dice: "1d2", type: "ice", notes: "unable to move / act" },
-    { name: "Bleed", dice: "1d4", type: "physical", notes: "loose hp each move" },
-    { name: "Hemoragie", dice: "2d4", type: "physical", notes: "loose hp each move" },
+    { name: "Bleed", dice: "1d4", type: "physical", notes: "loose hp once each time it moves, for 3 turns. Mechas are immune" },
+    { name: "Hemoragie", dice: "2d4", type: "physical", notes: "loose hp for each cell it walks, for 5 turns. Mechas are immune" },
     { name: "Silence", dice: "—", type: "holy", notes: "can't cast spell" },
     { name: "Root", dice: "—", type: "—", notes: "can't move from position or use movement ability" },
     { name: "Stun", dice: "—", type: "—", notes: "unable to move / act" },

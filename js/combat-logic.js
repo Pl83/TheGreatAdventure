@@ -170,12 +170,25 @@ export function findEffect(name) {
   return EFFECTS.find(e => e.name.toLowerCase() === n) ?? null;
 }
 
-const TAG_TO_STATUS = { freeze: 'gel', poison: 'toxic' };
-const STATUS_EFFECT_TAGS = ['para','gel','freeze','burn','bleed','stun','root','fear','silence','blind','toxic','poison','wet'];
+const TAG_TO_STATUS = { freeze: 'gel' };
+const STATUS_EFFECT_TAGS = ['para','gel','freeze','burn','calcinated','bleed','hemoragie','stun','root','fear','silence','blind','poison','toxic','wet'];
+
+// Damage over time. Each has a basic and an upgraded form, an immunity to the basic covers the upgrade, and every
+// application is a copy of its own, with its own damage and its own timer.
+//   life: how many of the owner's turns it lasts; `moving` ones hurt when the owner walks, the rest at each turn start
+const DOTS = {
+  burn:       { base: 'burn',   life: 3 },
+  calcinated: { base: 'burn',   life: 5 },
+  poison:     { base: 'poison', life: 3 },
+  toxic:      { base: 'poison', life: 5 },
+  bleed:      { base: 'bleed',  life: 3, moving: 'once' },
+  hemoragie:  { base: 'bleed',  life: 5, moving: 'cell' },
+};
+const TICKING_DOTS = Object.keys(DOTS).filter(n => !DOTS[n].moving);
 // Statuses that last longer than the default (turnsLeft counts the owner's turns plus one)
 const STATUS_TURNS = { wet: 3 };
 // A status and the tag it is applied from are interchangeable for immunity checks
-const STATUS_ALIASES = { gel: 'freeze', freeze: 'gel', toxic: 'poison', poison: 'toxic' };
+const STATUS_ALIASES = { gel: 'freeze', freeze: 'gel' };
 // Self/ally buffs are never blocked by a "status" immunity
 const BENEFICIAL_STATUSES = ['regen', 'regeneration', 'domain regen', 'water_shield', 'fly'];
 // Physical/elemental damage types. Delivery tags such as "magic" and "runik" are not types.
@@ -808,6 +821,16 @@ export function exitMoveMode() {
   drawMap();
 }
 
+// Walking opens wounds: every Bleed costs its dice once for the move, every Hemoragie for each cell walked
+function bleedFromMoving(c, cells) {
+  for (const e of [...c.statusEffects]) {
+    const dot = DOTS[e.name.toLowerCase()];
+    if (!dot?.moving || c.isKO) continue;
+    const dealt = applyDamage(c, parseDice(e.dice, { diceMult: dot.moving === 'cell' ? cells : 1 }).total, e.damType);
+    if (dealt > 0) addLog(`🩸 ${c.name} bleeds ${dealt} ${e.damType} from ${e.name}${dot.moving === 'cell' ? ` (${cells} cells)` : ''}.`, 'status');
+  }
+}
+
 export function handleMoveClick(gx, gy) {
   if (!S.moveMode) return;
   const c = activeCombatant();
@@ -828,9 +851,11 @@ export function handleMoveClick(gx, gy) {
     }
   }
   addLog(`${c.name} moves to (${gx}, ${gy}).`, 'info');
+  const cells = S.reachableCells.get(key) ?? chebyshev(c, { x: gx, y: gy });
   c.x = gx; c.y = gy;
   S.hasMoved = true;
   exitMoveMode();
+  bleedFromMoving(c, cells);
   R.renderCombatScreen();
 }
 
@@ -1367,8 +1392,13 @@ export function applyStatus(combatant, effectStr, defaultTurns = 2) {
         addLog(`🛡 ${combatant.name} is immune to all status effects!`, 'info');
         continue;
       }
-      if (immunities.includes(key) || (STATUS_ALIASES[key] && immunities.includes(STATUS_ALIASES[key]))) {
+      if (immunities.includes(key) || (STATUS_ALIASES[key] && immunities.includes(STATUS_ALIASES[key]))
+          || (DOTS[key] && immunities.includes(DOTS[key].base))) {
         addLog(`🛡 ${combatant.name} is immune to ${effName}!`, 'info');
+        continue;
+      }
+      if (DOTS[key]?.base === 'bleed' && unitHasTag(combatant, 'mecha')) {
+        addLog(`🛡 ${combatant.name} is a machine and cannot ${key === 'bleed' ? 'bleed' : 'haemorrhage'}!`, 'info');
         continue;
       }
     }
@@ -1380,10 +1410,19 @@ export function applyStatus(combatant, effectStr, defaultTurns = 2) {
         continue;
       }
     }
-    const turns = STATUS_TURNS[key] ?? defaultTurns;
+    // A damage over time lasts its own number of turns; the ones that hurt on a move need one more for the last turn's walk
+    const dot   = DOTS[key];
+    const turns = dot ? dot.life + (dot.moving ? 1 : 0) : (STATUS_TURNS[key] ?? defaultTurns);
 
     const eff      = findEffect(effName);
-    const existing = combatant.statusEffects.find(e => e.name.toLowerCase() === key);
+    const existing = dot ? null : combatant.statusEffects.find(e => e.name.toLowerCase() === key);
+    if (key === 'wet') {
+      const fire = combatant.statusEffects.filter(e => e.name.toLowerCase() === 'burn');
+      if (fire.length) {
+        combatant.statusEffects = combatant.statusEffects.filter(e => !fire.includes(e));
+        addLog(`💧 The water puts out ${combatant.name}'s burning.`, 'status');
+      }
+    }
     if (existing) {
       existing.turnsLeft = Math.max(existing.turnsLeft, turns);
     } else {
@@ -1400,13 +1439,12 @@ export function applyStatus(combatant, effectStr, defaultTurns = 2) {
 }
 
 export function tickTurn(c) {
-  const dotNames  = ['burn', 'toxic', 'toxic shock', 'bleed', 'hemoragie'];
   const regenNames = ['regen', 'domain regen', 'regeneration'];
   const expired   = [];
 
   for (const eff of c.statusEffects) {
     const n = eff.name.toLowerCase();
-    if (dotNames.includes(n) && eff.dice && eff.dice !== '—') {
+    if (TICKING_DOTS.includes(n) && eff.dice && eff.dice !== '—') {
       const r = parseDice(eff.dice);
       const dealt = applyDamage(c, r.total, eff.damType);
       if (dealt > 0) addLog(`${c.name} takes ${dealt} ${eff.damType} from ${eff.name}. (${r.breakdown})`, 'status');
@@ -1416,10 +1454,10 @@ export function tickTurn(c) {
       applyHeal(c, eff.dice);
     }
     eff.turnsLeft--;
-    if (eff.turnsLeft <= 0) expired.push(eff.name);
+    if (eff.turnsLeft <= 0) expired.push(eff);
   }
-  c.statusEffects = c.statusEffects.filter(e => !expired.includes(e.name));
-  for (const n of expired) addLog(`${c.name}'s ${n} wears off.`, 'info');
+  c.statusEffects = c.statusEffects.filter(e => !expired.includes(e));
+  for (const e of expired) addLog(`${c.name}'s ${e.name} wears off.`, 'info');
 
   if (c.kiRegen > 0 && c.ki < c.maxKi) c.ki = Math.min(c.maxKi, c.ki + c.kiRegen);
 
@@ -1445,7 +1483,7 @@ export function removeFlying(target) {
   }
 }
 
-const NEGATIVE_STATUSES = ['para','gel','freeze','burn','bleed','stun','root','fear','silence','blind','toxic','poison'];
+const NEGATIVE_STATUSES = ['para','gel','freeze','burn','calcinated','bleed','hemoragie','stun','root','fear','silence','blind','toxic','poison'];
 const isDebuff = e => NEGATIVE_STATUSES.some(n => e.name.toLowerCase().includes(n));
 
 // Lifts one debuff (the first it finds), the way Phoenix Grace does

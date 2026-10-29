@@ -21,7 +21,7 @@ export const root = document.getElementById('combat-root');
 
 export function statusEmoji(name) {
   const n = name.toLowerCase();
-  if (n.includes('burn'))                                         return '🔥';
+  if (n.includes('burn') || n.includes('calcin'))                                      return '🔥';
   if (n.includes('toxic') || n.includes('poison'))               return '🧪';
   if (n.includes('bleed') || n.includes('hemo'))                 return '🩸';
   if (['para','stun','cocoon','fear'].some(k => n.includes(k)))  return '⚡';

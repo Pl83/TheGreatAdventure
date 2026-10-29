@@ -943,7 +943,7 @@
     "kiRegen": 0,
     "speed": 6,
     "autority": 0,
-    "immunities": ["toxic", "freeze", "wet"],
+    "immunities": ["poison", "freeze", "wet"],
     "baseAtk": { "nom": "Sword", "dices": "1d8+2", "tags": ["physical"] },
     "passif": [
       { "nom": "Survivalist", "dices": "+2", "tags": ["buff"], "applyOn": ["constRoll", "percepRoll", "deceptionRoll"] },
@@ -1137,7 +1137,7 @@
       {
         "category": "Art",
         "base": { "nom": "Field of Corruption", "tags": ["disv", "field"] },
-        "field": { "turns": 5, "effect": "1d2 para, 1d2 toxic, 1d2 burn, 1d2 bleed" },
+        "field": { "turns": 5, "effect": "1d2 para, 1d2 poison, 1d2 burn, 1d2 bleed" },
         "inflicts": { "status": "hindered_atk", "turns": 2, "chance": 0.5 },
         "target": "aoe", "range": 6, "radius": 4,
         "description": "A field that lasts 5 turns. Each turn, every foe in it has a 1d2 chance of para, of poison, of burn, of bleed and of disadvantage on attacks.",
@@ -1733,7 +1733,7 @@
       },
       {
         "category": "spell",
-        "base": { "nom": "Roses", "dices": "1d6", "tags": ["organic", "root", "toxic"] },
+        "base": { "nom": "Roses", "dices": "1d6", "tags": ["organic", "root", "poison"] },
         "target": "mono", "range": 8, "spellCost": 1
       },
       {
@@ -1933,7 +1933,7 @@
     "kiRegen": 0,
     "speed": 6,
     "autority": 0,
-    "immunities": ["toxic"],
+    "immunities": ["poison"],
     "baseAtk": {
       "nom": "Swamp Serpent Blade",
       "dices": "1d12+4",

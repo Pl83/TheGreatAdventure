@@ -66,15 +66,15 @@ test('Field of Corruption raises a field that lasts five rounds, costs the ki an
 test('the foes inside meet the field at once, each effect on its own 1d2', async () => {
   const { mei, ras } = await setup(1, ALWAYS);
   cast(mei, ras);
-  for (const name of ['para', 'toxic', 'burn', 'bleed']) assert.ok(has(ras, name), `${name} lands on a 2`);
+  for (const name of ['para', 'poison', 'burn', 'bleed']) assert.ok(has(ras, name), `${name} lands on a 2`);
   const { mei: m2, ras: r2 } = await setup(1, NEVER);
   cast(m2, r2);
-  for (const name of ['para', 'toxic', 'burn', 'bleed']) assert.ok(!has(r2, name), `${name} is resisted on a 1`);
+  for (const name of ['para', 'poison', 'burn', 'bleed']) assert.ok(!has(r2, name), `${name} is resisted on a 1`);
   assert.ok(has(r2, 'hindered_atk'), 'the disadvantage on attacks is its own 1d2');
 });
 
 test('the four effects are independent and each lands about half the time, bleed included', async () => {
-  const seen = { para: 0, toxic: 0, burn: 0, bleed: 0 };
+  const seen = { para: 0, poison: 0, burn: 0, bleed: 0 };
   for (let seed = 1; seed <= 40; seed++) {
     const { mei, ras } = await setup(seed);
     cast(mei, ras);
