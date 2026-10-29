@@ -476,3 +476,40 @@ test('Eragon and Kadgar roll spells with advantage, but not their staff', async 
     assert.equal(advantageLogs(who), 1, `${who}: staff stays flat`);
   }
 });
+
+// ── Hela's Death Presence ──────────────────────────────────────────────────
+
+const disadvantageLogs = who => logText().filter(t => t.includes(`Disadvantage (${who}`)).length;
+
+test('Death Presence: each foe of Hela attacks its first time at disadvantage, then normally', async () => {
+  await newFight({ teamA: ['Hela, Goddess of Death'], teamB: ['Kay Climber', 'Meï'], seed: 1 });
+  const hela = byName('Hela'), kay = byName('Kay Climber'), mei = byName('Meï');
+  L.resolveAttack(kay, hela, null);
+  assert.equal(disadvantageLogs('Kay Climber'), 1, 'first attack');
+  L.resolveAttack(kay, hela, null);
+  L.resolveAttack(kay, hela, null);
+  assert.equal(disadvantageLogs('Kay Climber'), 1, 'later attacks are normal');
+  L.resolveAttack(mei, hela, null);
+  assert.equal(disadvantageLogs('Meï'), 1, 'every foe has its own first attack');
+});
+
+test('Death Presence only touches Hela\'s foes, and ends with her', async () => {
+  await newFight({ teamA: ['Hela, Goddess of Death', 'Meï'], teamB: ['Kay Climber'], seed: 1 });
+  const hela = byName('Hela'), mei = byName('Meï'), kay = byName('Kay Climber');
+  L.resolveAttack(mei, kay, null);
+  assert.equal(disadvantageLogs('Meï'), 0, 'her ally');
+  L.resolveAttack(hela, kay, null);
+  assert.equal(disadvantageLogs('Hela'), 0, 'Hela herself');
+  hela.isKO = true;
+  L.resolveAttack(kay, mei, null);
+  assert.equal(disadvantageLogs('Kay Climber'), 0, 'a fallen Hela spreads no dread');
+});
+
+test('Death Presence and advantage cancel out on the first attack', async () => {
+  await newFight({ teamA: ['Hela, Goddess of Death'], teamB: ['White'], seed: 1 });
+  const hela = byName('Hela'), white = byName('White');
+  L.resolveAttack(white, hela, null);
+  assert.equal(disadvantageLogs('White') + advantageLogs('White'), 0, 'one die, no pick');
+  L.resolveAttack(white, hela, null);
+  assert.equal(advantageLogs('White'), 1, 'advantage is back from the second attack');
+});

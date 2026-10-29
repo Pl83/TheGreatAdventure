@@ -2195,7 +2195,7 @@
     "passif": [
       { "nom": "True Weapon Goddess", "tags": ["buff", "adv"], "applyOn": ["atkRoll"], "description": "Advantage on ALL attack rolls." },
       { "nom": "Anti-Magic", "tags": ["buff"], "applyOn": [], "description": "Immune to magic/status below Authority 8. In immunities[]." },
-      { "nom": "Death Presence", "tags": ["debuff"], "applyOn": [], "description": "All foes have disadvantage on their first attack each fight." },
+      { "nom": "Death Presence", "tags": ["debuff", "firstAttackDisadvantage"], "applyOn": [], "description": "All foes have disadvantage on their first attack each fight." },
       { "nom": "Undying Queen", "dices": "20", "tags": ["regen", "buff"], "applyOn": ["hpPerTurn"], "description": "Heal 20 HP each turn. Resurrection active." }
     ],
     "moveSet": [

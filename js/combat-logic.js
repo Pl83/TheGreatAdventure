@@ -278,6 +278,7 @@ export function buildCombatant(char, teamIndex, id) {
     domainActive:     false,
     domainCharges:    char.domain ? Math.max(1, Math.floor((char.domain.rafinement ?? 0) / 3)) : 0,
     shadowCounterBonus: 0,
+    attacked: false,   // has made its first attack roll of the fight (Death Presence)
     stacks: {},   // stacking passives (Relentless Warrior): passive name -> stacks gained this fight
     x: 0,
     y: 0,
@@ -1484,6 +1485,9 @@ function passiveAdvantage(owner, applyOn, other, ability) {
   });
 }
 
+// Hela's Death Presence: a living fighter with the passive makes every foe's first attack of the fight clumsy
+const dreadsFirstAttack = c => livingCombatants(1 - c.teamIndex).some(h => h.sourceChar.passif?.some(p => p.tags?.includes('firstAttackDisadvantage')));
+
 // White's Sword of Space: his attacks have no range limit, and walls only matter beyond this distance
 const SPACE_SIGHT = 10;
 const attacksFromAnywhere = c => !!c.sourceChar.passif?.some(p => p.tags?.includes('anyRange'));
@@ -1523,11 +1527,11 @@ function pushStatus(c, eff, beneficial = false) {
 
 // A d20 for one of the combatant's own attack or defense rolls. Advantage and disadvantage cancel out;
 // Gravity's one-shot statuses are spent by the roll, Smoke Screen's disadvantage lasts.
-function rollD20For(c, baseAdv = false) {
+function rollD20For(c, baseAdv = false, baseDis = false) {
   const advEff = c.statusEffects.find(e => e.name === 'advantage');
   const disEff = c.statusEffects.find(e => e.name === 'disadvantage');
   const adv = baseAdv || !!advEff;
-  const dis = !!disEff || c.statusEffects.some(e => e.name === 'smoke_screen');
+  const dis = baseDis || !!disEff || c.statusEffects.some(e => e.name === 'smoke_screen');
   for (const e of [advEff, disEff]) {
     if (e && --e.uses <= 0) c.statusEffects = c.statusEffects.filter(x => x !== e);
   }
@@ -1641,7 +1645,11 @@ function rollAttackD20(attacker, ability, defender = null) {
   }
   const sureHit = !!armed || domainAtkEffs.some(e => e.tags?.includes('undodgeable')) || !!ability?.tags?.includes('undodgeable');
 
-  return { roll: rollD20For(attacker, adv), sureHit };
+  const dread = !attacker.attacked && dreadsFirstAttack(attacker);
+  attacker.attacked = true;
+  if (dread) addLog(`💀 Death Presence — ${attacker.name}'s first attack is made at disadvantage.`, 'info');
+
+  return { roll: rollD20For(attacker, adv, dread), sureHit };
 }
 
 export function defenseBonus(defender, attacker, ability) {
