@@ -24,6 +24,16 @@ export const WEIGHTS = Object.freeze({
 // The engagement term never weighs more than a third of a win, at any round
 const ENGAGE_MAX = WEIGHTS.win / 3;
 
+// The weights every score below reads. A brain may decide with its own set (withWeights, used by the tuner to play
+// two sets against each other); `win` always stays WEIGHTS.win, so the scale of a score never moves.
+let active = WEIGHTS;
+export function withWeights(w, fn) {
+  const before = active;
+  active = w;
+  try { return fn(); } finally { active = before; }
+}
+export const TUNABLE = Object.freeze(Object.keys(WEIGHTS).filter(k => k !== 'win'));
+
 // A position that is not over scores strictly between a loss and a win, whatever the roster or the round:
 // a rollout that wiped a side always ranks beyond every rollout that did not
 export const bounded = v => Math.max(1 - WEIGHTS.win, Math.min(WEIGHTS.win - 1, v));
@@ -79,13 +89,13 @@ export function engagement(teamIndex, foes = null) {
     }
     gaps += Math.min(MAX_GAP, Math.max(0, walk - reach(c)));
   }
-  const rise = 1 + WEIGHTS.engageRise * S.roundNumber;
-  return -Math.min(ENGAGE_MAX, WEIGHTS.engage * rise * rise * gaps);
+  const rise = 1 + active.engageRise * S.roundNumber;
+  return -Math.min(ENGAGE_MAX, active.engage * rise * rise * gaps);
 }
 
 // Score of one side's living units, from the point of view of the side that owns them
 function side(c) {
-  const W = WEIGHTS;
+  const W = active;
   let v = W.hp * (c.currentHp / c.maxHp) + W.alive;
   if (hasControlEffect(c)) v -= W.control;
   else if (hasEffect(c, 'silence') || hasEffect(c, 'root')) v -= W.hinder;

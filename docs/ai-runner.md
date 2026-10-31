@@ -104,6 +104,46 @@ at the real `DEFAULT_SIMS` (a reduced budget would test a weaker brain than the 
 fights at 60 simulations, determinism one duel at 60, time one duel on a 150 ms clock. It takes under a
 minute; `tests/acceptance.test.mjs` runs it.
 
+## Tuning the weights: `tools/tune.mjs`
+
+```
+node tools/tune.mjs --hours 8            # leave it running; Ctrl+C stops after the current iteration
+node tools/tune.mjs --hours 8            # run it again later: it resumes from tools/.tune/state.json
+node tools/tune.mjs --apply              # write the confirmed best weights into js/ai/evaluate.js
+```
+
+Options: `--hours H` or `--minutes M` (default: until Ctrl+C), `--iterations N`, `--sims N` (default 150
+simulations per decision, lighter than the shipped `DEFAULT_SIMS`, so iterations are quick), `--matchups N`
+(default 6 per iteration), `--workers N`, `--check-every N` (default 10), `--confirm N` (default 40 matchups),
+`--seed N`, `--dir PATH` (state and log, default `tools/.tune/`, ignored by git), `--fresh` (forget the state).
+
+It needs no model, no network and no tokens: only the fights, on worker threads. The search is SPSA played as
+head-to-head matches.
+
+- **Iteration.** A random direction in log-weight space gives two neighbouring sets of the eight tuned weights
+  (`win` is the scale of a score and stays fixed), + and -. They play `--matchups` random matchups, teams of 1, 2
+  and 3 drawn from the whole roster, on the three maps in turn, each matchup in both seatings so that a lopsided
+  matchup cannot favour either set. The weights then move toward the winner by a step that shrinks over time, and
+  never stray further than a factor of 10 from where the run started.
+- **Check.** Every `--check-every` iterations the current weights play the starting weights on fresh fights;
+  the best check so far is kept as `best`.
+- **Confirm.** At the end `best` plays the starting weights again on seeds nothing else used, and the win rate is
+  printed with its 95% interval. `--apply` writes `best` into the `WEIGHTS` block of `evaluate.js` only if the
+  interval's lower bound is above 50% (`--force` overrides). After an apply, run `node tools/acceptance.mjs`:
+  its strength seeds (101-104) are held out from the tuner too (tuner seeds start at 10000).
+
+Speed measured on a 12-thread machine, 6 workers, 60 to 150 simulations: six fights take 1 to 7 seconds
+(1v1 to 3v3), so an iteration of 12 fights takes roughly 15 to 25 seconds, about 1,500 iterations in 8 hours.
+
+Reading the log (`tools/.tune/log.txt`): `iter N  + scored a/b  r +0.25` is how the + set did against the - set
+(r runs from -1 to +1; it hovers near 0 once the weights settle, which is the point); `check` lines are the
+progress that matters. A noisy run may show a good check followed by a bad one: only the confirmation counts.
+Weights that were tuned for one roster may not suit another: the tuner draws teams at random for that reason.
+
+Under the hood a brain takes its own weights (`createBrain({ weights })`, `withWeights` in `evaluate.js`), a
+fight job takes `weights: [seat 0, seat 1]`, and the pure parts of the tuner live in `tools/tune-lib.mjs`
+(tested by `tests/tune.test.mjs`).
+
 ## How the brain works
 
 **Look-ahead on the real engine.** On its turn the active unit's candidate plans are enumerated

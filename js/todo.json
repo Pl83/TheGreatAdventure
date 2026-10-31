@@ -358,6 +358,11 @@
       "id": "mech-doors-bot", "cat": "mechanics", "sev": "low",
       "title": "The bot ignores closed doors",
       "detail": "The bot never opens or breaks a door, and its area casts carry no centre, so they do not wear doors down. Single-target spells cannot be aimed at a door either. A secret door is drawn grey on the map instead of looking like wall, and a locked door has no key to find."
+    },
+    {
+      "id": "mech-bot-tuner", "resolution": "Implemented: tools/tune.mjs plays two sets of evaluation weights against each other (SPSA, head-to-head, both seatings) on random matchups and the three maps, with no model and no tokens. See docs/ai-runner.md.", "cat": "mechanics", "sev": "low",
+      "title": "The bot's weights had to be tuned by hand", "who": "all",
+      "detail": "Tuning the eight evaluation weights meant running fights and editing numbers by hand in a long session."
     }
   ]
 }

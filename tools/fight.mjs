@@ -24,9 +24,9 @@ const bump = (counts, key) => { counts[key] = (counts[key] ?? 0) + 1; };
 // The brain for one seat of one fight: 'greedy', or a fresh 'ai' brain with the given budget. Its seed mixes the
 // fight's seed with the team it plays for, so each fight's decisions replay from its seed and two ai seats in
 // the same fight never share a lookahead stream.
-export function makeBrain(kind, budget, seed, team) {
+export function makeBrain(kind, budget, seed, team, weights) {
   if (kind !== 'ai') return greedyBrain;
-  return createBrain({ budget, seed: (Math.imul(seed, 0x9E3779B1) ^ Math.imul(team + 1, 0x85EBCA77)) >>> 0 });
+  return createBrain({ budget, weights, seed: (Math.imul(seed, 0x9E3779B1) ^ Math.imul(team + 1, 0x85EBCA77)) >>> 0 });
 }
 
 export async function playFight({ teamA, teamB, seed, map, brains, maxRounds = 40 }) {

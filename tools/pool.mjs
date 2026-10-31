@@ -1,6 +1,7 @@
 // Development-only: plays a list of fights on worker threads and returns their results in the list's order.
 // Every fight is seeded, so the results do not depend on how many workers share the list.
-//   Job = { teamA, teamB, seed, map?, maxRounds?, kinds: ['ai'|'greedy', 'ai'|'greedy'], budget, teams?: [i, j] }
+//   Job = { teamA, teamB, seed, map?, maxRounds?, kinds: ['ai'|'greedy', 'ai'|'greedy'], budget, teams?: [i, j], weights?: [w, w] }
+//   (weights: the evaluation weights each seat's ai brain judges with; omitted, the shipped WEIGHTS)
 //   (teams: the named team each seat plays, for the brain seeds; defaults to the seats)
 import { Worker } from 'node:worker_threads';
 import { availableParallelism } from 'node:os';

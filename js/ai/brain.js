@@ -6,6 +6,7 @@ import { S, activeCombatant, getCombatant } from '../combat-logic.js';
 import { search, simulateReact, resolveBudget, sampleSeed, deadlineOf } from './search.js';
 import { greedyTurn, greedyReact } from './greedy.js';
 import { enumerateReacts } from './candidates.js';
+import { WEIGHTS, withWeights } from './evaluate.js';
 
 export const DEFAULT_SIMS = 500;
 
@@ -41,8 +42,11 @@ export function chooseReact(teamIndex, budget = { sims: DEFAULT_SIMS }, seed) {
 
 // A Brain for one fight. With a seed, each decision's search seed comes from the seed and the decision's
 // number, so a brain replays the same decisions on the same fight.
-export function createBrain({ budget = { sims: DEFAULT_SIMS }, seed, onError } = {}) {
+// `weights` (a full or partial set of evaluation weights) makes this brain judge positions its own way
+export function createBrain({ budget = { sims: DEFAULT_SIMS }, seed, onError, weights } = {}) {
   let errors = [], decisions = 0;
+  const own = weights ? { ...WEIGHTS, ...weights } : null;
+  const judging = fn => (own ? withWeights(own, fn) : fn());
   const nextSeed = () => {
     decisions++;
     return seed === undefined ? undefined : (Math.imul(seed >>> 0, 0x85EBCA6B) ^ Math.imul(decisions, 0xC2B2AE35)) >>> 0;
@@ -57,11 +61,11 @@ export function createBrain({ budget = { sims: DEFAULT_SIMS }, seed, onError } =
     }
   };
   return {
-    chooseTurn: teamIndex => guarded('chooseTurn', () => chooseTurn(teamIndex, budget, nextSeed()),
+    chooseTurn: teamIndex => guarded('chooseTurn', () => judging(() => chooseTurn(teamIndex, budget, nextSeed())),
       () => greedyTurn(activeCombatant())),
     // The first option's owner decides for the whole prompt
     chooseReact: () => guarded('chooseReact',
-      () => chooseReact(getCombatant(S.reactOptions[0].combatantId).teamIndex, budget, nextSeed()), greedyReact),
+      () => judging(() => chooseReact(getCombatant(S.reactOptions[0].combatantId).teamIndex, budget, nextSeed())), greedyReact),
     takeErrors: () => { const taken = errors; errors = []; return taken; },
   };
 }
