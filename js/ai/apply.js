@@ -1,11 +1,13 @@
 // Plays a turn plan or a react choice through the real UI handlers, exactly as clicks would.
 //   TurnPlan    = { move: {x,y} | null, action: { type: 'pass' } | { type: 'attack', targetId }
-//                 | { type: 'cast', ability, targetIds, dest? } | { type: 'domain' } | { type: 'transform' } }
+//                 | { type: 'cast', ability, targetIds, center?, dest? } | { type: 'domain' } | { type: 'transform' }
+//                 | { type: 'openDoor', x, y } }
+//   (center: the cell an area spell or a cone is aimed at)
 //   ReactChoice = { combatantId, abilityName, dest? } | null
 import {
   S, getCombatant, activeCombatant, chebyshev,
   enterMoveMode, exitMoveMode, handleMoveClick, handleTeleportClick, exitTeleportMode,
-  handlePass, handleAttack, handleCastAbility, handleActivateDomain, handleTransform,
+  handlePass, handleAttack, handleCastAbility, handleActivateDomain, handleTransform, handleOpenDoor,
   handleReactYes, handleReactNo, resumePendingAction, isHeadless, _R,
 } from '../combat-logic.js';
 
@@ -63,6 +65,7 @@ export function applyPlan(plan) {
       break;
     case 'domain':    handleActivateDomain(c.id); break;
     case 'transform': handleTransform(c.id); break;
+    case 'openDoor':  handleOpenDoor(c.id, a.x, a.y); break;
     default:          reasons.push(`unknown action ${a?.type}`);
   }
 

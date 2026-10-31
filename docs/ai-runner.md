@@ -160,7 +160,11 @@ loses its turn, a wet target, a taunt, a heal) without a list of combos.
 **Evaluation** (`WEIGHTS` in `evaluate.js`), from the scored side's point of view, own minus enemy:
 3 per unit of HP fraction, 1.5 per living unit, 0.8 per unit under a control effect, 0.3 per silenced or
 rooted unit, 0.15 per unspent once-per-fight or charged move, 0.005 per point of average damage in ready
-damage moves. A won fight scores +30 and a lost one -30; every other position is bounded strictly inside
+damage moves, and two terms the tuner started with in `evaluate.js` only later: 2.5 times the fraction of its
+max HP that a unit still has to lose to burn, poison and bleed (a ticking one counts once per turn it has left, a
+bleed once a turn, a haemorrhage three cells a turn; never more than the unit has), and 0.3 per unit a lingering
+field works on and that stands in it, per round the field has left (Meï's fields: her own field of foes is a gain
+for her side and a cost for the other, a field of allies helps the side that cast it). A won fight scores +30 and a lost one -30; every other position is bounded strictly inside
 (-30, 30), so a rollout that wiped a side always ranks beyond one that did not, at any round and for any
 roster, and 30 is still small enough that a rare won sample does not swamp a mean. One term is one-sided: the
 **engagement** penalty, 0.05 per step an own unit must still walk before its longest reach covers the nearest
@@ -168,6 +172,15 @@ foe, multiplied by (1 + 0.25 x round)^2 so standoffs get broken, and capped at 1
 the foes alive when the plan began, so a kill never reads as falling behind) and adds it to the material read
 at the horizon: read at the horizon, it would only reflect the greedy rollout walking everyone in, and two
 brains would wait for each other forever (the first acceptance run had every ai-vs-ai duel stall that way).
+
+**What the candidates know about the map.** Area, cone and field casts carry the cell they are aimed at, so a field
+rises where the plan put it and a blast reaches the doors it should. A unit standing in a field that works
+against it is offered a move out of it, and a hurt one a move into a field of its own side. A closed door beside
+a unit can be opened with its action (`{ type: 'openDoor', x, y }`); when every foe is walled off, one of the
+moves ends beside the closed door nearest to them. The walking distances the evaluation reads are cached per
+set of open doors (`map.doorSig`), since an opened door changes the terrain. Not covered: the bot never breaks a
+door (opening it is always at least as good), never aims a Convert on purpose, and still plays a free action
+without weighing a spell.
 
 **Sampling.** Dice are random, so each plan is sampled several times and averaged. All plans are compared
 under the same sample seeds (common random numbers). The first pass samples every plan once (twice when the

@@ -1,7 +1,7 @@
 // Position evaluation: one number, higher is better for the given team. Reads the live fight state S and
 // changes nothing; no dice are rolled. Built to run thousands of times per search decision, so it makes one
 // pass over the combatants (plus one over the foes per own unit for the engagement term) and allocates little.
-import { S, abilityAvailable, hasControlEffect, MELEE_RANGE, SPELL_RANGE } from '../combat-logic.js';
+import { S, abilityAvailable, hasControlEffect, MELEE_RANGE, SPELL_RANGE, DOTS, inField } from '../combat-logic.js';
 import { avgDice } from './greedy.js';
 import { walkDistance } from './paths.js';
 
@@ -14,6 +14,8 @@ export const WEIGHTS = Object.freeze({
   hinder: 0.3,      // per enemy that is silenced or rooted (own cost the same)
   unspent: 0.15,    // per unspent once-per-fight or charged ability on a living unit (own bonus, enemy malus)
   damage: 0.005,    // per point of average damage in ready damage abilities (own minus enemy)
+  dot: 2.5,         // per fraction of its max HP that a unit still has to lose to burn, poison and bleed (own cost, enemy gain)
+  field: 0.3,       // per unit standing in a lingering field, per round the field has left (own field: gain; foe's: cost)
   engage: 0.05,     // per step an own unit must still walk before its longest reach covers the nearest foe
   engageRise: 0.25, // the engage weight is multiplied by (1 + engageRise * round)^2, so standoffs get broken
   win: 30,          // no living enemy left; the same, negated, when no living own unit is left. Every other
@@ -93,10 +95,40 @@ export function engagement(teamIndex, foes = null) {
   return -Math.min(ENGAGE_MAX, active.engage * rise * rise * gaps);
 }
 
+// The HP a unit is still due to lose to its damage-over-time statuses, as the engine will deal it: a ticking one
+// hurts at the start of each of the owner's turns it has left, a bleed once per move (about one move a turn), a
+// haemorrhage once per cell walked (about three a turn). Never more than the unit has.
+const CELLS_PER_MOVE = 3;
+function pendingDot(c) {
+  let total = 0;
+  for (const e of c.statusEffects) {
+    const dot = DOTS[e.name.toLowerCase()];
+    if (!dot || !e.dice || e.dice === '—') continue;
+    const turns = dot.moving ? Math.max(0, e.turnsLeft - 1) : e.turnsLeft;
+    total += average(e.dice) * turns * (dot.moving === 'cell' ? CELLS_PER_MOVE : 1);
+  }
+  return Math.min(total, c.currentHp);
+}
+
+// Lingering fields, from teamIndex's side: every unit a field works on, standing in it, is worth `field` for each
+// round the field has left. A field of foes works on the caster's enemies, a field of allies on the caster's team.
+function fieldValue(teamIndex) {
+  let v = 0;
+  for (const f of S.fields ?? []) {
+    const sign = f.teamIndex === teamIndex ? 1 : -1;
+    for (const c of S.combatants) {
+      if (c.isKO || (c.teamIndex === f.teamIndex) !== (f.kind === 'allies') || !inField(f, c)) continue;
+      v += sign * active.field * f.roundsLeft;
+    }
+  }
+  return v;
+}
+
 // Score of one side's living units, from the point of view of the side that owns them
 function side(c) {
   const W = active;
   let v = W.hp * (c.currentHp / c.maxHp) + W.alive;
+  if (c.statusEffects.length) v -= W.dot * pendingDot(c) / c.maxHp;
   if (hasControlEffect(c)) v -= W.control;
   else if (hasEffect(c, 'silence') || hasEffect(c, 'root')) v -= W.hinder;
   for (const ab of c.abilities) {
@@ -117,7 +149,7 @@ export function material(teamIndex) {
   }
   if (!foesAlive) return WEIGHTS.win;
   if (!ownAlive) return -WEIGHTS.win;
-  return bounded(mine - theirs);
+  return bounded(mine - theirs + fieldValue(teamIndex));
 }
 
 // The position's score for teamIndex: material, plus the engagement term while the fight goes on

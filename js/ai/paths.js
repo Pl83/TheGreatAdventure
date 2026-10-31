@@ -11,12 +11,16 @@ export function walkMap(x, y) {
 }
 
 // Walking distances depend on the terrain only (units never block a walk), so each map keeps, per source cell,
-// the distance to every cell as an Int16Array indexed y * cols + x (-1: no walk leads there)
+// the distance to every cell as an Int16Array indexed y * cols + x (-1: no walk leads there). An opened door
+// changes the terrain, so a map keeps one table per set of open doors.
 const walkCache = new WeakMap();
 
 function walkArray(map, x, y) {
-  let byCell = walkCache.get(map);
-  if (!byCell) walkCache.set(map, byCell = new Map());
+  let bySig = walkCache.get(map);
+  if (!bySig) walkCache.set(map, bySig = new Map());
+  const sig = map.doorSig ?? '';
+  let byCell = bySig.get(sig);
+  if (!byCell) bySig.set(sig, byCell = new Map());
   const { cols, rows } = map.grid;
   const key = y * cols + x;
   let dist = byCell.get(key);

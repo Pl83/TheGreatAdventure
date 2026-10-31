@@ -199,7 +199,7 @@
       "detail": "Gel, stun and fear (and a turn lost to a para stun) make a unit skip its turn, but getReacts still offers it reactions while the status lasts. Root only blocks movement. Decide whether control effects should also forbid reacts."
     },
     {
-      "id": "mech-dots-bot", "cat": "mechanics", "sev": "low",
+      "id": "mech-dots-bot", "resolution": "Implemented: the evaluation counts the HP a unit still has to lose to burn, poison and bleed (a weight, dot, the tuner can move). A bleed or haemorrhage already costs HP when a plan walks, as the search plays it on the real engine.", "cat": "mechanics", "sev": "low",
       "title": "The bot does not value damage over time", "who": "all",
       "detail": "evaluate.js does not count the damage a Burn, Poison, Bleed or Hemoragie will deal, so it neither prefers nor avoids stacking them, and it walks freely while bleeding."
     },
@@ -216,7 +216,7 @@
       "detail": "Para used to be a plain one-turn skip, the same as gel."
     },
     {
-      "id": "mech-field-bot", "cat": "mechanics", "sev": "low",
+      "id": "mech-field-bot", "resolution": "Implemented: area, cone and field casts carry their aimed cell, so a field rises where the plan puts it; the evaluation values every unit a field works on per round left (a weight, field); a unit in a field against it is offered a move out, a hurt one a move into a field of its side.", "cat": "mechanics", "sev": "low",
       "title": "The bot does not understand lingering fields", "who": "Mei",
       "detail": "The bot casts Field of Corruption as if it were an area spell aimed at a foe, and Field of Flower as a one-shot heal: it does not value the four turns of exposure, and no unit ever walks out of a field it stands in or avoids walking into one."
     },
@@ -355,7 +355,7 @@
       "where": "dungeon-loader.js · buildWalkableGrid, buildMap; combat-logic.js · hasLos, handleOpenDoor, handleAttackDoor"
     },
     {
-      "id": "mech-doors-bot", "cat": "mechanics", "sev": "low",
+      "id": "mech-doors-bot", "resolution": "Implemented: a closed door beside the bot can be opened with its action; when every foe is walled off it walks to the nearest door; area casts carry a centre, so they wear doors down; walking distances are cached per set of open doors. The bot never breaks a door (opening is always at least as good). A secret door is still drawn grey and a locked door has no key.", "cat": "mechanics", "sev": "low",
       "title": "The bot ignores closed doors",
       "detail": "The bot never opens or breaks a door, and its area casts carry no centre, so they do not wear doors down. Single-target spells cannot be aimed at a door either. A secret door is drawn grey on the map instead of looking like wall, and a locked door has no key to find."
     },

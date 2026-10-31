@@ -14,7 +14,7 @@ const names = Array.from({ length: 30 }, (_, i) => `Unit ${i}`);
 
 test('every tuned weight is a positive number and win is not tuned', () => {
   assert.ok(!keys.includes('win'));
-  assert.equal(keys.length, 8);
+  assert.equal(keys.length, 10);
   for (const k of keys) assert.ok(WEIGHTS[k] > 0, k);
 });
 

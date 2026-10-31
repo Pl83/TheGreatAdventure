@@ -92,7 +92,7 @@ const startWeights = Object.fromEntries(TUNABLE.map(k => [k, WEIGHTS[k]]));
 let state = o.fresh ? null : await readState();
 if (state) {
   const same = TUNABLE.every(k => Math.abs(state.start[k] - startWeights[k]) < 1e-9);
-  if (!same) fail('state.json was started from other weights than WEIGHTS in evaluate.js now holds (after an --apply?): use --fresh');
+  if (!same) fail('state.json was started from other weights than WEIGHTS in evaluate.js now holds (an --apply, or weights added since): use --fresh');
 } else {
   state = { start: startWeights, theta: toTheta(startWeights), iter: 0, best: null, seed: o.seed, history: [] };
 }

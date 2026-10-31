@@ -33,7 +33,7 @@ const coneCache = new WeakMap();
 function cachedConeCells(c, ab, dir) {
   let table = coneCache.get(S.currentMap);
   if (!table || table.size > CONE_CACHE_MAX) coneCache.set(S.currentMap, table = new Map());
-  const key = `${c.x},${c.y}>${dir.x},${dir.y}/${ab.range ?? SPELL_RANGE}`;
+  const key = `${S.currentMap.doorSig ?? ''}|${c.x},${c.y}>${dir.x},${dir.y}/${ab.range ?? SPELL_RANGE}`;   // sight changes when a door opens
   let cells = table.get(key);
   if (!cells) table.set(key, cells = coneCells(c, ab, dir));
   return cells;

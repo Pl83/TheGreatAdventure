@@ -4,7 +4,7 @@
 
 // ── §1  Imports ────────────────────────────────────────────────────────────
 import { EFFECTS } from './main.js';
-import { loadManifest, loadMap, cellPxOf, isWalkableG, seesThroughG } from './dungeon-loader.js';
+import { loadManifest, loadMap, cellPxOf, isWalkableG, seesThroughG, indexDoors } from './dungeon-loader.js';
 import { loadRandomMapOrManor } from './random-map.js';
 import { random } from './rng.js';
 
@@ -176,7 +176,7 @@ const STATUS_EFFECT_TAGS = ['para','gel','freeze','burn','calcinated','bleed','h
 // Damage over time. Each has a basic and an upgraded form, an immunity to the basic covers the upgrade, and every
 // application is a copy of its own, with its own damage and its own timer.
 //   life: how many of the owner's turns it lasts; `moving` ones hurt when the owner walks, the rest at each turn start
-const DOTS = {
+export const DOTS = {
   burn:       { base: 'burn',   life: 3 },
   calcinated: { base: 'burn',   life: 5 },
   poison:     { base: 'poison', life: 3 },
@@ -712,6 +712,7 @@ export const doorLabel = d => d.kind === 'portcullis' ? 'portcullis' : `${d.kind
 function swingDoorOpen(door, text) {
   door.open = true;
   door.hp = 0;
+  indexDoors(S.currentMap);
   addLog(text, 'spell');
 }
 
@@ -1804,11 +1805,11 @@ function inflict(ability, target, guaranteed) {
 
 // A lingering area works once per round on each unit of the side it is meant for standing in it (a field of
 // foes hurts the caster's enemies, a field of allies helps the caster's team), from the cast until it fades
-function inField(f, c) {
+export function inField(f, c) {
   return chebyshev(c, { x: f.x, y: f.y }) <= f.radius;
 }
 
-const fieldTouches = (f, c) => (c.teamIndex === f.teamIndex) === (f.kind === 'allies');
+export const fieldTouches = (f, c) => (c.teamIndex === f.teamIndex) === (f.kind === 'allies');
 
 function exposeToField(f, c) {
   if (c.isKO || f.exposed[c.id] === S.roundNumber) return;

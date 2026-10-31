@@ -5,7 +5,7 @@ import {
   S, activeCombatant, getCombatant, bfsReachable, isOccupied, trappingDomainOwner, abilityAvailable,
   targetInRange, aoeCenterValid, aoeCombatantHits, blastReaches, coneCellTargets, tauntSource, targetPool,
   enemies, livingCombatants, koAllies, hasControlEffect, hasSilence, hasLos, chebyshev, activeAllyDomain,
-  MELEE_RANGE, SPELL_RANGE, moveSpeed,
+  MELEE_RANGE, SPELL_RANGE, moveSpeed, closedDoors, fieldTouches, inField,
 } from '../combat-logic.js';
 import { isWalkableG } from '../dungeon-loader.js';
 import { walkDistance } from './paths.js';
@@ -95,6 +95,23 @@ function moveChoices(c, maxMoves, silenced) {
 
   const hereD = toNearest(here);
   add(bestCell(cells, k => { const d = toNearest(k); return d < hereD ? d : Infinity; }));
+
+  // Out of a field that works against c; into one that works for it when it is hurt
+  const against = S.fields.filter(f => fieldTouches(f, c) && f.kind === 'foes');
+  const caught = (x, y) => against.some(f => inField(f, { x, y }));
+  if (caught(c.x, c.y)) add(bestCell(cells, k => { const { x, y } = cellOf(k); return caught(x, y) ? Infinity : toNearest(k); }));
+  const mending = S.fields.filter(f => fieldTouches(f, c) && f.kind === 'allies');
+  if (isHurt(c) && mending.length && !mending.some(f => inField(f, c))) {
+    add(bestCell(cells, k => { const { x, y } = cellOf(k); return mending.some(f => inField(f, { x, y })) && !caught(x, y) ? toNearest(k) : Infinity; }));
+  }
+  // Every foe walled off: go to the closed door nearest to them, to open it
+  if (threats.every(f => walkTo(f, here) === Infinity)) {
+    add(bestCell(cells, k => {
+      const { x, y } = cellOf(k);
+      const doors = closedDoors().filter(d => chebyshev({ x, y }, d) <= 1);
+      return doors.length ? Math.min(...doors.map(d => chebyshev(d, nearest))) : Infinity;
+    }));
+  }
   const [longest, ...shorter] = attackRanges(c, silenced);
   add(atRange(longest));
   add(bestCell(cells, k => {
@@ -110,19 +127,20 @@ function moveChoices(c, maxMoves, silenced) {
 }
 
 // Keeps the target sets no other set contains (hitting fewer of the same foes is dominated)
+// A target set is { ids, center? }: the units it hits, and the cell an area spell or a cone is aimed at
 function maximalSets(sets) {
-  const sorted = [...sets].sort((a, b) => b.length - a.length);
+  const sorted = [...sets].sort((a, b) => b.ids.length - a.ids.length);
   const kept = [];
-  for (const s of sorted) if (!kept.some(k => s.every(id => k.includes(id)))) kept.push(s);
+  for (const s of sorted) if (!kept.some(k => s.ids.every(id => k.ids.includes(id)))) kept.push(s);
   return kept;
 }
 
 // Distinct enemy target sets, keeping those that include the taunter when there is one
 function enemySets(lists, taunter) {
   const byKey = new Map();
-  for (const ids of lists) {
-    if (!ids.length || (taunter && !ids.includes(taunter.id))) continue;
-    byKey.set(ids.join(','), ids);
+  for (const set of lists) {
+    if (!set.ids.length || (taunter && !set.ids.includes(taunter.id))) continue;
+    byKey.set(set.ids.join(','), set);
   }
   return maximalSets(byKey.values());
 }
@@ -153,7 +171,7 @@ function allyAreaSets(c, at, ab) {
   const radius = ab.radius > 0 ? ab.radius : 1;
   const friends = livingCombatants(c.teamIndex).map(a => (a.id === c.id ? at : a));
   if (ab.isHeal && !friends.some(isHurt)) return [];
-  if (!S.currentMap) return [friends.map(a => a.id)];
+  if (!S.currentMap) return [{ ids: friends.map(a => a.id) }];
   const byKey = new Map(), seen = new Set();
   for (const a of friends) {
     for (let x = a.x - radius; x <= a.x + radius; x++) {
@@ -163,7 +181,7 @@ function allyAreaSets(c, at, ab) {
         seen.add(k);
         if (!aoeCenterValid(at, ab, x, y)) continue;
         const hits = friends.filter(t => blastReaches(x, y, t.x, t.y, radius));
-        if (hits.some(t => !ab.isHeal || isHurt(t))) byKey.set(hits.map(t => t.id).join(','), hits.map(t => t.id));
+        if (hits.some(t => !ab.isHeal || isHurt(t))) byKey.set(hits.map(t => t.id).join(','), { ids: hits.map(t => t.id), center: { x, y } });
       }
     }
   }
@@ -173,26 +191,27 @@ function allyAreaSets(c, at, ab) {
 // Every sensible targetIds list for ab cast by c from the cell `at` stands on
 function targetSets(c, at, ab, ctx) {
   const reach = t => t.id === c.id || targetInRange(at, t, ab).inRange;
-  if (ab.isRevive) return koAllies(c.teamIndex).filter(reach).map(t => [t.id]);
+  const solo = t => ({ ids: [t.id] });
+  if (ab.isRevive) return koAllies(c.teamIndex).filter(reach).map(solo);
   if (ab.isAoe && ab.targetKind === 'ally') return allyAreaSets(c, at, ab);
   if (ab.isAoe) {
-    if (!S.currentMap) return enemySets([enemies(c).map(t => t.id)], ctx.taunter);
-    const lists = blastSpots(c, ab, ctx.blasts).filter(s => aoeCenterValid(at, ab, s.x, s.y)).map(s => s.ids);
+    if (!S.currentMap) return enemySets([{ ids: enemies(c).map(t => t.id) }], ctx.taunter);
+    const lists = blastSpots(c, ab, ctx.blasts).filter(s => aoeCenterValid(at, ab, s.x, s.y)).map(s => ({ ids: s.ids, center: { x: s.x, y: s.y } }));
     return enemySets(lists, ctx.taunter);
   }
   if (ab.isCone) {
-    if (!S.currentMap) return enemySets([enemies(c).map(t => t.id)], ctx.taunter);
-    return enemySets(enemies(c).map(f => coneCellTargets(at, ab, f).map(t => t.id)), ctx.taunter);
+    if (!S.currentMap) return enemySets([{ ids: enemies(c).map(t => t.id) }], ctx.taunter);
+    return enemySets(enemies(c).map(f => ({ ids: coneCellTargets(at, ab, f).map(t => t.id), center: { x: f.x, y: f.y } })), ctx.taunter);
   }
-  if (ab.targetKind === 'self') return !ab.isHeal || isHurt(c) ? [[c.id]] : [];
+  if (ab.targetKind === 'self') return !ab.isHeal || isHurt(c) ? [{ ids: [c.id] }] : [];
   if (ab.targetKind === 'ally') {
-    return livingCombatants(c.teamIndex).filter(t => (!ab.isHeal || isHurt(t)) && reach(t)).map(t => [t.id]);
+    return livingCombatants(c.teamIndex).filter(t => (!ab.isHeal || isHurt(t)) && reach(t)).map(solo);
   }
-  const foes = targetPool(c).filter(reach).map(t => [t.id]);
+  const foes = targetPool(c).filter(reach).map(solo);
   if (ab.targetKind !== 'any') return foes;
   // Hybrid bounces also mend: a hurt ally is a fair first target
   const friends = livingCombatants(c.teamIndex).filter(t => t.id !== c.id && isHurt(t) && reach(t));
-  return [...foes, ...friends.map(t => [t.id])];
+  return [...foes, ...friends.map(solo)];
 }
 
 // Cells a teleport from actor may land on, under handleTeleportClick's rules (its own cell excluded)
@@ -280,7 +299,13 @@ export function enumeratePlans(c, { maxMoves = MAX_MOVES } = {}) {
     }
     for (const ab of abilities) {
       if (isTeleport(ab)) continue;
-      for (const targetIds of targetSets(c, at, ab, ctx)) add(move, { type: 'cast', ability: ab.name, targetIds });
+      for (const { ids, center } of targetSets(c, at, ab, ctx)) {
+        add(move, center ? { type: 'cast', ability: ab.name, targetIds: ids, center } : { type: 'cast', ability: ab.name, targetIds: ids });
+      }
+    }
+    // A closed door beside the unit can be opened with the action
+    if (!acted && S.currentMap) {
+      for (const d of closedDoors()) if (chebyshev(at, d) <= MELEE_RANGE) add(move, { type: 'openDoor', x: d.x, y: d.y });
     }
     if (!acted && domainLegal(c)) add(move, { type: 'domain' });
     if (!acted && transformLegal(c)) add(move, { type: 'transform' });

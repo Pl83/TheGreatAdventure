@@ -69,6 +69,8 @@ function closedDoors(doors = [], grid) {
 /** Rebuilds the cell → door lookup; call again whenever map.doors is replaced (a rewound snapshot does). */
 export function indexDoors(map) {
   map.doorAt = new Map(map.doors.map(d => [d.y * map.grid.cols + d.x, d]));
+  // Which doors are open: anything cached about the terrain (walking distances, cones) is only good for one value
+  map.doorSig = map.doors.map(d => (d.open ? 1 : 0)).join('');
 }
 
 /** The door standing on a cell, closed or not, or undefined. */
