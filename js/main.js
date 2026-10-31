@@ -5,7 +5,7 @@ export const factions = [
     {name: "Ninjas", text: "Trained by Master Wu, they are the protectors of Ninjago.", alignment: "lawful neutral", slug: "ninjas"},
     {name: "The Imperium", text: "A high-tech empire that seeks to enslave dragons and harness their power.", alignment: "lawful evil", slug: "the-imperium"},
     {name: "Swamp Tribe", text: "A powerful tribe of human warriors who admire the Serpentine. They carry weapons imbued with deadly poison and live in swamps.", alignment: "chaotic neutral", slug: "swamp-tribe"},
-    {name: "The Guild", text: "An organization that gathers adventurers from all over the world. They help people in exchange for rewards. They follow the law and have a moral code.", alignment: "lawful neutral", slug: "the-guild"},
+    {name: "The Guild", text: "An organization that gathers adventurers from all over the world. They help people in exchange for rewards. They follow the law and have a moral code. It is run by its Guildmaster, Chronos, who is rarely seen and never late.", alignment: "lawful neutral", slug: "the-guild"},
     {name: "Mercenaries", text: "An organization formed by a man banned from the Guild. They have no ethics and will do anything for the right reward.", alignment: "neutral neutral", slug: "mercenarys"},
     {name: "Sky Pirates", text: "A group of pirates who have found weapons allowing them to master the wind.", alignment: "chaotic neutral", slug: "sky-pirates"},
     {name: "Nexo-Knights Kingdom", text: "A place where magic and technology merged to create Nexo Power. The knights of this kingdom are some of the bravest warriors in the universe.", alignment: "lawful neutral", slug: "nexo-knights-kingdom"},
@@ -82,7 +82,7 @@ export const continents = [
 export const citys = [
     {name:"Erebor", continents: "Nidavelir", world:"Alfeim", realm: "Origine's realm", description:"Capital of the Dwarf Kingdom", slug:"erebor"},
     {name:"Tendrasyl", continents: "Vanaheim", world:"Alfeim", realm: "Origine's realm", description:"Capital of the Elven Kingdom", slug:"tendrasyl"},
-    {name:"Duranmoran", continents: "Midgard", world:"Alfeim", realm: "Origine's realm", description:"Head quarter of the adventurer guild", slug:"duranmoran"},
+    {name:"Duranmoran", continents: "Midgard", world:"Alfeim", realm: "Origine's realm", description:"Head quarter of the adventurer guild, where the Guildmaster Chronos keeps his office", slug:"duranmoran"},
     {name:"Camelot", continents: "Midgard", world:"Alfeim", realm: "Origine's realm", description:"New capital of the Nexo-Knight Kingdom", slug:"camelot"},
     {name:"Ninjago City", continents: "Ninjago", world:"Earth", realm: "Origine's realm", description:"Capital of Ninjago", slug:"ninjago-city"},
     {name:"Jamanakai Village", continents: "Ninjago", world:"Earth", realm: "Origine's realm", description:"a small village located near the Mountains of Impossible Height.", slug:"jamanakai-village"},
@@ -255,6 +255,7 @@ export const EFFECTS = [
     { name: "Calcinated", dice: "2d4", type: "fire", notes: "fire dam each turn for 5 turns" },
     { name: "Poison", dice: "1d4", type: "poison", notes: "poison dam each turn for 3 turns" },
     { name: "Toxic", dice: "2d4", type: "poison", notes: "poison dam each turn for 5 turns" },
+    { name: "Decay", dice: "1d6", type: "necro", notes: "necrotic dam each turn for 5 turns, one more die every turn (1d6, 2d6, 3d6...). Ignores armor" },
     { name: "Para", dice: "1d2", type: "—", notes: "lasts 3 turns, each turn a 1d2 chance to stun (lose the turn)" },
     { name: "Gel", dice: "1d2", type: "ice", notes: "unable to move / act" },
     { name: "Bleed", dice: "1d4", type: "physical", notes: "loose hp once each time it moves, for 3 turns. Mechas are immune" },
@@ -1186,6 +1187,53 @@ export const personnageSheet = [
             { name: "Balmung (Sealed)", authority: 8, dice: "4d12+20", effect: "Can hit through dimensions" }
         ],
         attack: "Abyssal Necro-Blade: 3d12+10 (Advantage) + 2d10 Anti-magic (Disables target passives for 1 turn)"
+    },
+    {
+        name: "Chronos, Monarch of Time",
+        hp: 520,
+        spellSlots: 14,
+        passives: [
+            "Archive of Ibis (Advantage on ALL rolls: attacks, spells and defense)",
+            "Time Beyond Time (Immune to status below Authority 9)"
+        ],
+        abilities: [
+            {
+                name: "Three Threads",
+                type: "react",
+                limit: "3 charges",
+                desc: "Instant dodge of a single-target move, halves an area move. Three threads, only one of them his own."
+            },
+            {
+                name: "Two-Faced Door",
+                type: "react",
+                desc: "Teleportation (range 20). As a react, he steps through before the blow lands. One face looks in, one looks out."
+            },
+            {
+                name: "Borrowed Time",
+                type: "instant",
+                limit: "1/fight",
+                desc: "Instant: the turn's action comes back, so he acts once more."
+            },
+            {
+                name: "Rewind",
+                type: "passive",
+                limit: "1/fight",
+                desc: "On a killing blow, he steps back to where he stood two rounds ago: his HP then (at least 200), his place, and every hindrance undone."
+            }
+        ],
+        spells: [
+            { name: "Stasis", effect: "Stun 2 turns. The target is held in a moment that does not end." },
+            { name: "Withering Hour", dice: "5d12", effect: "Inflicts Decay. For 3 turns each basic attack that lands also cuts the target's maximum HP by 25, and the cuts stack. Something devoured, long ago, taught him how." }
+        ],
+        domain: {
+            name: "Chronostasis",
+            type: "Complet",
+            rafinement: 7,
+            description: "Une salle sans fin au cœur du Tartare, remplie d'horloges arrêtées. Le temps y coule pour Chronos seul : chaque tour, il reprend ce que le temps lui doit.",
+            effect: "Each turn Chronos regains, at random, HP, spell slots or a Thread. No cooldown on Withering Hour, Sure-hit on Stasis",
+            cost: "7 spell slots"
+        },
+        attack: "Hand of the Hour: 4d12+22 (Advantage, ignores shields and damage reduction)"
     }
 ];
 
@@ -1221,6 +1269,14 @@ export const domainData = {
         rafinement: 7,
         description: "Un cimetière désolé sous un ciel de sang, où des milliers d'armes divines sont plantées dans le sol, vibrant d'anti-magie.",
         effect: "Authority -1 for foes, Infinite Weapon Wall, Sure-hit on Anti-magic slash",
+        cost: "7 spell slot"
+    },
+    "Chronos": {
+        name: "Chronostasis",
+        type: "Complet",
+        rafinement: 7,
+        description: "Une salle sans fin au cœur du Tartare, remplie d'horloges arrêtées. Le temps y coule pour Chronos seul : chaque tour, il reprend ce que le temps lui doit.",
+        effect: "Each turn Chronos regains HP, spell slots or a Thread (random), No cooldown on Withering Hour, Sure-hit on Stasis",
         cost: "7 spell slot"
     },
 };

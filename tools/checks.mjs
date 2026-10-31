@@ -66,8 +66,10 @@ export function createChecker(chars, seed) {
       file(out, 'cooldown-ignored', `${unit.name} cast ${ability} on turn ${round}, locked until turn ${entry.lastTurn + move.cooldown + 1} (cooldown ${move.cooldown})`, round);
     }
     const uses = (entry?.uses ?? 0) + 1;
-    if (move.charges > 0 && uses > move.charges) {
-      file(out, 'charges-exceeded', `${unit.name} cast ${ability} for use ${uses} but the sheet allows ${move.charges} charges`, round);
+    // Chronostasis can wind a charge back, which buys one more use
+    const allowed = move.charges + (unit.chargesWound?.[ability] ?? 0);
+    if (move.charges > 0 && uses > allowed) {
+      file(out, 'charges-exceeded', `${unit.name} cast ${ability} for use ${uses} but the sheet allows ${allowed} charges`, round);
     }
     ledger.set(key, { uses, lastTurn: round });
   }

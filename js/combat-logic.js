@@ -171,7 +171,7 @@ export function findEffect(name) {
 }
 
 const TAG_TO_STATUS = { freeze: 'gel' };
-const STATUS_EFFECT_TAGS = ['para','gel','freeze','burn','calcinated','bleed','hemoragie','stun','root','fear','silence','blind','poison','toxic','wet'];
+const STATUS_EFFECT_TAGS = ['para','gel','freeze','burn','calcinated','bleed','hemoragie','stun','root','fear','silence','blind','poison','toxic','decay','wet'];
 
 // Damage over time. Each has a basic and an upgraded form, an immunity to the basic covers the upgrade, and every
 // application is a copy of its own, with its own damage and its own timer.
@@ -183,6 +183,7 @@ export const DOTS = {
   toxic:      { base: 'poison', life: 5 },
   bleed:      { base: 'bleed',  life: 3, moving: 'once' },
   hemoragie:  { base: 'bleed',  life: 5, moving: 'cell' },
+  decay:      { base: 'decay',  life: 5, grows: true },   // one more die each turn it lasts: Chronos' slow death
 };
 const TICKING_DOTS = Object.keys(DOTS).filter(n => !DOTS[n].moving);
 // Statuses that last longer than the default (turnsLeft counts the owner's turns plus one)
@@ -1558,6 +1559,29 @@ export function applyStatus(combatant, effectStr, defaultTurns = 2) {
   }
 }
 
+// A growing damage over time: its dice count rises by one for every turn it has already hurt
+export const grownDice = eff => eff.dice.replace(/^(\d+)d/, (_, n) => `${Number(n) + (eff.ticks ?? 0)}d`);
+
+// Chronostasis: at the start of his own turn the domain gives its owner back one of three things, picked at random
+// (life, spell slots, or a charge of a move that has them); an option that is already full is not drawn
+export function grantBoon(c, eff) {
+  const { hp = 0, slots = 0, charges = 1 } = eff.boons ?? {};
+  const charged = c.abilities.find(a => a.maxCharges > 0 && (c.remainingCharges[a.name] ?? a.maxCharges) < a.maxCharges);
+  const options = [];
+  if (hp > 0 && c.currentHp < c.maxHp) options.push('hp');
+  if (slots > 0 && c.spellSlots < c.maxSpellSlots) options.push('slots');
+  if (charged) options.push('charge');
+  if (!options.length) return;
+  const pick = options[Math.floor(random() * options.length)];
+  if (pick === 'hp') applyHeal(c, String(hp), eff.nom);
+  else if (pick === 'slots') restoreSlots(c, slots, eff.nom);
+  else {
+    (c.chargesWound ??= {})[charged.name] = (c.chargesWound[charged.name] ?? 0) + 1;
+    c.remainingCharges[charged.name] = Math.min(charged.maxCharges, (c.remainingCharges[charged.name] ?? charged.maxCharges) + charges);
+    addLog(`  ⏳ ${eff.nom}: ${c.name} winds back ${charged.name} (${c.remainingCharges[charged.name]}/${charged.maxCharges}).`, 'heal');
+  }
+}
+
 export function tickTurn(c) {
   const regenNames = ['regen', 'domain regen', 'regeneration'];
   const expired   = [];
@@ -1565,7 +1589,8 @@ export function tickTurn(c) {
   for (const eff of c.statusEffects) {
     const n = eff.name.toLowerCase();
     if (TICKING_DOTS.includes(n) && eff.dice && eff.dice !== '—') {
-      const r = parseDice(eff.dice);
+      const r = parseDice(DOTS[n].grows ? grownDice(eff) : eff.dice);
+      eff.ticks = (eff.ticks ?? 0) + 1;
       const dealt = applyDamage(c, r.total, eff.damType);
       if (dealt > 0) addLog(`${c.name} takes ${dealt} ${eff.damType} from ${eff.name}. (${r.breakdown})`, 'status');
       if (c.isKO) return false;
@@ -3658,6 +3683,7 @@ export function beginTurn(c) {
     const radius = entry.domain.radius ?? 8;
     if (S.currentMap && chebyshev(c, { x: entry.centerX, y: entry.centerY }) > radius) continue;
     const friendly = domainOwner.teamIndex === c.teamIndex;
+    if (domainOwner.id === c.id) for (const eff of entry.domain.effects ?? []) if (eff.applyOn?.includes('turnBoon')) grantBoon(c, eff);
     for (const eff of entry.domain.effects ?? []) {
       if (!eff.applyOn?.includes('hpPerTurn') || !eff.dices) continue;
       if (friendly && eff.target !== 'foes') {

@@ -365,10 +365,10 @@
       "detail": "Tuning the eight evaluation weights meant running fights and editing numbers by hand in a long session."
     },
     {
-      "id": "char-chronos", "resolution": "Implemented: Chronos, Monarch of Time, in characters.json (520 HP, Authority 9, Complet domain Chronostasis). He beats Hela in about 70% of 100 greedy-brain duels (tools/sim.mjs). New engine pieces: Rewind (onDeath, once per fight, back to his HP and place of two rounds ago), Withering Hour (a hostile move that also arms its caster, each landed basic attack then cuts max HP and the cuts stack), Borrowed Time (extraAction: the action comes back). The search bot cannot plan a second action, so it plays Borrowed Time poorly.",
+      "id": "char-chronos", "resolution": "Implemented: Chronos, Monarch of Time, in characters.json and main.js (sheet, domain, Guild and Duranmoran entries; 520 HP, Authority 9, Complet domain Chronostasis whose owner regains HP, slots or a Thread at random each turn). He beats Hela in about 70% of 100 greedy-brain duels (tools/sim.mjs). New engine pieces: Rewind (onDeath, once per fight, back to his HP and place of two rounds ago), Decay (necrotic damage over time, one more die each turn), Withering Hour (a hostile move that also arms its caster, each landed basic attack then cuts max HP and the cuts stack), Borrowed Time (extraAction: the action comes back). The search bot cannot plan a second action, so it plays Borrowed Time poorly.",
       "cat": "mechanics", "sev": "low",
       "title": "Chronos, the god of time, is not on the roster", "who": "Chronos",
-      "detail": "A primordial god from before the Aurora, first met as the Guild master. Stasis, Withering Hour, Three Threads, Two-Faced Door, Borrowed Time and Rewind hint, without naming them, at the Norns, Thoth, Kala and Janus he absorbed. Not done: a sheet in main.js, a Guild or faction entry, and a retune of the bot with him in the roster."
+      "detail": "A primordial god from before the Aurora, first met as the Guild master. Stasis, Withering Hour, Three Threads, Two-Faced Door, Borrowed Time and Rewind hint, without naming them, at the Norns, Thoth, Kala and Janus he absorbed. Not done: a retune of the bot with him in the roster. The 70% figure is measured with the greedy brain, which does not open domains."
     }
   ]
 }

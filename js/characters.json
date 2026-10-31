@@ -3862,7 +3862,7 @@
         "base": {
           "nom": "Withering Hour",
           "dices": "5d12",
-          "tags": ["magic", "necro", "toxic", "unblockabled"]
+          "tags": ["magic", "necro", "decay", "unblockabled"]
         },
         "target": "mono",
         "range": 10,
@@ -3872,7 +3872,7 @@
           "turns": 3,
           "label": "Withering Hour"
         },
-        "description": "Damage over time that ignores armor, and it kills slowly. For 3 turns each basic attack that lands also cuts the target's maximum HP by 25, and the cuts stack. Something devoured, long ago, taught him how.",
+        "description": "Inflicts Decay: damage over time that ignores armor and grows by a die every turn, so it kills slowly. For 3 turns each basic attack that lands also cuts the target's maximum HP by 25, and the cuts stack. Something devoured, long ago, taught him how.",
         "spellCost": 2,
         "cooldown": 2
       },
@@ -3928,22 +3928,19 @@
       "type": "Complet",
       "rafinement": 7,
       "radius": 8,
-      "description": "Une salle sans fin au cœur du Tartare, remplie d'horloges arrêtées. Tout ce qui y pénètre vieillit d'un coup, tandis que le Monarque, lui, n'a jamais été en retard.",
+      "description": "Une salle sans fin au cœur du Tartare, remplie d'horloges arrêtées. Le temps y coule pour Chronos seul : chaque tour, il reprend ce que le temps lui doit.",
       "spellCost": 7,
       "effects": [
         {
-          "nom": "Foe Authority Reduction",
-          "dices": "-1",
-          "tags": ["debuff"],
-          "applyOn": ["autority"],
-          "target": "foes"
-        },
-        {
-          "nom": "Age of Ages",
-          "dices": "3d10",
-          "tags": ["necro"],
-          "applyOn": ["hpPerTurn"],
-          "target": "foes"
+          "nom": "Hours Regained",
+          "tags": ["buff"],
+          "applyOn": ["turnBoon"],
+          "target": "self",
+          "boons": {
+            "hp": 40,
+            "slots": 2,
+            "charges": 1
+          }
         },
         {
           "nom": "No Cooldown on Withering Hour",

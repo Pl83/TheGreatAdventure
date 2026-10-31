@@ -1,7 +1,7 @@
 // Position evaluation: one number, higher is better for the given team. Reads the live fight state S and
 // changes nothing; no dice are rolled. Built to run thousands of times per search decision, so it makes one
 // pass over the combatants (plus one over the foes per own unit for the engagement term) and allocates little.
-import { S, abilityAvailable, hasControlEffect, MELEE_RANGE, SPELL_RANGE, DOTS, inField } from '../combat-logic.js';
+import { S, abilityAvailable, hasControlEffect, MELEE_RANGE, SPELL_RANGE, DOTS, inField, grownDice } from '../combat-logic.js';
 import { avgDice } from './greedy.js';
 import { walkDistance } from './paths.js';
 
@@ -99,13 +99,20 @@ export function engagement(teamIndex, foes = null) {
 // hurts at the start of each of the owner's turns it has left, a bleed once per move (about one move a turn), a
 // haemorrhage once per cell walked (about three a turn). Never more than the unit has.
 const CELLS_PER_MOVE = 3;
+// A growing damage over time hurts with one more die each turn: n, n+1, ... dice of the same size
+function growingTotal(e, turns) {
+  let sum = 0;
+  for (let t = 0; t < turns; t++) sum += average(grownDice({ dice: e.dice, ticks: (e.ticks ?? 0) + t }));
+  return sum;
+}
+
 function pendingDot(c) {
   let total = 0;
   for (const e of c.statusEffects) {
     const dot = DOTS[e.name.toLowerCase()];
     if (!dot || !e.dice || e.dice === '—') continue;
     const turns = dot.moving ? Math.max(0, e.turnsLeft - 1) : e.turnsLeft;
-    total += average(e.dice) * turns * (dot.moving === 'cell' ? CELLS_PER_MOVE : 1);
+    total += (dot.grows ? growingTotal(e, turns) : average(e.dice) * turns) * (dot.moving === 'cell' ? CELLS_PER_MOVE : 1);
   }
   return Math.min(total, c.currentHp);
 }

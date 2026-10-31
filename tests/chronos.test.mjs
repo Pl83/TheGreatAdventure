@@ -88,13 +88,13 @@ test('Stasis stuns Hela despite her status immunity, because Authority 9 beats h
 
 // ── Withering Hour ─────────────────────────────────────────────────────────
 
-test('Withering Hour poisons the target and arms Chronos: his landed basic attacks then cut max HP, and the cuts stack', async () => {
+test('Withering Hour rots the target and arms Chronos: his landed basic attacks then cut max HP, and the cuts stack', async () => {
   const { x, y } = await duel('White');
   forceD20(19, 19, 2);
   L.handleCastAbility(x.id, 'Withering Hour', [y.id]);
   settle();
   assert.ok(x.statusEffects.some(e => e.name === 'withering'), 'Chronos is armed');
-  assert.ok(y.statusEffects.some(e => /toxic/i.test(e.name)), 'the target is poisoned');
+  assert.ok(y.statusEffects.some(e => /decay/i.test(e.name)), 'the target is decaying');
   const max0 = y.maxHp;
   for (let n = 1; n <= 2; n++) {
     toTurn('Chronos');
@@ -181,4 +181,107 @@ test('each new round records where every unit stands, two rounds deep', async ()
   while (S.roundNumber < startRound + 3) { if (S.awaitingReact) L.handleReactNo(); else L.handlePass(); }
   assert.equal(x.trail.length, 2);
   assert.ok(x.trail.every(t => Number.isInteger(t.hp) && Number.isInteger(t.x)));
+});
+
+// ── Decay ──────────────────────────────────────────────────────────────────
+
+test('Decay hurts with one more die each turn it lasts, and ignores nothing it should not', async () => {
+  const { y } = await duel('White');
+  L.applyStatus(y, 'decay');
+  const eff = y.statusEffects.find(e => e.name === 'Decay');
+  assert.ok(eff, 'applied by name');
+  assert.equal(eff.turnsLeft, 5);
+  assert.equal(L.grownDice({ dice: '1d6', ticks: 0 }), '1d6');
+  assert.equal(L.grownDice({ dice: '1d6', ticks: 3 }), '4d6');
+  const hp = [y.currentHp];
+  for (let i = 0; i < 3; i++) { L.tickTurn(y); hp.push(y.currentHp); }
+  const lost = hp.slice(1).map((v, i) => hp[i] - v);
+  assert.ok(lost[0] >= 1 && lost[0] <= 6 && lost[1] >= 2 && lost[1] <= 12 && lost[2] >= 3 && lost[2] <= 18, lost.join(','));
+  assert.equal(eff.ticks, 3);
+});
+
+test('the bot counts a decay for what it will still do, which is more than the same poison', async () => {
+  const { evaluate } = await import('../js/ai/evaluate.js');
+  const { y } = await duel('White');
+  const clean = evaluate(0);
+  y.statusEffects.push({ name: 'Poison', turnsLeft: 3, dice: '1d6', damType: 'poison', notes: '' });
+  const poisoned = evaluate(0);
+  y.statusEffects = [{ name: 'Decay', turnsLeft: 3, dice: '1d6', damType: 'necro', notes: '' }];
+  const decaying = evaluate(0);
+  assert.ok(poisoned > clean && decaying > poisoned);
+});
+
+// ── Chronostasis ───────────────────────────────────────────────────────────
+
+test('Chronostasis gives its owner a random boon each turn instead of hurting foes: data', () => {
+  const eff = sheet.domain.effects;
+  const boon = eff.find(e => e.applyOn.includes('turnBoon'));
+  assert.deepEqual(boon.boons, { hp: 40, slots: 2, charges: 1 });
+  assert.ok(!eff.some(e => e.applyOn.includes('hpPerTurn') || e.applyOn.includes('autority')), 'no aura on foes');
+  assert.ok(eff.some(e => e.condition?.moveName === 'Withering Hour' && e.applyOn.includes('cooldown')));
+  assert.ok(eff.some(e => e.condition?.moveName === 'Stasis' && e.tags.includes('undodgeable')));
+});
+
+test('the boon is life, slots or a Thread, each drawn at random, and never one that is already full', async () => {
+  const { x } = await duel('White');
+  const boon = sheet.domain.effects.find(e => e.applyOn.includes('turnBoon'));
+  const drawn = (r) => {
+    x.currentHp = x.maxHp - 100; x.spellSlots = x.maxSpellSlots - 5; x.remainingCharges['Three Threads'] = 1;
+    const hp = x.currentHp, slots = x.spellSlots;
+    setRandom(() => r);
+    L.grantBoon(x, boon);
+    if (x.currentHp > hp) return 'hp';
+    if (x.spellSlots > slots) return 'slots';
+    if (x.remainingCharges['Three Threads'] > 1) return 'thread';
+    return 'none';
+  };
+  assert.equal(drawn(0.05), 'hp');
+  assert.equal(drawn(0.5), 'slots');
+  assert.equal(drawn(0.95), 'thread');
+  assert.equal(x.remainingCharges['Three Threads'], 2);
+  // everything full: nothing happens
+  x.currentHp = x.maxHp; x.spellSlots = x.maxSpellSlots; x.remainingCharges['Three Threads'] = 3;
+  setRandom(() => 0.5);
+  L.grantBoon(x, boon);
+  assert.equal(x.remainingCharges['Three Threads'], 3);
+  // a full Thread counter is not drawn: only life and slots remain
+  x.currentHp = x.maxHp - 100; x.spellSlots = x.maxSpellSlots - 5;
+  setRandom(() => 0.99);
+  const slots = x.spellSlots;
+  L.grantBoon(x, boon);
+  assert.ok(x.spellSlots > slots, 'the last of two options is slots');
+});
+
+test('the boon does not fire when Chronos has no domain open, and does when he is the domain owner starting his turn', async () => {
+  const { x } = await duel('White');
+  x.currentHp = x.maxHp - 200;
+  S.activeDomains = [];
+  const before = x.currentHp;
+  L.beginTurn(x);
+  assert.ok(x.currentHp <= before, 'no domain, no boon (the turn start only drains)');
+  S.activeDomains = [{ casterId: x.id, domain: sheet.domain, centerX: x.x, centerY: x.y }];
+  let moved = false;
+  for (let i = 0; i < 12 && !moved; i++) {
+    x.currentHp = x.maxHp - 200; x.spellSlots = x.maxSpellSlots - 5; x.remainingCharges['Three Threads'] = 1;
+    const a = [x.currentHp, x.spellSlots, x.remainingCharges['Three Threads']];
+    L.beginTurn(x);
+    moved = x.currentHp > a[0] || x.spellSlots > a[1] || x.remainingCharges['Three Threads'] > a[2];
+  }
+  assert.ok(moved, 'a boon arrived');
+});
+
+// ── The site sheet ─────────────────────────────────────────────────────────
+
+test('main.js has his sheet, his domain, the Decay effect and the Guild entry', async () => {
+  const m = await import('../js/main.js');
+  const s = m.personnageSheet.find(c => c.name === 'Chronos, Monarch of Time');
+  assert.ok(s);
+  assert.equal(s.hp, sheet.hp);
+  assert.equal(s.spellSlots, sheet.spellSlot);
+  assert.equal(m.domainData.Chronos.name, sheet.domain.name);
+  assert.ok(m.EFFECTS.some(e => e.name === 'Decay' && e.type === 'necro'));
+  assert.match(m.factions.find(f => f.slug === 'the-guild').text, /Guildmaster, Chronos/);
+  assert.doesNotMatch(JSON.stringify(m.factions.find(f => f.slug === 'the-guild')), /god|time/i, 'the Guild does not know what he is');
+  const text = JSON.stringify(s).toLowerCase();
+  for (const god of ['norn', 'thoth', 'kala', 'janus']) assert.ok(!text.includes(god), god);
 });
