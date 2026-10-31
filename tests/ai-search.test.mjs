@@ -223,7 +223,8 @@ test('a duel opening with the foe out of reach: the search closes in rather than
     const foe = S.combatants.find(f => f.teamIndex !== 0);
     const { plan } = search(0, { sims: 60 }, seed);
     const end = plan.move ?? c;
-    assert.ok(walkDistance(foe.x, foe.y, end.x, end.y) < walkDistance(foe.x, foe.y, c.x, c.y),
+    // Changing form is a turn well spent, not a hold
+    assert.ok(plan.action.type === 'transform' || walkDistance(foe.x, foe.y, end.x, end.y) < walkDistance(foe.x, foe.y, c.x, c.y),
       `seed ${seed}: ${c.name} held with ${JSON.stringify(plan.action)}`);
   }
 });

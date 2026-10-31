@@ -285,3 +285,40 @@ test('main.js has his sheet, his domain, the Decay effect and the Guild entry', 
   const text = JSON.stringify(s).toLowerCase();
   for (const god of ['norn', 'thoth', 'kala', 'janus']) assert.ok(!text.includes(god), god);
 });
+
+// ── Stasis lasts, spells cost one, a natural 20 cannot be answered ─────────
+
+test('every spell of his costs one slot', () => {
+  for (const m of sheet.moveSet.filter(m => m.category === 'spell')) assert.equal(m.spellCost, 1, m.base.nom);
+});
+
+test('Stasis keeps the target out of two full turns, then it acts again', async () => {
+  const { x, y } = await duel('Kaelgrym');
+  L.handleCastAbility(x.id, 'Stasis', [y.id]);
+  settle();
+  const skipped = [];
+  for (let i = 0; i < 12 && skipped.length < 3; i++) {
+    if (S.awaitingReact) { L.handleReactNo(); continue; }
+    const c = L.activeCombatant();
+    if (c === y) skipped.push(y.statusEffects.some(e => e.name.toLowerCase() === 'stun'));
+    L.handlePass();
+  }
+  const log = logText();
+  assert.equal((log.match(/Kaelgrym is Stun and cannot act/g) ?? []).length, 2, log);
+  assert.match(log, /Kaelgrym's Stun wears off/);
+});
+
+test('a natural 20 that lands offers the defender no reaction, a plain hit still does', async () => {
+  const { x, y } = await duel('Zhuqiao, Vermillion Bird');
+  forceD20(20, 4, 10);
+  L.handleAttack(x.id, y.id);
+  assert.equal(S.awaitingReact, false, 'no react prompt after a natural 20');
+  assert.match(logText(), /natural 20 leaves no time to react/);
+  settle();
+  toTurn('Chronos');
+  place(y, x.x + 1, x.y);
+  forceD20(15, 14, 3);
+  L.handleAttack(x.id, y.id);
+  assert.equal(S.awaitingReact, true, 'an ordinary hit can still be answered');
+  settle();
+});

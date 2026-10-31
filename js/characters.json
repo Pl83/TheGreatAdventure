@@ -3826,7 +3826,7 @@
     "immunities": ["status"],
     "baseAtk": {
       "nom": "Hand of the Hour",
-      "dices": "4d12+22",
+      "dices": "4d12+27",
       "tags": ["physical", "unblockabled"]
     },
     "passif": [
@@ -3854,7 +3854,8 @@
         "target": "mono",
         "range": 12,
         "description": "2 turn stun. The target is held in a moment that does not end.",
-        "spellCost": 2,
+        "spellCost": 1,
+        "statusTurns": 2,
         "cooldown": 3
       },
       {
@@ -3873,7 +3874,7 @@
           "label": "Withering Hour"
         },
         "description": "Inflicts Decay: damage over time that ignores armor and grows by a die every turn, so it kills slowly. For 3 turns each basic attack that lands also cuts the target's maximum HP by 25, and the cuts stack. Something devoured, long ago, taught him how.",
-        "spellCost": 2,
+        "spellCost": 1,
         "cooldown": 2
       },
       {
@@ -3908,7 +3909,7 @@
         "target": "self",
         "range": 0,
         "description": "Instant: the turn's action comes back, so he acts once more.",
-        "spellCost": 3,
+        "spellCost": 1,
         "cooldown": 99
       },
       {

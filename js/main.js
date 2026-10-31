@@ -1222,7 +1222,7 @@ export const personnageSheet = [
             }
         ],
         spells: [
-            { name: "Stasis", effect: "Stun 2 turns. The target is held in a moment that does not end." },
+            { name: "Stasis", effect: "Stun for 2 full turns. The target is held in a moment that does not end." },
             { name: "Withering Hour", dice: "5d12", effect: "Inflicts Decay. For 3 turns each basic attack that lands also cuts the target's maximum HP by 25, and the cuts stack. Something devoured, long ago, taught him how." }
         ],
         domain: {
@@ -1233,7 +1233,7 @@ export const personnageSheet = [
             effect: "Each turn Chronos regains, at random, HP, spell slots or a Thread. No cooldown on Withering Hour, Sure-hit on Stasis",
             cost: "7 spell slots"
         },
-        attack: "Hand of the Hour: 4d12+22 (Advantage, ignores shields and damage reduction)"
+        attack: "Hand of the Hour: 4d12+27 (Advantage, ignores shields and damage reduction)"
     }
 ];
 

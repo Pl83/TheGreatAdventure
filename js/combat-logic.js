@@ -243,6 +243,7 @@ export function resolveAbilitiesFromList(moveList) {
       precastDice:   move.precastDice ?? null,
       field:         move.field ?? null,     // { turns, affects: 'foes'|'allies', effect, cleanse, heal }: leaves a lingering area that works on the units inside each round
       inflicts:      move.inflicts ?? null,  // { status, turns, chance? }: a timed hindrance on each target the move reaches
+      statusTurns:   move.statusTurns ?? null,   // how many of the target's turns the move's own status lasts (stun: turns skipped)
       grants:        move.grants ?? null,   // { status, amount, turns, label }: a timed buff the move puts on its user
       maxCharges:    move.charges ?? 0,
       isReact:    tags.includes('react'),
@@ -1911,7 +1912,7 @@ function tickFields() {
 export function applyMoveEffect(ability, target, guaranteed = false) {
   const soaked = hasWetStatus(target);
   const effect = effectFor(ability, target);
-  applyStatus(target, guaranteed && effect ? effect.replace(/(^|,\s*)1d2\s+/gi, '$1') : effect);
+  applyStatus(target, guaranteed && effect ? effect.replace(/(^|,\s*)1d2\s+/gi, '$1') : effect, ability.statusTurns != null ? ability.statusTurns + 1 : undefined);
   if (ability.inflicts) inflict(ability, target, guaranteed);
   if (soaked && bitesIce(ability) && !target.isKO) dropWetStatus(target);
 }
@@ -2430,6 +2431,14 @@ export function checkVictory() {
 
 const isSpellMove = ab => !!ab && (ab.source === 'spell' || ab.source === 'technoSpell' || !!ab.tags?.includes('magic'));
 
+// A natural 20 that lands cannot be answered: no block, dodge or teleport is offered against it
+const unreactable = result => !!(result?.crit && result.hit);
+function noReactToCrit(result, atkName) {
+  if (!unreactable(result)) return false;
+  addLog(`  ⚔ ${atkName}'s natural 20 leaves no time to react!`, 'crit');
+  return true;
+}
+
 export function getReacts(target, incoming = null) {
   if (hasControlEffect(target)) return [];   // gel, stun, cocoon and fear: it can neither act nor react
   const insideClosedDomain = S.activeDomains.some(d => {
@@ -2495,7 +2504,7 @@ export function handleAttack(attackerId, defenderId) {
   const result = resolveAttack(atk, def, null);
   S.pendingAction = { type: 'attack', attackerId, defenderId, result };
 
-  const reacts = getReacts(def);
+  const reacts = noReactToCrit(result, atk.name) ? [] : getReacts(def);
   if (reacts.length > 0) {
     S.awaitingReact = true;
     S.reactOptions  = reacts.map(ab => ({ combatantId: def.id, ability: ab }));
@@ -2633,7 +2642,7 @@ export function handleCastAbility(casterId, abilityName, targetIds, center = nul
       ? resolveAttack(caster, target, ability.dice, ability)
       : { hit: true, crit: false, fumble: false, damage: 0, atkRoll: '—', defRoll: '—', effectiveDefRoll: '—', breakdown: '—' };
     S.pendingAction = { type: 'splash', casterId, abilityName, targetIds: [target.id], result, ability };
-    const reacts = noReacts ? [] : getReacts(target, ability);
+    const reacts = noReacts || noReactToCrit(result, caster.name) ? [] : getReacts(target, ability);
     if (reacts.length > 0) {
       S.awaitingReact = true;
       S.reactOptions  = reacts.map(ab => ({ combatantId: target.id, ability: ab }));
@@ -2690,7 +2699,7 @@ export function handleCastAbility(casterId, abilityName, targetIds, center = nul
   S.pendingAction = { type: 'ability', casterId, abilityName, targetIds: [target.id], result, ability };
 
   // A move with no damage and no status has nothing to block, so it never prompts a react
-  const reacts = (noReacts || !(ability.dice || ability.effect || ability.isContest)) ? [] : getReacts(target, ability);
+  const reacts = (noReacts || !(ability.dice || ability.effect || ability.isContest) || noReactToCrit(result, caster.name)) ? [] : getReacts(target, ability);
   if (reacts.length > 0) {
     S.awaitingReact = true;
     S.reactOptions  = reacts.map(ab => ({ combatantId: target.id, ability: ab }));
