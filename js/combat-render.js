@@ -6,7 +6,7 @@ import {
   _R, S, SPELL_RANGE, allChars,
   activeCombatant, livingCombatants, koAllies, getCombatant,
   enemies, targetPool, abilityAvailable, hasSilence, hasValidTarget, hasControlEffect,
-  chebyshev, targetInRange, moveSpeed, isWet, freeActionOptions,
+  chebyshev, targetInRange, moveSpeed, isWet, freeActionOptions, doorsInReach, doorLabel,
   drawMap, setupCanvasClickHandler,
   clearAimState, startCombat, goToMapChoice, confirmMap, activeAllyDomain,
 } from './combat-logic.js';
@@ -354,6 +354,15 @@ export function actionPanelHTML(c) {
     </section>`;
   }
 
+  // Closed doors within arm's reach can be opened with the action, or worn down by the basic attack
+  const atkDice = c.transformedBaseAtk?.dices ?? c.sourceChar.baseAtk?.dices ?? '1d4';
+  const doorSection = hasMap ? doorsInReach(c).map(d => `
+      <div class="action-section door-section">
+        <span class="action-label">🚪 ${doorLabel(d)} · ${d.hp}/${d.maxHp} HP</span>
+        <button class="action-btn confirm-action-btn" data-door-open="${d.x},${d.y}" ${acted ? 'disabled' : ''}>Open</button>
+        <button class="action-btn confirm-action-btn" data-door-hit="${d.x},${d.y}" ${acted ? 'disabled' : ''}>Break <span class="btn-aside atk-dice">${atkDice}</span></button>
+      </div>`).join('') : '';
+
   const atkNote = hasMap && atkNoTarget && !noEnemies
     ? '<span class="range-warn">No enemy in reach — move closer</span>' : '';
 
@@ -379,6 +388,7 @@ export function actionPanelHTML(c) {
           Attack <span class="btn-aside atk-dice">${c.transformedBaseAtk?.dices ?? c.sourceChar.baseAtk?.dices ?? '1d6'}</span>
         </button>
       </div>
+      ${doorSection}
       ${abilitySection}
       ${transformSection}
       ${domainSection}

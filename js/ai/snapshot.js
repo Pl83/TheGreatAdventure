@@ -1,6 +1,7 @@
 // Snapshot / restore of the whole fight state, in place, so a search can rewind thousands of times.
 // The live S and combatant objects keep their identity; only their contents are swapped back.
 import { S } from '../combat-logic.js';
+import { indexDoors } from '../dungeon-loader.js';
 
 // Data that is never mutated mid-fight: held by reference, not cloned
 const REF_KEYS = new Set(['sourceChar', 'abilities', 'currentMap', 'ability', 'domain',
@@ -33,13 +34,16 @@ function overwrite(obj, data) {
 export function snapshot() {
   const state = {};
   for (const k in S) if (k !== 'combatants' && k !== 'log') state[k] = REF_KEYS.has(k) ? S[k] : clone(S[k]);
-  return { state, combatants: S.combatants.map(c => ({ c, data: clone(c) })), logLen: S.log.length };
+  // Door hit points and open/shut state live on the map, which is otherwise shared by reference
+  const doors = S.currentMap?.doors ? clone(S.currentMap.doors) : null;
+  return { state, doors, combatants: S.combatants.map(c => ({ c, data: clone(c) })), logLen: S.log.length };
 }
 
 export function restore(snap) {
-  const { state, combatants, logLen } = snap;
+  const { state, doors, combatants, logLen } = snap;
   for (const k in S) if (k !== 'combatants' && k !== 'log' && !(k in state)) delete S[k];
   for (const k in state) S[k] = REF_KEYS.has(k) ? state[k] : clone(state[k]);
   S.log.length = logLen;
+  if (doors && S.currentMap) { S.currentMap.doors = clone(doors); indexDoors(S.currentMap); }
   for (const { c, data } of combatants) overwrite(c, data);
 }

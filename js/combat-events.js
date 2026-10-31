@@ -6,7 +6,7 @@ import {
   S,
   activeCombatant, livingCombatants, enemies, targetPool,
   hasValidTarget, drawMap,
-  handlePass, handleAttack, handleCastAbility,
+  handlePass, handleAttack, handleCastAbility, handleOpenDoor, handleAttackDoor,
   handleTransform, handleActivateDomain,
   handleReactYes, handleReactNo, handleFreeAction,
   enterMoveMode, exitMoveMode,
@@ -65,6 +65,13 @@ export function bindCombatEvents() {
   const active = activeCombatant();
 
   document.getElementById('btn-pass')?.addEventListener('click', handlePass);
+
+  // Doors beside the active unit: open one with the action, or hit it
+  const cellOf = btn => btn.split(',').map(Number);
+  document.querySelectorAll('[data-door-open]').forEach(btn =>
+    btn.addEventListener('click', () => handleOpenDoor(active.id, ...cellOf(btn.dataset.doorOpen))));
+  document.querySelectorAll('[data-door-hit]').forEach(btn =>
+    btn.addEventListener('click', () => handleAttackDoor(active.id, ...cellOf(btn.dataset.doorHit))));
 
   document.getElementById('btn-attack')?.addEventListener('click', () => {
     const targetId = parseInt(document.getElementById('atk-target')?.value);

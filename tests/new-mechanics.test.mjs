@@ -435,6 +435,7 @@ function cellsWhere(pred) {
 
 test('White reaches any distance, and ignores walls within 10 cells but not beyond', async () => {
   await newFight({ teamA: ['White', 'Kay Climber'], teamB: ['Meï'], seed: 1 });
+  for (const d of S.currentMap.doors) d.open = true;   // this is about White's range, not about the manor's locked door
   const white = byName('White'), foe = byName('Meï');
   const flame = white.abilities.find(a => a.name === 'Flame of the Dead');
   const far = cellsWhere((ax, ay, bx, by) => Math.max(Math.abs(ax - bx), Math.abs(ay - by)) > 12 && L.hasLos(ax, ay, bx, by));

@@ -4,7 +4,7 @@
 
 // ── §1  Imports ────────────────────────────────────────────────────────────
 import { EFFECTS } from './main.js';
-import { loadManifest, loadMap, cellPxOf, isWalkableG } from './dungeon-loader.js';
+import { loadManifest, loadMap, cellPxOf, isWalkableG, seesThroughG } from './dungeon-loader.js';
 import { loadRandomMapOrManor } from './random-map.js';
 import { random } from './rng.js';
 
@@ -426,7 +426,7 @@ export function hasLos(ax, ay, bx, by) {
     const e2 = 2 * err;
     if (e2 > -dy) { err -= dy; x0 += sx; }
     if (e2 < dx)  { err += dx; y0 += sy; }
-    if ((x0 !== bx || y0 !== by) && !isWalkableG(S.currentMap, x0, y0)) return false;
+    if ((x0 !== bx || y0 !== by) && !seesThroughG(S.currentMap, x0, y0)) return false;
   }
 }
 
@@ -676,26 +676,89 @@ export function computeAimOverlay(caster, ability) {
   return { inRangeCells, losCells, validTargetIds };
 }
 
+// Is (gx, gy) inside the 60° cone the caster aims at dirCell? Range and sight count, floor does not
+const HALF_CONE = Math.PI / 6; // 30° each side
+function inCone(caster, ability, dirCell, gx, gy) {
+  if (gx === caster.x && gy === caster.y) return false;
+  if (Math.max(Math.abs(gx - caster.x), Math.abs(gy - caster.y)) > (ability.range ?? SPELL_RANGE)) return false;
+  if (!hasLos(caster.x, caster.y, gx, gy)) return false;
+  const angle = Math.atan2(gy - caster.y, gx - caster.x);
+  let diff = Math.abs(angle - Math.atan2(dirCell.y - caster.y, dirCell.x - caster.x));
+  if (diff > Math.PI) diff = 2 * Math.PI - diff;
+  return diff <= HALF_CONE;
+}
+
 export function coneCells(caster, ability, dirCell) {
   if (!dirCell || !S.currentMap) return [];
+  if (dirCell.x === caster.x && dirCell.y === caster.y) return [];
   const { cols, rows } = S.currentMap.grid;
-  const dx = dirCell.x - caster.x, dy = dirCell.y - caster.y;
-  if (dx === 0 && dy === 0) return [];
-  const dirAngle = Math.atan2(dy, dx);
-  const HALF_CONE = Math.PI / 6; // 30° each side = 60° total
   const cells = [];
   for (let gy = 0; gy < rows; gy++) {
     for (let gx = 0; gx < cols; gx++) {
-      if (gx === caster.x && gy === caster.y) continue;
-      if (Math.max(Math.abs(gx - caster.x), Math.abs(gy - caster.y)) > (ability.range ?? SPELL_RANGE)) continue;
-      if (!isWalkableG(S.currentMap, gx, gy) || !hasLos(caster.x, caster.y, gx, gy)) continue;
-      const angle = Math.atan2(gy - caster.y, gx - caster.x);
-      let diff = Math.abs(angle - dirAngle);
-      if (diff > Math.PI) diff = 2 * Math.PI - diff;
-      if (diff <= HALF_CONE) cells.push({ x: gx, y: gy });
+      if (isWalkableG(S.currentMap, gx, gy) && inCone(caster, ability, dirCell, gx, gy)) cells.push({ x: gx, y: gy });
     }
   }
   return cells;
+}
+
+// ── Closed doors ───────────────────────────────────────────────────────────
+// Locked, secret and portcullis doors start shut. A unit beside one can spend its action to open it, or wear it
+// down: a basic attack hits it, and so does any damaging area or cone move whose blast reaches it.
+
+export const closedDoors = () => (S.currentMap?.doors ?? []).filter(d => !d.open);
+export const doorsInReach = c => closedDoors().filter(d => chebyshev(c, d) <= MELEE_RANGE);
+export const doorLabel = d => d.kind === 'portcullis' ? 'portcullis' : `${d.kind} door`;
+
+function swingDoorOpen(door, text) {
+  door.open = true;
+  door.hp = 0;
+  addLog(text, 'spell');
+}
+
+// A blow on a closed door: it always lands, and the door gives way when its hit points run out
+function wearDoor(door, amount, who) {
+  if (door.open || !(amount > 0)) return;
+  door.hp = Math.max(0, door.hp - amount);
+  if (door.hp > 0) {
+    addLog(`  🚪 ${who} batters the ${doorLabel(door)} for ${amount} (${door.hp}/${door.maxHp} left).`, 'hit');
+  } else {
+    swingDoorOpen(door, `  🚪 ${who} breaks the ${doorLabel(door)} open with ${amount}!`);
+  }
+}
+
+// The closed doors a damaging area or cone move aimed at `center` reaches
+export function doorsInBlast(caster, ability, center) {
+  if (!center || !S.currentMap || !ability.dice || ability.isHeal || ability.targetKind === 'ally') return [];
+  const radius = ability.radius > 0 ? ability.radius : 1;
+  return closedDoors().filter(d => ability.isCone
+    ? inCone(caster, ability, center, d.x, d.y)
+    : blastReaches(center.x, center.y, d.x, d.y, radius));
+}
+
+// Each door in the blast is worn down by one roll of the move's dice
+function blastDoors(caster, ability, center) {
+  for (const door of doorsInBlast(caster, ability, center)) wearDoor(door, parseDice(ability.dice).total, ability.name);
+}
+
+export function handleOpenDoor(actorId, x, y) {
+  const actor = getCombatant(actorId);
+  const door  = closedDoors().find(d => d.x === x && d.y === y);
+  if (!actor || !door || S.hasActed) return;
+  if (chebyshev(actor, door) > MELEE_RANGE) { addLog(`⚠ ${actor.name} must stand next to the ${doorLabel(door)}.`, 'info'); return; }
+  S.hasActed = true;
+  swingDoorOpen(door, `🚪 ${actor.name} opens the ${doorLabel(door)}.`);
+  advanceTurn();
+}
+
+export function handleAttackDoor(attackerId, x, y) {
+  const atk  = getCombatant(attackerId);
+  const door = closedDoors().find(d => d.x === x && d.y === y);
+  if (!atk || !door || S.hasActed) return;
+  if (chebyshev(atk, door) > MELEE_RANGE) { addLog(`⚠ ${atk.name} must stand next to the ${doorLabel(door)}.`, 'info'); return; }
+  S.hasActed = true;
+  const dice = atk.transformedBaseAtk?.dices ?? atk.sourceChar.baseAtk?.dices ?? '1d4';
+  wearDoor(door, parseDice(dice).total, atk.name);
+  advanceTurn();
 }
 
 export function coneCellTargets(caster, ability, dirCell) {
@@ -930,18 +993,18 @@ export function setupCanvasClickHandler() {
         if (aoeCenterValid(active, S.aimAbility, gx, gy)) {
           const hits = aoeCombatantHits(S.aimAbility, active, gx, gy);
           const converting = isConvert(S.aimAbility);
-          if (hits.length === 0 && !converting) { addLog('No valid target in that area — pick another cell.', 'info'); return; }
+          if (hits.length === 0 && !converting && doorsInBlast(active, S.aimAbility, { x: gx, y: gy }).length === 0) { addLog('No valid target in that area — pick another cell.', 'info'); return; }
           exitAimMode();
           const hintEl = document.getElementById('aim-hint-ability');
           if (hintEl) hintEl.style.display = 'none';
-          handleCastAbility(active.id, abilityName, hits.map(t => t.id), converting ? { x: gx, y: gy } : null);
+          handleCastAbility(active.id, abilityName, hits.map(t => t.id), { x: gx, y: gy });
         }
         return;
       } else if (S.aimAbility.isCone) {
         const targets = coneCellTargets(active, S.aimAbility, { x: gx, y: gy });
-        if (targets.length === 0) { addLog('No valid target in that direction — pick another cell.', 'info'); return; }
+        if (targets.length === 0 && doorsInBlast(active, S.aimAbility, { x: gx, y: gy }).length === 0) { addLog('No valid target in that direction — pick another cell.', 'info'); return; }
         exitAimMode();
-        handleCastAbility(active.id, abilityName, targets.map(t => t.id));
+        handleCastAbility(active.id, abilityName, targets.map(t => t.id), { x: gx, y: gy });
       } else {
         const overlay = computeAimOverlay(active, S.aimAbility);
         const hit     = [...overlay.validTargetIds.values()].find(c => c.x === gx && c.y === gy);
@@ -1006,6 +1069,17 @@ export function drawMap() {
       const [gx, gy] = k.split(',').map(Number);
       ctx.fillRect(gx * cp, gy * cp, cp, cp);
     }
+  }
+
+  // Doors still shut: gold for a locked one, grey for a secret one (the image shows plain wall), iron for a portcullis
+  const DOOR_FILL = { locked: 'rgba(212,160,40,0.75)', secret: 'rgba(110,100,95,0.8)', portcullis: 'rgba(70,80,95,0.8)' };
+  for (const d of S.currentMap.doors ?? []) {
+    if (d.open) continue;
+    ctx.fillStyle = DOOR_FILL[d.kind];
+    ctx.fillRect(d.x * cp + cp * 0.1, d.y * cp + cp * 0.1, cp * 0.8, cp * 0.8);
+    ctx.strokeStyle = 'rgba(20,15,10,0.9)';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(d.x * cp + cp * 0.1, d.y * cp + cp * 0.1, cp * 0.8, cp * 0.8);
   }
 
   // Lingering fields
@@ -2392,7 +2466,8 @@ export function handleCastAbility(casterId, abilityName, targetIds, center = nul
   }
 
   // Nothing is spent on a cast that cannot do anything
-  if ((ability.isAoe || ability.isCone) && targets.length === 0 && !isConvert(ability) && !ability.field) {
+  if ((ability.isAoe || ability.isCone) && targets.length === 0 && !isConvert(ability) && !ability.field
+      && doorsInBlast(caster, ability, center).length === 0) {
     addLog(`⚠ ${ability.name} has no valid target in that area.`, 'info');
     return;
   }
@@ -2458,7 +2533,7 @@ export function handleCastAbility(casterId, abilityName, targetIds, center = nul
   if (ability.tags?.includes('opportunity') && targets[0]) opportunityAttack(caster, targets[0]);
 
   if (ability.isAoe) {
-    S.pendingAction = { type: 'aoe', casterId, abilityName, targetIds, ability, reactorId: null, reactedIds: [], blockedIds: [], halvedIds: [], noReacts };
+    S.pendingAction = { type: 'aoe', casterId, abilityName, targetIds, ability, center, reactorId: null, reactedIds: [], blockedIds: [], halvedIds: [], noReacts };
     const firstReactor = noReacts ? null : targets.find(t => getReacts(t, ability).length > 0);
     if (firstReactor) {
       S.pendingAction.reactorId = firstReactor.id;
@@ -2473,7 +2548,7 @@ export function handleCastAbility(casterId, abilityName, targetIds, center = nul
   }
 
   if (ability.isCone) {
-    S.pendingAction = { type: 'cone', casterId, abilityName, targetIds, ability, reactorId: null, reactedIds: [], blockedIds: [], halvedIds: [], noReacts };
+    S.pendingAction = { type: 'cone', casterId, abilityName, targetIds, ability, center, reactorId: null, reactedIds: [], blockedIds: [], halvedIds: [], noReacts };
     const firstReactor = noReacts ? null : targets.find(t => getReacts(t, ability).length > 0);
     if (firstReactor) {
       S.pendingAction.reactorId = firstReactor.id;
@@ -2982,6 +3057,7 @@ function settlePendingAction(reactAbility) {
         applyMoveEffect(ability, target, clash.diceMult > 1);
         if (isPureHeal && ability.slotRegen > 0) restoreSlots(target, ability.slotRegen, ability.name);
       }
+      blastDoors(caster, ability, action.center);
 
     } else if (action.type === 'bounce') {
       const caster   = getCombatant(action.casterId);
@@ -3061,6 +3137,7 @@ function settlePendingAction(reactAbility) {
           addLog(`  ✦ ${target.name}'s passives are switched off for 1 turn.`, 'status');
         }
       }
+      blastDoors(caster, ability, action.center);
 
     } else if (action.type === 'splash') {
       const caster  = getCombatant(action.casterId);

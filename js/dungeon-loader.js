@@ -43,9 +43,45 @@ export async function loadMap(slug, perTeam = 4) {
 
 /** Pure: assemble a map object from parsed JSON + a loaded image. */
 export function buildMap({ slug, data, image, perTeam = 4 }) {
-  const grid   = buildWalkableGrid(data.rects, data.doors);
-  const starts = deriveSpawnPoints(data.rects, grid, perTeam);
-  return { slug, name: data.title, story: data.story || '', image, grid, starts, water: waterCells(data.water, grid) };
+  const grid   = buildWalkableGrid(data.rects, data.doors, data.columns);
+  const doors  = closedDoors(data.doors, grid);
+  const map    = { slug, name: data.title, story: data.story || '', image, grid, doors, water: waterCells(data.water, grid) };
+  indexDoors(map);
+  map.starts = deriveSpawnPoints(data.rects, grid, perTeam, map);
+  return map;
+}
+
+// ── Closed doors ────────────────────────────────────────────────────────────
+// Watabou door types that start a fight shut: 4 portcullis, 5 locked, 6 secret. The rest are open passages.
+// A closed door is a wall for movement and for blasts; a portcullis still lets sight through.
+export const DOOR_KINDS = { 4: 'portcullis', 5: 'locked', 6: 'secret' };
+// Hit points of a closed door, worn down by blasts and basic attacks (an interact action opens it outright)
+export const DOOR_HP = { portcullis: 40, locked: 30, secret: 20 };
+
+/** Pure: the doors that start closed, in grid coordinates, each with its own hit points. */
+function closedDoors(doors = [], grid) {
+  return doors.filter(d => DOOR_KINDS[d.type]).map(d => {
+    const kind = DOOR_KINDS[d.type];
+    return { x: d.x - grid.minX + BORDER, y: d.y - grid.minY + BORDER, kind, hp: DOOR_HP[kind], maxHp: DOOR_HP[kind], open: false };
+  });
+}
+
+/** Rebuilds the cell → door lookup; call again whenever map.doors is replaced (a rewound snapshot does). */
+export function indexDoors(map) {
+  map.doorAt = new Map(map.doors.map(d => [d.y * map.grid.cols + d.x, d]));
+}
+
+/** The door standing on a cell, closed or not, or undefined. */
+export function doorAtG(map, gx, gy) {
+  return map.doorAt?.get(gy * map.grid.cols + gx);
+}
+
+/** True when sight passes through the cell: floor that no closed door (other than a portcullis) shuts. */
+export function seesThroughG(map, gx, gy) {
+  const { walkable, cols, rows } = map.grid;
+  if (!(gx >= 0 && gy >= 0 && gx < cols && gy < rows && walkable[gy][gx] === 1)) return false;
+  const d = doorAtG(map, gx, gy);
+  return !d || d.open || d.kind === 'portcullis';
 }
 
 /** Pure: the map's water cells ("x,y" keys in grid space) from the JSON's `water` list. */
@@ -126,7 +162,9 @@ export function cellPxOf(map) {
 /** True if grid coordinate (gx, gy) is inside the map and walkable. */
 export function isWalkableG(map, gx, gy) {
   const { walkable, cols, rows } = map.grid;
-  return gx >= 0 && gy >= 0 && gx < cols && gy < rows && walkable[gy][gx] === 1;
+  if (!(gx >= 0 && gy >= 0 && gx < cols && gy < rows && walkable[gy][gx] === 1)) return false;
+  const d = map.doorAt?.get(gy * cols + gx);
+  return !d || d.open;
 }
 
 // ── Internal helpers ────────────────────────────────────────────────────────
@@ -153,7 +191,7 @@ function loadImage(src) {
  *
  * Returns { walkable, minX, minY, cols, rows, BORDER }.
  */
-function buildWalkableGrid(rects, doors = []) {
+function buildWalkableGrid(rects, doors = [], columns = []) {
   const doorAt = new Set(doors.map(d => `${d.x},${d.y}`));
   const isDoorRect = r => r.w === 1 && r.h === 1 && doorAt.has(`${r.x},${r.y}`);
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
@@ -177,6 +215,11 @@ function buildWalkableGrid(rects, doors = []) {
       }
     }
   }
+  // Pillars stand inside a room: nobody walks, sees or shoots through them
+  for (const c of columns) {
+    const gx = c.x - minX + BORDER, gy = c.y - minY + BORDER;
+    if (gx >= 0 && gy >= 0 && gx < cols && gy < rows) walkable[gy][gx] = 0;
+  }
   return { walkable, minX, minY, cols, rows, BORDER };
 }
 
@@ -189,7 +232,15 @@ function buildWalkableGrid(rects, doors = []) {
  *
  * Returns grid coordinates.
  */
-function deriveSpawnPoints(rects, grid, perTeam = 4) {
+function deriveSpawnPoints(rects, grid, perTeam = 4, map = null) {
+  // With closed doors on the map, both teams start in the largest region that stays connected with them shut
+  const region = map?.doors.length ? mainRegion(grid, map) : null;
+  const cellOf = (room, dx, dy) => ({
+    x: (room.x + dx) - grid.minX + grid.BORDER,
+    y: (room.y + dy) - grid.minY + grid.BORDER,
+  });
+  const usable = c => grid.walkable[c.y]?.[c.x] === 1 && (!region || region.has(c.y * grid.cols + c.x));
+  if (region) rects = rects.filter(r => { for (let dy = 0; dy < r.h; dy++) for (let dx = 0; dx < r.w; dx++) if (usable(cellOf(r, dx, dy))) return true; return false; });
   let large = rects
     .filter(r => perTeam > 4 ? (r.w - 1) * (r.h - 1) >= perTeam : r.w * r.h >= 9)
     .sort((a, b) => (a.x + a.w / 2) - (b.x + b.w / 2));
@@ -205,21 +256,41 @@ function deriveSpawnPoints(rects, grid, perTeam = 4) {
     const cells = [];
     for (let dy = 1; dy < room.h && cells.length < perTeam; dy++) {
       for (let dx = 1; dx < room.w && cells.length < perTeam; dx++) {
-        cells.push({
-          x: (room.x + dx) - grid.minX + grid.BORDER,
-          y: (room.y + dy) - grid.minY + grid.BORDER,
-        });
+        if (usable(cellOf(room, dx, dy))) cells.push(cellOf(room, dx, dy));
       }
     }
-    // Fallback: if the room had no interior (1×1 or 2×1), use the corner
-    if (cells.length === 0) {
-      cells.push({
-        x: room.x - grid.minX + grid.BORDER,
-        y: room.y - grid.minY + grid.BORDER,
-      });
+    // Fallback: if the room had no usable interior (1×1 or 2×1, or pillars), use any of its cells
+    for (let dy = 0; dy < room.h && cells.length === 0; dy++) {
+      for (let dx = 0; dx < room.w && cells.length === 0; dx++) {
+        if (usable(cellOf(room, dx, dy))) cells.push(cellOf(room, dx, dy));
+      }
     }
     return cells;
   }
 
   return { 0: cellsFromRoom(leftRoom), 1: cellsFromRoom(rightRoom) };
+}
+
+/** Cells ("y*cols+x") of the largest 8-connected floor region once every closed door counts as a wall. */
+function mainRegion(grid, map) {
+  const { walkable, cols, rows } = grid;
+  const open = i => walkable[Math.floor(i / cols)][i % cols] === 1 && !map.doorAt.has(i);
+  const seen = new Set();
+  let best = new Set();
+  for (let start = 0; start < cols * rows; start++) {
+    if (seen.has(start) || !open(start)) continue;
+    const comp = new Set([start]), stack = [start];
+    seen.add(start);
+    while (stack.length) {
+      const i = stack.pop(), x = i % cols, y = Math.floor(i / cols);
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const nx = x + dx, ny = y + dy;
+        if (nx < 0 || ny < 0 || nx >= cols || ny >= rows) continue;
+        const j = ny * cols + nx;
+        if (!seen.has(j) && open(j)) { seen.add(j); comp.add(j); stack.push(j); }
+      }
+    }
+    if (comp.size > best.size) best = comp;
+  }
+  return best;
 }

@@ -347,6 +347,17 @@
       "id": "mech-element-choice", "cat": "mechanics", "sev": "low",
       "title": "Dragon Breath element", "who": "Kadgar",
       "detail": "The cone should be of a chosen element. It is always untyped magic, so element immunities and the fire/ice interactions never apply to it."
+    },
+    {
+      "id": "mech-pillars-doors", "resolution": "Implemented: the pillars of a map (columns) are walls for movement, sight and blasts. Locked, secret and portcullis doors start shut, each with hit points (portcullis 40, locked 30, secret 20). A shut door blocks movement and blasts; a portcullis still lets sight through. A unit beside a door can open it with its action, or break it with a basic attack, and a damaging area or cone move wears down every door in its blast. Spawn cells now stay in the largest region reachable with every shut door closed, and off the pillars. The AI snapshot carries the door state. New maps: Sunken Hold of the Serpent Knight, Wayrock Maze.", "cat": "mechanics", "sev": "med",
+      "title": "Pillars and closed doors", "who": "all",
+      "detail": "Pillars were walkable floor, and locked, secret and portcullis doors were open gaps. On Wayrock Maze one team started walled in with only 22 reachable cells.",
+      "where": "dungeon-loader.js · buildWalkableGrid, buildMap; combat-logic.js · hasLos, handleOpenDoor, handleAttackDoor"
+    },
+    {
+      "id": "mech-doors-bot", "cat": "mechanics", "sev": "low",
+      "title": "The bot ignores closed doors",
+      "detail": "The bot never opens or breaks a door, and its area casts carry no centre, so they do not wear doors down. Single-target spells cannot be aimed at a door either. A secret door is drawn grey on the map instead of looking like wall, and a locked door has no key to find."
     }
   ]
 }
