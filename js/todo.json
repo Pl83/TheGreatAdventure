@@ -228,7 +228,7 @@
       "where": "combat-logic.js · rollAttackD20, rollD20For"
     },
     {
-      "id": "mech-magic-roll", "cat": "mechanics", "sev": "med",
+      "id": "mech-magic-roll", "resolution": "Implemented: Archmage (+3), Great Staff (+2) and Runik Mage (+1d12) add to the damage of Kadgar's single-target, area and cone spells (dice multiplied on a bonus hit, flat part not). Great Staff also turns a natural 1 on a spell roll into a 2, three times per fight. Splash bystanders get no bonus.", "cat": "mechanics", "sev": "med",
       "title": "Spell roll bonuses (magicRoll)", "who": "Kadgar",
       "detail": "Archmage (+3), Great Staff (+2 and no critical fails) and Runik Mage (+1d12) are applied on magicRoll, which the engine never reads. Kadgar's spells get none of them.",
       "where": "combat-logic.js · resolveAttack, the atkRoll passive loop"
@@ -296,7 +296,7 @@
       "detail": "Rerolls a 1 once per turn (not Destiny Gamble). No reroll exists."
     },
     {
-      "id": "mech-authority", "cat": "mechanics", "sev": "med",
+      "id": "mech-authority", "resolution": "Implemented: a blow carries the higher of its wielder's Authority and its relic's (Mace of Vulkan 5, Tambours 7, Chains of Apophis 8, Balmung 8), less any domain debuff. Hela's Anti-Magic now works: spells deal her nothing and statuses do not land, unless the blow carries Authority 8 or more. Mixed hits (physical + magic) lose only the magic share.", "cat": "mechanics", "sev": "med",
       "title": "Authority only pierces Perfect Reflection", "who": "Hela, Alicia, Vorrakan Duskbane, Vayl-Soran",
       "detail": "\"Authority 5/7/8\" on Mace of Vulkan Strike, Tambours de Kamowakeikazuchi, Chains of Apophis and Balmung is ignored, and Hela's Anti-Magic (immune to magic and status below Authority 8) is a flat immunity that no authority ever pierces. Authority is read for Perfect Reflection and one domain effect, nothing else.",
       "where": "combat-logic.js · reflectSpell, applyDamage, applyStatus"

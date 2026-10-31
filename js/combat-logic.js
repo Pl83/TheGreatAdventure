@@ -254,6 +254,7 @@ export function resolveAbilitiesFromList(moveList) {
       // Attack-versus-defense roll with no damage dice (the effect applies when the defense fails)
       isContest:  tags.some(t => ['disv_next', 'execute', 'puppet'].includes(t)),
       bypassAuthority: move.bypassAuthority ?? 0,
+      authority:  move.authority ?? 0,   // a relic's own Authority, when higher than its wielder's
       isAoe:      move.target === 'aoe',
       isCone:     move.target === 'cone',
       isSplash:   move.target === 'splash',
@@ -1229,15 +1230,19 @@ export function applyDamage(combatant, amount, damType = null, atkTags = [], ign
   const absorbsFire = combatant.sourceChar.passif?.some(p => p.tags?.includes('absorbFire') && !passiveLost(combatant, p))
     && !combatant.statusEffects.some(e => e.name === 'relic_awake');
   if (absorbsFire) immune.push('fire');
-  const immuneTypes = types.filter(t => immune.includes(t));
+  // "magic" is no damage type, but a spell's share is turned away by a magic immunity (Hela's Anti-Magic) unless Authority pierces it
+  const magical = atkTags.includes('magic') && immune.includes('magic');
+  if (magical && piercesGate(combatant)) addLog(`🪞 Authority ${strikeAuthority} pierces ${combatant.name}'s Anti-Magic!`, 'crit');
+  const hitTypes = magical && !piercesGate(combatant) ? [...types, 'magic'] : types;
+  const immuneTypes = hitTypes.filter(t => immune.includes(t));
   if (absorbsFire && types.includes('fire')) restoreSlots(combatant, 1, "Ifrit's Bane");
-  if (immuneTypes.length === types.length && types.length > 0) {
+  if (immuneTypes.length === hitTypes.length && hitTypes.length > 0) {
     addLog(`🛡 ${combatant.name} is immune to ${immuneTypes.join('/')}!`, 'info');
     return done();
   }
   if (immuneTypes.length > 0) {
     const before = amount;
-    amount = Math.floor(amount * (types.length - immuneTypes.length) / types.length);
+    amount = Math.floor(amount * (hitTypes.length - immuneTypes.length) / hitTypes.length);
     addLog(`🛡 ${combatant.name} is immune to ${immuneTypes.join('/')} — only the rest of the hit lands (${before} → ${amount}).`, 'info');
   }
 
@@ -1389,8 +1394,11 @@ export function applyStatus(combatant, effectStr, defaultTurns = 2) {
         continue;
       }
       if (immunities.includes('status')) {
-        addLog(`🛡 ${combatant.name} is immune to all status effects!`, 'info');
-        continue;
+        if (!piercesGate(combatant)) {
+          addLog(`🛡 ${combatant.name} is immune to all status effects!`, 'info');
+          continue;
+        }
+        addLog(`🪞 Authority ${strikeAuthority} pierces ${combatant.name}'s Anti-Magic!`, 'crit');
       }
       if (immunities.includes(key) || (STATUS_ALIASES[key] && immunities.includes(STATUS_ALIASES[key]))
           || (DOTS[key] && immunities.includes(DOTS[key].base))) {
@@ -1909,13 +1917,23 @@ function executeStrike(caster, target, ability) {
   applyHeal(caster, '50');
 }
 
+// The Authority behind one blow: the wielder's own or the relic's, whichever is higher, less any domain debuff
+const authorityOf = (c, ability) => Math.max(c.sourceChar.autority ?? 0, ability?.authority ?? 0) + (c.authorityDebuff ?? 0);
+
+// The Authority of the blow being resolved; applyDamage and applyStatus read it to see whether Anti-Magic holds
+let strikeAuthority = 0;
+
+// Hela's Anti-Magic: the immunity to magic and status only holds against Authority below the gate
+const authorityGate = c => Math.max(0, ...(c.sourceChar.passif ?? []).filter(p => p.authorityGate && !passiveLost(c, p)).map(p => p.authorityGate));
+const piercesGate = c => { const g = authorityGate(c); return g > 0 && strikeAuthority >= g; };
+
 // Perfect Reflection: the spell goes back to its caster with its damage doubled; high Authority pierces it.
 // Returns false when the reflection fails and the spell goes through.
 function reflectSpell(reactor, reflectAb, action) {
   const attacker = getCombatant(action.attackerId ?? action.casterId);
   const spell    = action.ability;
   if (!attacker) return false;
-  const authority = (attacker.sourceChar.autority ?? 0) + (attacker.authorityDebuff ?? 0);
+  const authority = authorityOf(attacker, spell);
   if (reflectAb.bypassAuthority && authority >= reflectAb.bypassAuthority) {
     addLog(`🪞 ${attacker.name}'s authority (${authority}) pierces ${reflectAb.name}!`, 'crit');
     return false;
@@ -1968,6 +1986,29 @@ function spendNextBonus(c) {
   return { dice: st.dice, label: st.name === 'gamble_bonus' ? 'DestinyGamble' : 'RuniquePrecast' };
 }
 
+// The bonuses a spell adds on top of its dice (Archmage, Great Staff, Runik Mage: passives on magicRoll)
+function spellRollBonus(caster, target, ability, diceMult = 1) {
+  if (!isSpellMove(ability)) return null;
+  let total = 0;
+  const parts = [];
+  for (const b of rollBonuses(caster, 'magicRoll', target, ability)) {
+    const pr = parseDice(b.dices, { diceMult });
+    total += pr.total;
+    parts.push(`${b.nom}[${pr.breakdown}]`);
+  }
+  return parts.length ? { total, label: parts.join(' ') } : null;
+}
+
+// Great Staff: a natural 1 on a spell roll is turned into a plain 2, a few times per fight
+function steadyStaff(c, roll) {
+  const p = (c.sourceChar.passif ?? []).find(q => q.tags?.includes('noFumble') && !passiveLost(c, q));
+  const used = p ? (c.stacks[p.nom] ?? 0) : 0;
+  if (!p || used >= p.uses) return roll;
+  c.stacks[p.nom] = used + 1;
+  addLog(`  🪄 ${c.name}'s ${p.nom} steadies the spell — the natural 1 becomes a 2. (${used + 1}/${p.uses})`, 'spell');
+  return { value: 2, isNat20: false, isNat1: false };
+}
+
 // The attacker's d20 for one move. Advantage / sure-hit come from the owner's domain or the move's own tags.
 function rollAttackD20(attacker, ability, defender = null) {
   const domainAtkEffs = getDomainEffects(attacker, { applyOn: 'atkRoll', ability });
@@ -1993,7 +2034,8 @@ function rollAttackD20(attacker, ability, defender = null) {
     addLog(`🌟 ${attacker.name}'s destiny strikes true!`, 'spell');
     return { roll: { value: 20, isNat20: true, isNat1: false }, sureHit: true };
   }
-  return { roll: rollD20For(attacker, adv, dread, 'atk'), sureHit };
+  const roll = rollD20For(attacker, adv, dread, 'atk');
+  return { roll: roll.isNat1 && isSpellMove(ability) ? steadyStaff(attacker, roll) : roll, sureHit };
 }
 
 // A blow from more than an arm's length away, or one the move itself calls ranged
@@ -2172,6 +2214,12 @@ export function resolveAttack(attacker, defender, diceExpr, ability = null) {
     if (versus) {
       passiveBonus += versus.total;
       passiveParts.push(versus.label);
+    }
+
+    const arcane = spellRollBonus(attacker, defender, ability, bonusMult);
+    if (arcane) {
+      passiveBonus += arcane.total;
+      passiveParts.push(arcane.label);
     }
 
     const frStatus = attacker.statusEffects.find(e => e.name === 'final_reckoning');
@@ -2692,7 +2740,15 @@ function grantDamageShield(target, shieldHp, source) {
   }
 }
 
+// Resolves the pending action with the Authority of its attacker behind every hit and status it deals
 export function resumePendingAction(reactAbility) {
+  const action = S.pendingAction;
+  const striker = action && getCombatant(action.attackerId ?? action.casterId);
+  strikeAuthority = striker ? authorityOf(striker, action.ability) : 0;
+  try { settlePendingAction(reactAbility); } finally { strikeAuthority = 0; }
+}
+
+function settlePendingAction(reactAbility) {
   const action = S.pendingAction;
   S.pendingAction = null;
   if (!action) { advanceTurn(); return; }
@@ -2913,8 +2969,9 @@ export function resumePendingAction(reactAbility) {
             const rd = parseDice(ability.dice, { diceMult: clash.diceMult });
             const damType = damTypeFromTags(ability.tags);
             const versus = bonusVsFor(ability, target, clash.diceMult);
-            const totalDmg = Math.floor((rd.total + precastBonus + (versus?.total ?? 0)) * mult);
-            addLog(`  ${target.name} is hit for ${totalDmg} (${rd.breakdown}${precastBonus ? ` +precast${precastBonus}` : ''}${versus ? ` +${versus.label}` : ''}${mult < 1 ? ' ×½' : ''})`, 'hit');
+            const arcane = spellRollBonus(caster, target, ability, clash.diceMult);
+            const totalDmg = Math.floor((rd.total + precastBonus + (versus?.total ?? 0) + (arcane?.total ?? 0)) * mult);
+            addLog(`  ${target.name} is hit for ${totalDmg} (${rd.breakdown}${precastBonus ? ` +precast${precastBonus}` : ''}${versus ? ` +${versus.label}` : ''}${arcane ? ` +${arcane.label}` : ''}${mult < 1 ? ' ×½' : ''})`, 'hit');
             applyDamage(target, totalDmg, damType, ability.tags, aoeIgnoreDR);
             if (clash.mutual) strikeBack(caster, { recoil: totalDmg }, damType, ability.tags);
             if (ability.isHeal) applyHeal(caster, String(totalDmg));
@@ -2992,8 +3049,9 @@ export function resumePendingAction(reactAbility) {
         if (ability.dice) {
           const rd = parseDice(ability.dice, { diceMult: clash.diceMult });
           const versus = bonusVsFor(ability, target, clash.diceMult);
-          const dmg = Math.floor((rd.total + (versus?.total ?? 0)) * mult);
-          addLog(`  ${target.name} is hit for ${dmg} (${rd.breakdown}${versus ? ` +${versus.label}` : ''}${mult < 1 ? ' ×½' : ''})`, 'hit');
+          const arcane = spellRollBonus(caster, target, ability, clash.diceMult);
+          const dmg = Math.floor((rd.total + (versus?.total ?? 0) + (arcane?.total ?? 0)) * mult);
+          addLog(`  ${target.name} is hit for ${dmg} (${rd.breakdown}${versus ? ` +${versus.label}` : ''}${arcane ? ` +${arcane.label}` : ''}${mult < 1 ? ' ×½' : ''})`, 'hit');
           applyDamage(target, dmg, damType, ability.tags, coneIgnoreDR);
           if (clash.mutual) strikeBack(caster, { recoil: dmg }, damType, ability.tags);
           if (ability.tags?.includes('grounded')) removeFlying(target);

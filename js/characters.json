@@ -829,6 +829,7 @@
         "category": "relic",
         "base": { "nom": "Mace of Vulkan Strike", "dices": "1d12+8", "tags": ["physical", "fire"] },
         "target": "splash", "range": 2, "radius": 2,
+        "authority": 5,
         "description": "Authority 5.",
         "cooldown": 0
       }
@@ -1292,7 +1293,7 @@
     "passif": [
       { "nom": "Archmage", "dices": "+3", "tags": ["buff"], "applyOn": ["magicRoll"] },
       { "nom": "Knowledge", "tags": ["buff", "adv"], "applyOn": ["magicRoll"], "description": "Advantage on all magic rolls." },
-      { "nom": "Great Staff", "dices": "+2", "tags": ["buff"], "applyOn": ["magicRoll"], "description": "Prevent 3/3 critical fails." },
+      { "nom": "Great Staff", "dices": "+2", "tags": ["buff", "noFumble"], "uses": 3, "applyOn": ["magicRoll"], "description": "Prevent 3/3 critical fails." },
       { "nom": "Runik Mage", "dices": "+1d12", "tags": ["runik", "buff"], "applyOn": ["magicRoll"] }
     ],
     "moveSet": [
@@ -1432,6 +1433,7 @@
         "category": "relic",
         "base": { "nom": "Chains of Apophis", "tags": ["buff", "block", "chains"] },
         "target": "mono", "range": 20,
+        "authority": 8,
         "description": "Authority 8. Absorb damage directed toward master.",
         "cooldown": 0
       }
@@ -1857,6 +1859,7 @@
           "tags": ["lightning", "stun"]
         },
         "target": "aoe", "range": 10, "radius": 5,
+        "authority": 7,
         "description": "Authority 7. Passive: 3 charges for lightning explosion. Active: Divine storm. Silence 1d2 turns.",
         "cooldown": 99
       }
@@ -2218,7 +2221,7 @@
     },
     "passif": [
       { "nom": "True Weapon Goddess", "tags": ["buff", "adv"], "applyOn": ["atkRoll"], "description": "Advantage on ALL attack rolls." },
-      { "nom": "Anti-Magic", "tags": ["buff"], "applyOn": [], "description": "Immune to magic/status below Authority 8. In immunities[]." },
+      { "nom": "Anti-Magic", "tags": ["buff"], "applyOn": [], "authorityGate": 8, "description": "Immune to magic/status below Authority 8. In immunities[]." },
       { "nom": "Death Presence", "tags": ["debuff", "firstAttackDisadvantage"], "applyOn": [], "description": "All foes have disadvantage on their first attack each fight." },
       { "nom": "Undying Queen", "dices": "20", "tags": ["regen", "buff"], "applyOn": ["hpPerTurn"], "description": "Heal 20 HP each turn. Resurrection active." }
     ],
@@ -2291,6 +2294,7 @@
         "category": "relic",
         "base": { "nom": "Balmung (Sealed)", "dices": "4d12+20", "tags": ["physical", "magic"] },
         "target": "mono", "range": 20,
+        "authority": 8,
         "description": "Authority 8. Can hit through dimensions.",
         "charges": 4,
         "cooldown": 0
