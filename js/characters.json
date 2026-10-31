@@ -2752,7 +2752,7 @@
       },
       {
         "nom": "Undying Flame",
-        "dices": "2d10",
+        "dices": "1d10",
         "tags": [
           "heal",
           "regen",
@@ -2792,7 +2792,9 @@
           "hpPerTurn"
         ],
         "target": "allies",
-        "description": "Passive warmth of the Vermillion Bird heals nearby allies each turn."
+        "radius": 8,
+        "excludeSelf": true,
+        "description": "Passive warmth of the Vermillion Bird heals the allies within 8 cells each turn, not herself."
       }
     ],
     "divineSync": {
@@ -2821,7 +2823,7 @@
             "hpPerTurn"
           ],
           "target": "allies",
-          "description": "Remove 1 debuff from each ally per turn."
+          "description": "Remove 1 debuff from each other ally per turn (not from herself)."
         }
       ]
     },
@@ -2889,7 +2891,7 @@
         "target": "mono",
         "range": 8,
         "description": "Wrap an ally in phoenix fire. Block one attack + regen 1d10+6 HP.",
-        "kiCost": 6
+        "kiCost": 9
       },
       {
         "category": "Art",
@@ -3013,7 +3015,7 @@
             "incomingDam"
           ],
           "target": "allies",
-          "description": "The Turtle's presence reduces damage taken by all allies."
+          "description": "The Turtle's presence reduces damage taken by his allies, not by himself."
         },
         {
           "nom": "Tidal Anchor",

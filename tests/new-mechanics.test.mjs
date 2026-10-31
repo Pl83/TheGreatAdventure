@@ -93,11 +93,31 @@ test('a Divine Beast gains nothing alone and its bonuses switch on when another 
   await newFight({ teamA: ['Jeagen, White Tiger', 'Jay, Azure Dragon', 'Mira'], teamB: ['Kaelgrym'], seed: 1 });
   const jeagen = byName('Jeagen'), jay = byName('Jay'), mira = byName('Mira');
   assert.equal(L.moveSpeed(jay), jay.speed + 3, 'Western Gale: allies move 3 more');
-  assert.equal(L.moveSpeed(jeagen), jeagen.speed + 3);
+  assert.equal(L.moveSpeed(jeagen), jeagen.speed, 'but never its owner');
   assert.equal(L.moveSpeed(mira), mira.speed + 3);
 
   jay.isKO = true;
-  assert.equal(L.moveSpeed(jeagen), jeagen.speed, 'the partner fell: the bonus is gone');
+  assert.equal(L.moveSpeed(mira), mira.speed, 'the partner fell: the bonus is gone');
+});
+
+test('a Beast\'s ally buffs spare its owner: Phoenix Grace and Embers of Life never heal Zhuqiao, Embers reaches only 8 cells', async () => {
+  await newFight({ teamA: ['Zhuqiao, Vermillion Bird', 'Black Turtle', 'Mira'], teamB: ['Kaelgrym'], seed: 3 });
+  const zhu = toTurn('Zhuqiao'), turtle = byName('Black Turtle'), mira = byName('Mira');
+  zhu.currentHp = 60; turtle.currentHp = 40; mira.currentHp = 10;
+  L.beginTurn(zhu);
+  assert.equal(zhu.currentHp, 60, 'Zhuqiao is above half: nothing heals her');
+  assert.ok(mira.currentHp > 10, 'an ally in reach is healed');
+});
+
+test('Embers of Life heals only the allies within 8 cells of Zhuqiao', async () => {
+  await newFight({ teamA: ['Zhuqiao, Vermillion Bird', 'Mira', 'Nate'], teamB: ['Kaelgrym'], seed: 3 });
+  const zhu = toTurn('Zhuqiao'), mira = byName('Mira'), nate = byName('Nate');
+  place(zhu, 2, 2); place(mira, 5, 2); place(nate, 20, 2);
+  zhu.currentHp = 60; mira.currentHp = 10; nate.currentHp = 10;
+  L.beginTurn(zhu);
+  assert.ok(mira.currentHp > 10, 'three cells away: warmed');
+  assert.equal(nate.currentHp, 10, 'eighteen cells away: not warmed');
+  assert.equal(zhu.currentHp, 60, 'never herself');
 });
 
 test('a Divine Beast\'s Beast partner on the other team does not count', async () => {

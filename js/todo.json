@@ -360,7 +360,7 @@
       "detail": "The bot never opens or breaks a door, and its area casts carry no centre, so they do not wear doors down. Single-target spells cannot be aimed at a door either. A secret door is drawn grey on the map instead of looking like wall, and a locked door has no key to find."
     },
     {
-      "id": "mech-bot-tuner", "resolution": "Implemented: tools/tune.mjs plays two sets of evaluation weights against each other (SPSA, head-to-head, both seatings) on random matchups and the three maps, with no model and no tokens. See docs/ai-runner.md.", "cat": "mechanics", "sev": "low",
+      "id": "mech-bot-tuner", "resolution": "Implemented: tools/tune.mjs plays two sets of evaluation weights against each other (SPSA, head-to-head, both seatings) on random matchups and the three maps, with no model and no tokens. See docs/ai-runner.md. First measured run (2026-10-31): 540 iterations found no gain; the best set scored 50.6% (interval 45.7-55.5%) against the start weights over 400 held-out fights, so evaluate.js was left unchanged. An 8-hour run with 300 sims per decision followed.", "cat": "mechanics", "sev": "low",
       "title": "The bot's weights had to be tuned by hand", "who": "all",
       "detail": "Tuning the eight evaluation weights meant running fights and editing numbers by hand in a long session."
     },
@@ -369,6 +369,24 @@
       "cat": "mechanics", "sev": "low",
       "title": "Chronos, the god of time, is not on the roster", "who": "Chronos",
       "detail": "A primordial god from before the Aurora, first met as the Guild master. Stasis, Withering Hour, Three Threads, Two-Faced Door, Borrowed Time and Rewind hint, without naming them, at the Norns, Thoth, Kala and Janus he absorbed. Also: a natural 20 that lands can no longer be reacted to (block, dodge or teleport), for every unit; Stasis really stuns for 2 full turns; all his spells cost 1 slot. Not done: a retune of the bot with him in the roster. The 70% figure is measured with the greedy brain, which does not open domains."
+    },
+    {
+      "id": "odd-zhuqiao-sustain", "resolution": "Fixed: Embers of Life heals only allies within 8 cells and never Zhuqiao; Undying Flame is 1d10 instead of 2d10; Phoenix Shroud costs 9 ki instead of 6. Every Divine Beast synergy aimed at allies (Western Gale, Dragon Blessing, Phoenix Grace, Northern Depths) now spares its owner; the owner's own bonuses (attack dice, Tidal Anchor) are unchanged. Not measured: no duels were run after the change.", "cat": "oddities", "sev": "med",
+      "title": "Zhuqiao heals and cleanses herself far too much", "who": "Zhuqiao, Jeagen, Jay, Black Turtle",
+      "detail": "Embers of Life healed every living ally on the map, herself included, whatever the distance; Phoenix Grace healed and cleansed her each round; Undying Flame added about 11 HP a turn under half health. With 85 HP, speed 18, flight and a block, she was close to unkillable in a pair of Divine Beasts.",
+      "where": "characters.json · Zhuqiao; combat-logic.js · divineEffects, the hpPerTurn passives and the Divine Beast healing"
+    },
+    {
+      "id": "mech-play-vs-bot", "resolution": "Implemented: an opponent picker on the combat selection screen (S.aiTeam, kept in localStorage); a driver asks the bot on its turns and reacts through applyPlan and settleReacts; the action panel and react overlay are hidden for bot units. Tested headless.", "cat": "mechanics", "sev": "low",
+      "title": "No way to play one team against the bot", "who": "all",
+      "detail": "Every fight on the combat page was hot-seat: a person had to play both teams.",
+      "where": "combat.html, main.js · opponent picker; combat-ai-driver.js"
+    },
+    {
+      "id": "odd-acceptance-strength", "cat": "oddities", "sev": "low",
+      "title": "acceptance --quick fails its strength stage",
+      "detail": "The strength stage needs 80% wins against the greedy brain over 8 fights (seeds 1..1, 500 sims). It scored 62.5% before the Chronos merge and 75% after it, so the failure is not new. With 8 fights the stage is mostly noise, and it makes tests/acceptance.test.mjs fail. The Zhuqiao 5v5 matchup (Zhuqiao +4 vs Jaina +4) is one of the two matchups used. Also not measured: the bot with Chronos on the roster, and Zhuqiao after her nerf.",
+      "where": "tools/acceptance.mjs · strength stage; tests/acceptance.test.mjs"
     }
   ]
 }

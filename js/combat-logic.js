@@ -1788,14 +1788,15 @@ export function divineSyncActive(c) {
     && S.combatants.some(o => o.id !== c.id && o.teamIndex === c.teamIndex && !o.isKO && o.sourceChar.divineSync);
 }
 
-// The synergy effects of c's team that reach c for one kind of roll or tick
+// The synergy effects of c's team that reach c for one kind of roll or tick. 'self' effects are the owner's own;
+// 'allies' effects reach the owner's teammates, never the owner.
 function divineEffects(c, applyOn) {
   const out = [];
   for (const owner of livingCombatants(c.teamIndex)) {
     if (!divineSyncActive(owner)) continue;
     for (const e of owner.sourceChar.divineSync.effects ?? []) {
       if (!e.applyOn?.includes(applyOn)) continue;
-      if (e.target === 'self' ? owner.id === c.id : e.target === 'allies') out.push(e);
+      if (e.target === 'self' ? owner.id === c.id : e.target === 'allies' && owner.id !== c.id) out.push(e);
     }
   }
   return out;
@@ -3665,7 +3666,12 @@ export function beginTurn(c) {
     if (!p.applyOn?.includes('hpPerTurn') || !p.dices) continue;
     if (p.condition?.selfBelow50pct && c.currentHp > c.maxHp * 0.5) continue;
     if (p.target === 'allies') {
-      for (const ally of livingCombatants(c.teamIndex)) applyHeal(ally, p.dices);
+      // `radius` limits it to allies within that many cells; `excludeSelf` leaves the owner out
+      for (const ally of livingCombatants(c.teamIndex)) {
+        if (p.excludeSelf && ally.id === c.id) continue;
+        if (p.radius && S.currentMap && chebyshev(c, ally) > p.radius) continue;
+        applyHeal(ally, p.dices);
+      }
     } else {
       applyHeal(c, p.dices);
     }
@@ -3676,6 +3682,7 @@ export function beginTurn(c) {
     for (const e of c.sourceChar.divineSync.effects ?? []) {
       if (!e.applyOn?.includes('hpPerTurn') || !e.dices || e.target !== 'allies') continue;
       for (const ally of livingCombatants(c.teamIndex)) {
+        if (ally.id === c.id) continue;   // a Beast's blessing is for the others
         applyHeal(ally, e.dices, e.nom);
         if (e.tags?.includes('cleans')) cleanseOne(ally, e.nom);
       }
