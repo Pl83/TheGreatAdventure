@@ -3814,5 +3814,156 @@
         "cooldown": 99
       }
     ]
+  },
+  {
+    "nom": "Chronos, Monarch of Time",
+    "hp": 520,
+    "spellSlot": 14,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 9,
+    "immunities": ["status"],
+    "baseAtk": {
+      "nom": "Hand of the Hour",
+      "dices": "4d12+22",
+      "tags": ["physical", "unblockabled"]
+    },
+    "passif": [
+      {
+        "nom": "Archive of Ibis",
+        "tags": ["buff", "adv"],
+        "applyOn": ["atkRoll", "magicRoll", "defRoll"],
+        "description": "Advantage on ALL rolls: attacks, spells and defense. He has read every ending already."
+      },
+      {
+        "nom": "Time Beyond Time",
+        "tags": ["buff"],
+        "applyOn": [],
+        "authorityGate": 9,
+        "description": "Immune to status effects below Authority 9. In immunities[]. No hindrance sticks to a man who is never late."
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Stasis",
+          "tags": ["magic", "stun"]
+        },
+        "target": "mono",
+        "range": 12,
+        "description": "2 turn stun. The target is held in a moment that does not end.",
+        "spellCost": 2,
+        "cooldown": 3
+      },
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Withering Hour",
+          "dices": "5d12",
+          "tags": ["magic", "necro", "toxic", "unblockabled"]
+        },
+        "target": "mono",
+        "range": 10,
+        "grants": {
+          "status": "withering",
+          "amount": 25,
+          "turns": 3,
+          "label": "Withering Hour"
+        },
+        "description": "Damage over time that ignores armor, and it kills slowly. For 3 turns each basic attack that lands also cuts the target's maximum HP by 25, and the cuts stack. Something devoured, long ago, taught him how.",
+        "spellCost": 2,
+        "cooldown": 2
+      },
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Three Threads",
+          "tags": ["dodge", "react"]
+        },
+        "target": "self",
+        "range": 0,
+        "description": "Instant dodge mono, halve aoe. Three threads, only one of them his own.",
+        "spellCost": 1,
+        "charges": 3
+      },
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Two-Faced Door",
+          "tags": ["magic", "react", "instant", "teleportation"]
+        },
+        "target": "self",
+        "range": 20,
+        "description": "Teleportation. As a react, he steps through before the blow lands. One face looks in, one looks out.",
+        "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Borrowed Time",
+          "tags": ["buff", "instant", "extraAction"]
+        },
+        "target": "self",
+        "range": 0,
+        "description": "Instant: the turn's action comes back, so he acts once more.",
+        "spellCost": 3,
+        "cooldown": 99
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Rewind",
+          "tags": ["buff", "onDeath"]
+        },
+        "target": "self",
+        "range": 0,
+        "description": "On a killing blow, he steps back to where he stood two rounds ago: his HP then (at least 200), his place, and every hindrance undone.",
+        "cooldown": 99
+      }
+    ],
+    "domain": {
+      "name": "Chronostasis",
+      "type": "Complet",
+      "rafinement": 7,
+      "radius": 8,
+      "description": "Une salle sans fin au cœur du Tartare, remplie d'horloges arrêtées. Tout ce qui y pénètre vieillit d'un coup, tandis que le Monarque, lui, n'a jamais été en retard.",
+      "spellCost": 7,
+      "effects": [
+        {
+          "nom": "Foe Authority Reduction",
+          "dices": "-1",
+          "tags": ["debuff"],
+          "applyOn": ["autority"],
+          "target": "foes"
+        },
+        {
+          "nom": "Age of Ages",
+          "dices": "3d10",
+          "tags": ["necro"],
+          "applyOn": ["hpPerTurn"],
+          "target": "foes"
+        },
+        {
+          "nom": "No Cooldown on Withering Hour",
+          "tags": ["buff"],
+          "applyOn": ["cooldown"],
+          "target": "self",
+          "condition": {
+            "moveName": "Withering Hour"
+          }
+        },
+        {
+          "nom": "Sure Hit on Stasis",
+          "tags": ["undodgeable"],
+          "applyOn": ["atkRoll"],
+          "target": "self",
+          "condition": {
+            "moveName": "Stasis"
+          }
+        }
+      ]
+    }
   }
 ]

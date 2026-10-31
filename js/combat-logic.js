@@ -250,7 +250,7 @@ export function resolveAbilitiesFromList(moveList) {
       isVoid:     tags.includes('void'),
       isGate:     tags.includes('gate'),
       // Reactions that do nothing when cast proactively
-      reactOnly:  tags.includes('void') || tags.includes('reflect') || (tags.includes('dodge') && tags.includes('react')),
+      reactOnly:  tags.includes('void') || tags.includes('reflect') || tags.includes('onDeath') || (tags.includes('dodge') && tags.includes('react')),
       // Attack-versus-defense roll with no damage dice (the effect applies when the defense fails)
       isContest:  tags.some(t => ['disv_next', 'execute', 'puppet'].includes(t)),
       bypassAuthority: move.bypassAuthority ?? 0,
@@ -1431,7 +1431,11 @@ export function applyDamage(combatant, amount, damType = null, atkTags = [], ign
     const resAb = survived ? null : combatant.abilities.find(a =>
       a.name === 'Resurrection' && a.isOncePerFight && !combatant.usedThisFight.includes('Resurrection')
     );
-    if (resAb) {
+    const rewindAb = survived || resAb ? null : combatant.abilities.find(a =>
+      a.tags?.includes('onDeath') && a.isOncePerFight && !combatant.usedThisFight.includes(a.name)
+    );
+    if (rewindAb) rewindTime(combatant, rewindAb);
+    else if (resAb) {
       combatant.currentHp = 150;
       combatant.usedThisFight.push('Resurrection');
       addLog(`💀✨ ${combatant.name} RESURRECTS with 150 HP — Final Reckoning activates!`, 'crit');
@@ -1446,6 +1450,39 @@ export function applyDamage(combatant, amount, damType = null, atkTags = [], ign
   }
   updateCombatantCardDOM(combatant);
   return dmg;
+}
+
+// Chronos' Rewind: on a killing blow, once per fight, he steps back to where he stood two rounds ago. His life
+// is what it was then (never less than REWIND_FLOOR), and every hindrance on him is undone.
+const REWIND_FLOOR = 200;
+function rewindTime(c, ab) {
+  const then = c.trail?.[0];
+  c.usedThisFight.push(ab.name);
+  c.currentHp = Math.max(then?.hp ?? 0, REWIND_FLOOR);
+  c.statusEffects = [];
+  if (then && !isOccupied(then.x, then.y, c.id)) { c.x = then.x; c.y = then.y; }
+  addLog(`⏳✨ ${c.name} REWINDS — time unwinds and he stands again with ${c.currentHp} HP!`, 'crit');
+}
+
+// Where each unit stood at the start of the last two rounds (Rewind goes back to the older one)
+function recordTrail() {
+  for (const c of S.combatants) {
+    if (c.isKO) continue;
+    (c.trail ??= []).push({ hp: c.currentHp, x: c.x, y: c.y });
+    if (c.trail.length > 2) c.trail.shift();
+  }
+}
+
+// Withering Hour: while it lasts, each basic attack that lands also cuts the target's maximum HP, and the cuts pile up
+function witherMax(atk, def) {
+  const w = atk.statusEffects.find(e => e.name === 'withering');
+  if (!w || def.isKO) return;
+  const cut = Math.min(w.amount ?? 0, def.maxHp - 1);
+  if (cut <= 0) return;
+  def.maxHp -= cut;
+  def.currentHp = Math.min(def.currentHp, def.maxHp);
+  addLog(`  ⌛ ${def.name} withers — maximum HP −${cut} (now ${def.maxHp}).`, 'status');
+  updateCombatantCardDOM(def);
 }
 
 export function applyStatus(combatant, effectStr, defaultTurns = 2) {
@@ -2379,6 +2416,7 @@ export function getReacts(target, incoming = null) {
   });
   return target.abilities.filter(ab => {
     if (!ab.isReact && !ab.isInstant && !ab.isBlock) return false;
+    if (ab.tags?.includes('extraAction')) return false;   // Borrowed Time is spent on the caster's own turn
     if (ab.isTransform) return false;
     // Guardbreak beats every block but not a dodge: teleports, dashes and the like still get away
     if (incoming?.tags?.includes('guardbreak') && ab.isBlock && !ab.tags?.some(t => ['dodge', 'dash', 'teleportation'].includes(t))) return false;
@@ -2968,6 +3006,7 @@ function settlePendingAction(reactAbility) {
           const damType = damTypeFromTags(atkTags);
           const ignoreDR = getDomainEffects(atk, { applyOn: 'atkRoll' }).some(e => e.tags?.includes('unblockabled'));
           applyDamage(def, action.result.damage, damType, atkTags, ignoreDR);
+          witherMax(atk, def);
           strikeBack(atk, action.result, damType, atkTags);
           applyHpPerHitPassives(atk);
           if (atkTags.includes('grounded')) removeFlying(def);
@@ -3187,6 +3226,11 @@ function settlePendingAction(reactAbility) {
           selfDestruct(caster, ability);
         } else if (isSelf || isPureHeal) {
           if (ability.grants) grantTimed(target, ability);
+          // Borrowed Time (instant): the turn's action comes back, so the caster acts once more
+          if (ability.tags?.includes('extraAction') && S.hasActed) {
+            S.hasActed = false;
+            addLog(`⏳ ${caster.name} borrows a moment — he may act again!`, 'spell');
+          }
           if (ability.tags?.includes('gamble')) destinyGamble(caster);
           if (ability.tags?.includes('half_phys')) {
             raiseBladeArmor(target, ability);
@@ -3265,6 +3309,7 @@ function settlePendingAction(reactAbility) {
               if (ability.tags?.includes('grounded')) removeFlying(target);
             }
             applyMoveEffect(ability, target, action.result.guaranteed);
+            if (ability.grants) grantTimed(caster, ability);   // a hostile move that also arms its caster (Withering Hour)
             if (ability.tags?.includes('pull') && !target.isKO) pullTarget(caster, target);
             if (ability.tags?.includes('disv_next') && pushStatus(target, { name: 'disadvantage', turnsLeft: 2, uses: 1 })) {
               addLog(`⬇ ${target.name} is weighed down — next d20 at disadvantage!`, 'status');
@@ -3551,7 +3596,7 @@ export function advanceTurn() {
   clearAimState();
   exitTeleportMode();
   S.pendingTeleportReact = null;
-  if (passedZero) { S.roundNumber++; addRoundDivider(); tickFields(); }
+  if (passedZero) { S.roundNumber++; addRoundDivider(); tickFields(); recordTrail(); }
 
   beginTurn(activeCombatant());
 }

@@ -363,6 +363,12 @@
       "id": "mech-bot-tuner", "resolution": "Implemented: tools/tune.mjs plays two sets of evaluation weights against each other (SPSA, head-to-head, both seatings) on random matchups and the three maps, with no model and no tokens. See docs/ai-runner.md.", "cat": "mechanics", "sev": "low",
       "title": "The bot's weights had to be tuned by hand", "who": "all",
       "detail": "Tuning the eight evaluation weights meant running fights and editing numbers by hand in a long session."
+    },
+    {
+      "id": "char-chronos", "resolution": "Implemented: Chronos, Monarch of Time, in characters.json (520 HP, Authority 9, Complet domain Chronostasis). He beats Hela in about 70% of 100 greedy-brain duels (tools/sim.mjs). New engine pieces: Rewind (onDeath, once per fight, back to his HP and place of two rounds ago), Withering Hour (a hostile move that also arms its caster, each landed basic attack then cuts max HP and the cuts stack), Borrowed Time (extraAction: the action comes back). The search bot cannot plan a second action, so it plays Borrowed Time poorly.",
+      "cat": "mechanics", "sev": "low",
+      "title": "Chronos, the god of time, is not on the roster", "who": "Chronos",
+      "detail": "A primordial god from before the Aurora, first met as the Guild master. Stasis, Withering Hour, Three Threads, Two-Faced Door, Borrowed Time and Rewind hint, without naming them, at the Norns, Thoth, Kala and Janus he absorbed. Not done: a sheet in main.js, a Guild or faction entry, and a retune of the bot with him in the roster."
     }
   ]
 }
