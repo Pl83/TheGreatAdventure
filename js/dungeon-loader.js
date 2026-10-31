@@ -56,7 +56,7 @@ export function buildMap({ slug, data, image, perTeam = 4 }) {
 // A closed door is a wall for movement and for blasts; a portcullis still lets sight through.
 export const DOOR_KINDS = { 4: 'portcullis', 5: 'locked', 6: 'secret' };
 // Hit points of a closed door, worn down by blasts and basic attacks (an interact action opens it outright)
-export const DOOR_HP = { portcullis: 40, locked: 30, secret: 20 };
+export const DOOR_HP = { portcullis: 15, locked: 10, secret: 20 };
 
 /** Pure: the doors that start closed, in grid coordinates, each with its own hit points. */
 function closedDoors(doors = [], grid) {
