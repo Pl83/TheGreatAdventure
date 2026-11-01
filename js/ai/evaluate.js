@@ -1,7 +1,7 @@
 // Position evaluation: one number, higher is better for the given team. Reads the live fight state S and
 // changes nothing; no dice are rolled. Built to run thousands of times per search decision, so it makes one
 // pass over the combatants (plus one over the foes per own unit for the engagement term) and allocates little.
-import { S, abilityAvailable, hasControlEffect, MELEE_RANGE, SPELL_RANGE, DOTS, inField, grownDice } from '../combat-logic.js';
+import { S, isSummonUnit, abilityAvailable, hasControlEffect, MELEE_RANGE, SPELL_RANGE, DOTS, inField, grownDice } from '../combat-logic.js';
 import { avgDice } from './greedy.js';
 import { walkDistance } from './paths.js';
 
@@ -43,7 +43,7 @@ export const bounded = v => Math.max(1 - WEIGHTS.win, Math.min(WEIGHTS.win - 1, 
 // Living units of teamIndex and of its foes, as [own, foes]
 export function livingCounts(teamIndex) {
   let own = 0, foes = 0;
-  for (const c of S.combatants) if (!c.isKO) { if (c.teamIndex === teamIndex) own++; else foes++; }
+  for (const c of S.combatants) if (!c.isKO && !isSummonUnit(c)) { if (c.teamIndex === teamIndex) own++; else foes++; }   // summons do not hold a side up
   return [own, foes];
 }
 
@@ -151,8 +151,9 @@ export function material(teamIndex) {
   let mine = 0, theirs = 0, ownAlive = 0, foesAlive = 0;
   for (const c of S.combatants) {
     if (c.isKO) continue;
-    if (c.teamIndex === teamIndex) { ownAlive++; mine += side(c); }
-    else { foesAlive++; theirs += side(c); }
+    const real = !isSummonUnit(c);   // a side with only summons left is beaten
+    if (c.teamIndex === teamIndex) { if (real) ownAlive++; mine += side(c); }
+    else { if (real) foesAlive++; theirs += side(c); }
   }
   if (!foesAlive) return WEIGHTS.win;
   if (!ownAlive) return -WEIGHTS.win;

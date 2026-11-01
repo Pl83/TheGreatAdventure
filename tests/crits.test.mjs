@@ -293,7 +293,7 @@ async function stormAt(victims = ['Ras']) {
   place(ras, spot.x + 2, spot.y);
   return { kadgar, ras };
 }
-// Casts Fire Ball (1d10+10) on Ras with the d20s given, declining every react
+// Casts Fire Ball (1d12+10) on Ras with the d20s given, declining every react
 function storm(kadgar, ras, ...d20s) {
   forceD20(...d20s);
   L.handleCastAbility(kadgar.id, 'Fire Ball', [ras.id]);
@@ -305,31 +305,31 @@ const dieCount = (line, sides) => Number(line?.match(new RegExp(String.raw`(\d+)
 test('area: a natural 20 against a natural 20 defense is a plain full hit', async () => {
   const { kadgar, ras } = await stormAt();
   storm(kadgar, ras, 20, 20);
-  assert.equal(dieCount(hitLine('Ras'), 10), 1);
+  assert.equal(dieCount(hitLine('Ras'), 12), 1);
 });
 
 test('area: a natural 20 against an ordinary defense doubles the dice', async () => {
   const { kadgar, ras } = await stormAt();
   storm(kadgar, ras, 20, 10);
-  assert.equal(dieCount(hitLine('Ras'), 10), 2);
+  assert.equal(dieCount(hitLine('Ras'), 12), 2);
 });
 
 test('area: a natural 20 against a natural 1 defense rolls the dice four times', async () => {
   const { kadgar, ras } = await stormAt();
   storm(kadgar, ras, 20, 1);
-  assert.equal(dieCount(hitLine('Ras'), 10), 4);
+  assert.equal(dieCount(hitLine('Ras'), 12), 4);
 });
 
 test('area: an ordinary roll against a natural 1 defense doubles the dice', async () => {
   const { kadgar, ras } = await stormAt();
   storm(kadgar, ras, 12, 1);
-  assert.equal(dieCount(hitLine('Ras'), 10), 2);
+  assert.equal(dieCount(hitLine('Ras'), 12), 2);
 });
 
 test('area: an ordinary roll against an ordinary defense keeps the old rule', async () => {
   const { kadgar, ras } = await stormAt();
   storm(kadgar, ras, 15, 9);
-  assert.equal(dieCount(hitLine('Ras'), 10), 1, 'full damage, one set of dice');
+  assert.equal(dieCount(hitLine('Ras'), 12), 1, 'full damage, one set of dice');
 });
 
 test('area: both fumble, the victim takes half and the caster takes the same', async () => {
@@ -370,7 +370,7 @@ test('splash: the bystanders defend against the primary roll under the same rule
   if (S.awaitingReact) settleReacts(() => null);
   const caught = logText().find(t => /Kay Climber is caught by the splash/.test(t));
   assert.ok(caught, 'Kay is caught');
-  assert.equal(dieCount(caught, 12), 4, 'a natural 20 doubles 2d12');
+  assert.equal(dieCount(caught, 8), 2, 'a natural 20 doubles the splash 1d8');
 });
 
 // ── A free-action spell gives its target a react ───────────────────────────

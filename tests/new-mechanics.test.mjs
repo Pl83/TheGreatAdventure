@@ -42,13 +42,13 @@ const status = (name, turnsLeft = 2) => ({ name, turnsLeft, dice: null, damType:
 
 // ── Hunter Instinct ────────────────────────────────────────────────────────
 
-test('Hunter Instinct is a self cast that ends the turn and arms the next attack', async () => {
+test('Hunter Instinct is an instant self cast: the turn stays open and the next attack is armed', async () => {
   assert.equal(moveOf('Ras', 'Hunter Instinct').target, 'self');
   await newFight({ teamA: ['Ras'], teamB: ['Kaelgrym'], seed: 1 });
   const ras = toTurn('Ras');
   const serial = S.turnSerial;
   assert.equal(cast(ras, 'Hunter Instinct', [ras.id]).accepted, true);
-  assert.notEqual(S.turnSerial, serial, 'the turn ended');
+  assert.equal(S.turnSerial, serial, 'the turn is still open');
   assert.ok(ras.statusEffects.some(e => e.name === 'sure_hit'));
 });
 
@@ -74,6 +74,7 @@ test('Hunter Instinct lasts through the next turn of its owner and no longer', a
   await newFight({ teamA: ['Ras'], teamB: ['Kaelgrym'], seed: 2 });
   const ras = toTurn('Ras');
   cast(ras, 'Hunter Instinct', [ras.id]);
+  L.handlePass();   // instant: the turn is still open, so end it
   toTurn('Ras');
   assert.ok(ras.statusEffects.some(e => e.name === 'sure_hit'), 'still armed on the next turn');
   L.handlePass();
@@ -1011,18 +1012,18 @@ test('Ice Coffin hits a wet target for 2d10 more', async () => {
   assert.ok(soaked - dry >= 2 && soaked - dry <= 20, `dry ${dry}, wet ${soaked}`);
 });
 
-test('Anti-magic Slash switches the passives of those it hits off for 1 turn', async () => {
+test('Anti-magic Slash seals the magic of those it hits for 1 turn', async () => {
   await newFight({ teamA: ['Hela, Goddess of Death'], teamB: ['Kay Climber'], seed: 1 });
   const hela = toTurn('Hela'), kay = byName('Kay Climber');
   const far = freeRun(8);
   place(hela, far.x, far.y); place(kay, far.x + 2, far.y);
   hela.statusEffects.push(status('sure_hit'));
-  const armoured = L.defenseBonus(kay, hela, null);
-  assert.ok(armoured > 0, 'fixture: Kay has armour');
   applyPlan({ move: null, action: { type: 'cast', ability: 'Anti-magic Slash', targetIds: [kay.id] } });
   settleReacts(() => null);
-  assert.ok(kay.statusEffects.some(e => e.name === 'passives_off'));
-  assert.equal(L.defenseBonus(kay, hela, null), 0, "armour is off (Kay's turn is under way)");
-  L.tickTurn(kay);
-  assert.equal(L.defenseBonus(kay, hela, null), armoured, 'back once that turn is over');
+  L.handlePass();   // Hela is a divinity: her second action is left, so she ends the turn herself
+  const seal = kay.statusEffects.find(e => e.name.toLowerCase() === 'silence');
+  assert.ok(seal, 'the magic is sealed');
+  assert.equal(seal.turnsLeft, 1, "it holds through Kay's turn, then lifts");
+  assert.equal(hela.abilities.find(a => a.name === 'Anti-magic Slash').cooldownTurns, 4);
+  assert.equal(hela.sourceChar.spellSlot, 20);
 });

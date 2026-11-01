@@ -2,7 +2,7 @@
   {
     "nom": "Susano",
     "hp": 70,
-    "spellSlot": 9,
+    "spellSlot": 15,
     "ki": 0,
     "kiRegen": 0,
     "speed": 6,
@@ -41,7 +41,7 @@
       },
       {
         "category": "spell",
-        "base": { "nom": "Fire Ball", "dices": "1d10+10", "tags": ["fire", "magic"] },
+        "base": { "nom": "Fire Ball", "dices": "1d12+10", "tags": ["fire", "magic"] },
         "target": "aoe",
         "range": 8,
         "radius": 3,
@@ -78,11 +78,20 @@
       "kiRegen": 0,
       "speed": 6,
       "autority": 0,
-      "baseAtk": { "nom": "Cleaver", "dices": "2d8+8", "tags": ["physical"] },
+      "tags": ["divinity"],
+      "baseAtk": { "nom": "Cleaver", "dices": "2d10+10", "tags": ["physical"] },
+      "passif": [
+        {
+          "nom": "Nirvana Flight",
+          "tags": ["buff", "fly"],
+          "applyOn": [],
+          "description": "Permanent flight while in Nirvana."
+        }
+      ],
       "moveSet": [
         {
           "category": "spell",
-          "base": { "nom": "Fire Ball", "dices": "1d10+10", "tags": ["fire", "magic"] },
+          "base": { "nom": "Fire Ball", "dices": "1d12+10", "tags": ["fire", "magic"] },
           "target": "aoe", "range": 8, "radius": 3, "spellCost": 1
         },
         {
@@ -107,7 +116,7 @@
         },
         {
           "category": "technoSpell",
-          "base": { "nom": "Golden Beam", "dices": "2d20+20", "tags": ["magic", "radiant", "undodgeable"] },
+          "base": { "nom": "Golden Beam", "dices": "2d20+25", "tags": ["magic", "radiant", "undodgeable"] },
           "target": "mono", "range": 15, "spellCost": 2, "cooldown": 5
         },
         {
@@ -123,7 +132,6 @@
       "rafinement": 5,
       "radius": 8,
       "description": "L'espace se transforme en un vide doré infini où l'énergie de la création pure sature l'air.",
-      "spellCost": 6,
       "effects": [
         {
           "nom": "Ally Regen",
@@ -183,15 +191,17 @@
     "moveSet": [
       {
         "category": "spell",
-        "base": { "nom": "Fire Spear", "dices": "1d20+1d12", "tags": ["fire", "magic"] },
+        "base": { "nom": "Fire Spear", "dices": "1d20", "tags": ["fire", "magic"] },
         "target": "splash",
         "range": 10,
         "radius": 3,
+        "splashDice": "1d12",
+        "description": "1d20 on the target, 1d12 on those around it.",
         "spellCost": 1
       },
       {
         "category": "spell",
-        "base": { "nom": "Blink", "tags": ["magic", "dash", "teleportation"] },
+        "base": { "nom": "Blink", "tags": ["magic", "dash", "teleportation", "instant", "noReact"] },
         "target": "self",
         "range": 10,
         "description": "Teleportation.",
@@ -210,7 +220,7 @@
   },
   {
     "nom": "Sensei Lloyd",
-    "hp": 65,
+    "hp": 70,
     "spellSlot": 7,
     "ki": 0,
     "kiRegen": 0,
@@ -262,7 +272,6 @@
       "rafinement": 0,
       "radius": 6,
       "description": "Une brume noire et violette s'échappe du sol, créant des silhouettes monstrueuses sans toutefois fermer l'espace.",
-      "spellCost": 5,
       "effects": [
         {
           "nom": "Grant Oni Form",
@@ -315,8 +324,9 @@
       {
         "nom": "Relentless Warrior",
         "dices": "+1d10+2",
-        "tags": ["buff"],
-        "applyOn": ["atkRoll", "defRoll"],
+        "tags": ["buff", "relentless"],
+        "applyOn": ["atkRoll"],
+        "description": "Per fallen ally: +1d10+2 damage dealt and 1d10+2 off each hit taken.",
         "condition": { "allyKO": true },
         "maxStacks": 10
       }
@@ -330,7 +340,7 @@
       {
         "category": "transformation",
         "base": { "nom": "Dragon Form", "tags": ["buff", "fire"] },
-        "target": "self", "range": 0, "duration": 4, "cooldown": 99
+        "target": "self", "range": 0, "duration": 5, "cooldown": 99
       },
       {
         "category": "spell",
@@ -344,6 +354,10 @@
       }
     ],
     "transformation": {
+      "losePassives": ["Armored"],
+      "passif": [
+        { "nom": "Dragon Flight", "tags": ["buff", "fly"], "applyOn": [], "description": "Flies while in Dragon Form." }
+      ],
       "base": { "nom": "Dragon Form", "tags": ["buff", "fire"] },
       "hp": 15,
       "spellSlot": 0,
@@ -389,7 +403,7 @@
       {
         "category": "transformation",
         "base": { "nom": "Dragon Form", "tags": ["buff", "ice"] },
-        "target": "self", "range": 0, "duration": 4, "cooldown": 99
+        "target": "self", "range": 0, "duration": 5, "cooldown": 99
       },
       {
         "category": "spell",
@@ -404,6 +418,10 @@
     ],
     "transformation": {
       "loseTags": ["mecha"],
+      "losePassives": ["Armored"],
+      "passif": [
+        { "nom": "Dragon Flight", "tags": ["buff", "fly"], "applyOn": [], "description": "Flies while in Dragon Form." }
+      ],
       "base": { "nom": "Dragon Form", "tags": ["buff", "ice"] },
       "hp": 15,
       "spellSlot": 0,
@@ -462,6 +480,12 @@
       }
     ],
     "transformation": {
+      "losePassives": ["Armored"],
+      "regainSlots": true,
+      "passif": [
+        { "nom": "Dragon Flight", "tags": ["buff", "fly"], "applyOn": [], "description": "Flies while in Dragon Form." },
+        { "nom": "Dragon Reflexes", "tags": ["buff", "adv"], "applyOn": ["defRoll"], "description": "Advantage on saving (defense) rolls while in Dragon Form." }
+      ],
       "base": { "nom": "Dragon Form", "tags": ["buff", "lightning"] },
       "hp": 0,
       "spellSlot": 0,
@@ -538,14 +562,16 @@
     "kiRegen": 0,
     "speed": 6,
     "autority": 0,
-    "immunities": ["magic"],
+    "immunities": [],
     "baseAtk": { "nom": "Demon Claws", "dices": "1d12+1d6+2", "tags": ["physical"] },
     "passif": [
       {
         "nom": "Immun weak magic",
+        "dices": "-15",
         "tags": ["buff"],
-        "applyOn": [],
-        "description": "Immune to weak magic. Handled in immunities[]."
+        "applyOn": ["incomingDam"],
+        "condition": { "incomingHasTag": "magic" },
+        "description": "Every magic hit is reduced by 15."
       }
     ],
     "moveSet": [
@@ -576,7 +602,7 @@
     "speed": 6,
     "autority": 0,
     "immunities": [],
-    "baseAtk": { "nom": "Gun", "dices": "1d6+2", "tags": ["physical", "ice"] },
+    "baseAtk": { "nom": "Gun", "dices": "2d6+4", "tags": ["physical", "ice"] },
     "passif": [],
     "moveSet": [
       {
@@ -585,7 +611,7 @@
         "target": "aoe",
         "range": 20,
         "radius": 20,
-        "description": "Scan the area for enemies and hidden elements.",
+        "description": "Scan the area for enemies and hidden elements: it will detect trapped cells and doors. Map traps are not implemented yet, so it does nothing for now.",
         "cooldown": 0
       }
     ]
@@ -609,8 +635,9 @@
       },
       {
         "category": "spell",
-        "base": { "nom": "Remake", "dices": "1d20+20", "tags": ["magic", "heal"] },
-        "target": "mono", "range": 8, "spellCost": 1
+        "base": { "nom": "Remake", "dices": "1d20+20", "tags": ["magic", "heal", "repair"] },
+        "target": "mono", "range": 8, "spellCost": 1,
+        "description": "Repair: mends only allied machines (tag mecha). No other heal can."
       }
     ]
   },
@@ -630,7 +657,7 @@
         "dices": "+3",
         "tags": ["buff"],
         "applyOn": ["utilityRoll"],
-        "description": "+3 to pick lock and disarm trap rolls."
+        "description": "+3 to pick lock and disarm trap rolls. Lock picking and trap disarming are not implemented yet: no effect for now."
       }
     ],
     "moveSet": [
@@ -649,7 +676,8 @@
     "kiRegen": 0,
     "speed": 6,
     "autority": 0,
-    "immunities": [],
+    "immunities": ["poison"],
+    "dotDamage": { "toxic": "1d4" },
     "baseAtk": { "nom": "Dagger", "dices": "1d4", "tags": ["physical"] },
     "passif": [
       {
@@ -657,7 +685,7 @@
         "dices": "+2",
         "tags": ["buff"],
         "applyOn": ["constRoll"],
-        "description": "Less toxic damage taken. +2 breath rolls."
+        "description": "Immune to poison. Toxic still takes hold but hurts for only 1d4 a turn. +2 breath rolls (no breath rolls in the simulator yet)."
       }
     ],
     "moveSet": [
@@ -677,14 +705,19 @@
       },
       {
         "category": "spell",
-        "base": { "nom": "Heat Projectile", "dices": "2d8+2", "tags": ["magic", "fire", "ice"] },
+        "base": { "nom": "Heat Projectile (Fire)", "dices": "2d8+2", "tags": ["fire", "magic"] },
+        "target": "mono", "range": 10, "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": { "nom": "Heat Projectile (Ice)", "dices": "2d8+2", "tags": ["ice", "magic"] },
         "target": "mono", "range": 10, "spellCost": 1
       }
     ]
   },
   {
     "nom": "Eragon",
-    "hp": 50,
+    "hp": 55,
     "spellSlot": 20,
     "ki": 0,
     "kiRegen": 0,
@@ -693,19 +726,21 @@
     "immunities": [],
     "baseAtk": { "nom": "Staff", "dices": "1d6", "tags": ["physical"] },
     "passif": [
+      { "nom": "Archmage", "dices": "+3", "tags": ["buff"], "applyOn": ["magicRoll"], "description": "+3 on spell rolls (the +3 spell slots are in the 20)." },
       {
         "nom": "Know Advantage",
         "tags": ["buff", "adv"],
         "applyOn": ["magicRoll"],
         "description": "Advantage on all spell rolls."
-      }
+      },
+      { "nom": "Runik Mage", "dices": "+1d12", "tags": ["runik", "buff"], "applyOn": ["magicRoll"], "description": "All magic is runic: +1d12 on spell rolls." }
     ],
     "moveSet": [
       {
         "category": "spell",
-        "base": { "nom": "Fire Tornado", "dices": "2d12", "tags": ["magic", "fire", "dry"] },
+        "base": { "nom": "Fire Tornado", "dices": "3d12", "tags": ["fire", "wind", "magic", "dry"] },
         "target": "aoe", "range": 8, "radius": 4,
-        "description": "Removes wet and disadvantage from allies.",
+        "description": "Fire and wind. Removes wet and disadvantage from allies. Fire thaws the frozen: thermal shock.",
         "spellCost": 1
       },
       {
@@ -715,25 +750,51 @@
       },
       {
         "category": "spell",
-        "base": { "nom": "Runique Precast", "tags": ["runik", "buff"] },
-        "target": "self", "range": 0,
-        "description": "+2d12 to next spell cast.",
-        "precastDice": "2d12",
-        "spellCost": 1
-      },
-      {
-        "category": "spell",
-        "base": { "nom": "Shield", "dices": "20", "tags": ["magic", "block"] },
+        "base": { "nom": "Shield", "dices": "30", "tags": ["magic", "block"] },
         "target": "self", "range": 0, "spellCost": 1
       },
       {
         "category": "spell",
-        "base": { "nom": "Water Dragon", "dices": "2d12+1d8", "tags": ["magic", "water", "wet"] },
-        "target": "splash", "range": 10, "radius": 3, "spellCost": 1
+        "base": { "nom": "Arcane Missile", "dices": "1d12+1d10+10", "tags": ["magic", "adv"] },
+        "target": "mono", "range": 15, "spellCost": 1
       },
       {
         "category": "spell",
-        "base": { "nom": "Ice Coffin", "dices": "1d12", "tags": ["magic", "ice", "freeze", "disv"] },
+        "base": { "nom": "Mana Wall", "dices": "20", "tags": ["magic", "block", "react", "instant", "team"] },
+        "target": "self", "range": 0, "radius": 5,
+        "description": "Instant react: a wall of mana gives the caster and every ally within 5 cells a 20 HP absorb shield.",
+        "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": { "nom": "Meteor Shower", "dices": "4d10", "tags": ["fire", "magic"] },
+        "target": "aoe", "range": 12, "radius": 5, "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": { "nom": "Dragon Breath (Fire)", "dices": "1d12+8", "tags": ["fire", "magic"] },
+        "target": "cone", "range": 5, "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": { "nom": "Dragon Breath (Ice)", "dices": "1d12+8", "tags": ["ice", "magic"] },
+        "target": "cone", "range": 5, "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": { "nom": "Dragon Breath (Lightning)", "dices": "1d12+8", "tags": ["lightning", "magic"] },
+        "target": "cone", "range": 5, "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": { "nom": "Water Dragon", "dices": "3d12", "tags": ["magic", "water", "wet"] },
+        "target": "splash", "range": 10, "radius": 3, "splashDice": "1d8",
+        "description": "3d12 on the target, 1d8 on those around it. Leaves everyone hit wet.",
+        "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": { "nom": "Ice Coffin", "dices": "2d12", "tags": ["magic", "ice", "freeze", "disv"] },
         "bonusVs": { "vs": "wet", "dice": "2d10" },
         "inflicts": { "status": "hindered_def", "turns": 2 },
         "target": "aoe", "range": 8, "radius": 3,
@@ -744,9 +805,10 @@
         "category": "spell",
         "base": { "nom": "Arcane Canal", "tags": ["magic", "buff", "regen"] },
         "target": "aoe", "range": 6, "radius": 6,
-        "description": "Regen 4 spell slots to all allies.",
+        "description": "Regen 4 spell slots to every ally but the caster.",
         "spellCost": 2,
-        "slotRegen": 4
+        "slotRegen": 4,
+        "excludeSelf": true
       }
     ]
   },
@@ -859,7 +921,7 @@
     "moveSet": [
       {
         "category": "technique",
-        "base": { "nom": "Hunter Instinct", "tags": ["buff", "sure_hit"] },
+        "base": { "nom": "Hunter Instinct", "tags": ["buff", "sure_hit", "instant", "noReact"] },
         "target": "self", "range": 0,
         "description": "Next attack is a sure hit.",
         "cooldown": 3
@@ -917,14 +979,12 @@
         "category": "transformation",
         "base": { "nom": "Blood Cinder", "tags": ["buff"] },
         "target": "self", "range": 0, "duration": -1, "cooldown": 99
-      },
-      {
-        "category": "technique",
-        "base": { "nom": "Shatterspin", "dices": "1d12", "tags": ["physical"] },
-        "target": "mono", "range": 3, "cooldown": 2
       }
     ],
     "transformation": {
+      "passif": [
+        { "nom": "Smoke Body", "tags": ["buff", "adv"], "applyOn": ["defRoll"], "description": "Advantage on saving (defense) rolls while in Blood Cinder." }
+      ],
       "base": { "nom": "Blood Cinder", "tags": ["buff"] },
       "hp": 0,
       "spellSlot": 0,
@@ -933,7 +993,13 @@
       "speed": 6,
       "autority": 0,
       "baseAtk": { "nom": "Sword", "dices": "1d6+1d6", "tags": ["physical"] },
-      "moveSet": []
+      "moveSet": [
+        {
+          "category": "technique",
+          "base": { "nom": "Shatterspin", "dices": "1d12", "tags": ["physical"] },
+          "target": "mono", "range": 3, "cooldown": 2
+        }
+      ]
     }
   },
   {
@@ -1024,7 +1090,6 @@
       "rafinement": 3,
       "radius": 8,
       "description": "Un autel apparaît derrière Kaelgrym, émettant une vague constante de flammes sur un large rayon. Toutes les techniques du style Aincrad par Kaelgrym sont augmentées.",
-      "spellCost": 5,
       "effects": [
         {
           "nom": "Burn Aura",
@@ -1105,7 +1170,7 @@
     "speed": 6,
     "autority": 0,
     "immunities": [],
-    "baseAtk": { "nom": "Divine Staff", "dices": "2d8+1d12+6", "tags": ["physical"] },
+    "baseAtk": { "nom": "Divine Staff", "dices": "2d8+1d6+6", "tags": ["physical"] },
     "passif": [],
     "moveSet": [
       {
@@ -1127,7 +1192,7 @@
     "nom": "Meï",
     "hp": 60,
     "spellSlot": 0,
-    "ki": 10,
+    "ki": 12,
     "kiRegen": 3,
     "speed": 6,
     "autority": 0,
@@ -1164,7 +1229,7 @@
     "nom": "Krilin",
     "hp": 60,
     "spellSlot": 0,
-    "ki": 0,
+    "ki": 5,
     "kiRegen": 1,
     "speed": 6,
     "autority": 0,
@@ -1192,7 +1257,7 @@
     "nom": "Baal",
     "hp": 70,
     "spellSlot": 0,
-    "ki": 6,
+    "ki": 10,
     "kiRegen": 1,
     "speed": 6,
     "autority": 0,
@@ -1293,7 +1358,7 @@
     "passif": [
       { "nom": "Archmage", "dices": "+3", "tags": ["buff"], "applyOn": ["magicRoll"] },
       { "nom": "Knowledge", "tags": ["buff", "adv"], "applyOn": ["magicRoll"], "description": "Advantage on all magic rolls." },
-      { "nom": "Great Staff", "dices": "+2", "tags": ["buff", "noFumble"], "uses": 3, "applyOn": ["magicRoll"], "description": "Prevent 3/3 critical fails." },
+      { "nom": "Great Staff", "dices": "+2", "tags": ["buff", "noFumble", "twoSpells"], "uses": 3, "applyOn": ["magicRoll"], "description": "Prevent 3/3 critical fails. Allows two spells a turn (the second action must be a spell)." },
       { "nom": "Runik Mage", "dices": "+1d12", "tags": ["runik", "buff"], "applyOn": ["magicRoll"] }
     ],
     "moveSet": [
@@ -1311,8 +1376,47 @@
       },
       {
         "category": "spell",
-        "base": { "nom": "Recursing Shield", "dices": "1d4*20", "tags": ["magic", "block"] },
+        "base": { "nom": "Recursing Shield", "dices": "1d4*20", "tags": ["magic", "block", "instant"] },
         "target": "self", "range": 0, "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": { "nom": "Greater Invisibility", "tags": ["magic", "invisible", "team"] },
+        "target": "self", "range": 0, "radius": 8, "duration": 3,
+        "description": "Hides the caster and every ally within 8 cells for 3 turns: foes attack them at disadvantage.",
+        "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": { "nom": "Greater Levitation", "tags": ["magic", "fly", "team"] },
+        "target": "self", "range": 0, "radius": 8, "duration": 5,
+        "description": "The caster and every ally within 8 cells fly for 5 turns.",
+        "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": { "nom": "Mana Wall", "dices": "20", "tags": ["magic", "block", "react", "instant", "team"] },
+        "target": "self", "range": 0, "radius": 5,
+        "description": "Instant react: a wall of mana gives the caster and every ally within 5 cells a 20 HP absorb shield.",
+        "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": { "nom": "Binding", "tags": ["magic", "stun"] },
+        "target": "mono", "range": 10, "effect": "1d2 stun",
+        "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": { "nom": "Meteor Shower", "dices": "4d10", "tags": ["fire", "magic"] },
+        "target": "aoe", "range": 12, "radius": 5, "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": { "nom": "Dispel Magic", "tags": ["magic", "dispel", "react", "instant"] },
+        "target": "mono", "range": 15,
+        "description": "Instant react: unravels an incoming spell. Cast on a target: strips its boons (shields, wards, flight, invisibility...).",
+        "spellCost": 1
       },
       {
         "category": "spell",
@@ -1326,15 +1430,27 @@
       },
       {
         "category": "spell",
-        "base": { "nom": "Dragon Breath", "dices": "1d12+8", "tags": ["magic"] },
+        "base": { "nom": "Dragon Breath (Fire)", "dices": "1d12+8", "tags": ["fire", "magic"] },
         "target": "cone", "range": 5,
-        "description": "Chosen element.",
+        "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": { "nom": "Dragon Breath (Ice)", "dices": "1d12+8", "tags": ["ice", "magic"] },
+        "target": "cone", "range": 5,
+        "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": { "nom": "Dragon Breath (Lightning)", "dices": "1d12+8", "tags": ["lightning", "magic"] },
+        "target": "cone", "range": 5,
         "spellCost": 1
       }
     ]
   },
   {
     "nom": "Vorrakan Duskbane",
+    "chains": { "count": 2, "hp": 150, "free": 50, "drainHp": "10+1d10", "drainSlots": "1d4" },
     "tags": ["evil"],
     "hp": 65,
     "spellSlot": 10,
@@ -1431,10 +1547,18 @@
       },
       {
         "category": "relic",
-        "base": { "nom": "Chains of Apophis", "tags": ["buff", "block", "chains"] },
+        "base": { "nom": "Chains of Apophis", "tags": ["chain_grab", "adv"] },
         "target": "mono", "range": 20,
-        "authority": 8,
-        "description": "Authority 8. Absorb damage directed toward master.",
+        "authority": 5,
+        "charges": 2,
+        "description": "Authority 5. A free chain grabs one foe (always with advantage): on a hit it is stunned and rooted, and drained of 10+1d10 HP and 1d4 spell slots at once and at the start of each of its turns, until its allies deal 50 damage to the chain by targeting it. Immunities do not stop it, only an Authority gate above 5 (Hela, Chronos), and no Cleanse lifts it. That chain no longer guards. Two charges; unusable with no free chain.",
+        "cooldown": 0
+      },
+      {
+        "category": "relic",
+        "base": { "nom": "Chain Guard", "tags": ["react", "chain_guard"] },
+        "target": "self", "range": 0,
+        "description": "React: the free chains stand between Vorrakan and the blow being answered, and take it in his stead, split evenly (10 each for 20). A chain that holds a prisoner cannot guard. Not offered for damage over time.",
         "cooldown": 0
       }
     ]
@@ -1470,7 +1594,7 @@
       {
         "category": "spell",
         "base": { "nom": "Wind Tornado", "dices": "1d6", "tags": ["magic", "disv"] },
-        "inflicts": { "status": "hindered", "turns": 1 },
+        "inflicts": { "status": "hindered", "turns": 1, "chance": 0.5 },
         "target": "aoe", "range": 8, "radius": 4, "spellCost": 1
       },
       {
@@ -1576,15 +1700,18 @@
     "autority": 0,
     "immunities": [],
     "baseAtk": { "nom": "Claws", "dices": "1d8+4", "tags": ["physical"] },
-    "passif": [
+    "passif": [],
+    "moveSet": [
       {
-        "nom": "Poison Breath",
-        "tags": ["poison", "toxic"],
-        "applyOn": [],
-        "description": "Cone passive: 1d2 poison or 1d12+8 toxic on nearby enemies each turn."
+        "category": "technique",
+        "base": { "nom": "Poison Breath", "tags": ["poison"] },
+        "target": "cone", "range": 5,
+        "effect": "1d2 poison",
+        "ifPoisoned": "1d12+8",
+        "description": "A cone of poison: a 1 in 2 chance to poison each foe it reaches. A foe that is already poisoned takes 1d12+8 poison damage instead.",
+        "cooldown": 2
       }
-    ],
-    "moveSet": []
+    ]
   },
   {
     "nom": "Dream Hunter",
@@ -1599,17 +1726,17 @@
     "baseAtk": { "nom": "Claws", "dices": "1d8+4", "tags": ["physical"] },
     "passif": [
       {
-        "nom": "Corruption Bolt",
-        "dices": "+1d10",
-        "tags": ["debuff"],
-        "applyOn": ["atkRoll"],
-        "description": "Each bolt adds 1d10 corruption to target."
+        "nom": "Corruption",
+        "dices": "1d10",
+        "tags": ["debuff", "corrupting"],
+        "applyOn": [],
+        "description": "Each landed blow of the Dream Hunter (attack, spell, technique...) adds 1d10 corruption to the target. The corruption never drains. At 100 the target leaves its team (dead for it) and becomes a summon of the Dream Hunter."
       }
     ],
     "moveSet": [
       {
         "category": "spell",
-        "base": { "nom": "Hat Form", "tags": ["dodge", "react"] },
+        "base": { "nom": "Hat Form", "tags": ["dodge", "react", "instant"] },
         "target": "self", "range": 0,
         "description": "Instant dodge mono, halve aoe.",
         "spellCost": 1
@@ -1633,13 +1760,13 @@
     "speed": 6,
     "autority": 0,
     "immunities": [],
-    "baseAtk": { "nom": "Daggers", "dices": "2d8+6", "tags": ["physical"] },
+    "baseAtk": { "nom": "Daggers", "dices": "2d8+6", "tags": ["physical"], "effect": "poison", "ifPoisoned": "1d12" },
     "passif": [
       {
         "nom": "Toxic Daggers",
         "tags": ["poison"],
-        "applyOn": ["atkRoll"],
-        "description": "1d1 poison or 1d12 bonus on each attack."
+        "applyOn": [],
+        "description": "Every hit poisons. A target that is already poisoned takes 1d12 poison damage instead."
       }
     ],
     "moveSet": [
@@ -1682,8 +1809,8 @@
       },
       {
         "category": "technique",
-        "base": { "nom": "Scream of the Banshee", "dices": "2d12+8", "tags": ["psy", "stun"] },
-        "target": "cone", "range": 6, "cooldown": 2
+        "base": { "nom": "Scream of the Banshee", "dices": "2d12+8", "tags": ["psy"] },
+        "target": "cone", "range": 6, "effect": "1d2 stun", "cooldown": 2
       }
     ]
   },
@@ -1874,7 +2001,7 @@
     "speed": 6,
     "autority": 0,
     "immunities": [],
-    "baseAtk": { "nom": "Heavy Power Hammer", "dices": "1d12+6", "tags": ["physical", "stun"] },
+    "baseAtk": { "nom": "Heavy Power Hammer", "dices": "2d8+2", "tags": ["physical"], "effect": "1d2 stun" },
     "passif": [
       { "nom": "Armored", "dices": "+2", "tags": ["buff"], "applyOn": ["defRoll"] },
       { "nom": "Heavy Striker", "dices": "+1d4+1", "tags": ["buff"], "applyOn": ["atkRoll"], "condition": { "weaponType": "heavy" } }
@@ -1888,7 +2015,7 @@
       {
         "category": "transformation",
         "base": { "nom": "Earth Dragon", "tags": ["buff", "earth", "fire"] },
-        "target": "self", "range": 0, "duration": 4, "cooldown": 99
+        "target": "self", "range": 0, "duration": 5, "cooldown": 99
       },
       {
         "category": "spell",
@@ -1912,9 +2039,13 @@
       }
     ],
     "transformation": {
+      "losePassives": ["Armored"],
+      "passif": [
+        { "nom": "Dragon Flight", "tags": ["buff", "fly"], "applyOn": [], "description": "Flies while in Dragon Form." }
+      ],
       "base": { "nom": "Earth Dragon", "tags": ["buff", "earth", "fire"] },
       "hp": 20,
-      "spellSlot": 1,
+      "spellSlot": 0,
       "ki": 0,
       "kiRegen": 0,
       "speed": 18,
@@ -1941,11 +2072,15 @@
     "baseAtk": {
       "nom": "Swamp Serpent Blade",
       "dices": "1d12+4",
-      "tags": ["physical", "poison"]
+      "tags": ["physical", "poison"],
+      "effect": "1d2 poison"
     },
     "passif": [
       { "nom": "Swamp Tribe", "tags": ["buff"], "applyOn": [], "description": "Toxic immunity in immunities[]." },
       { "nom": "Odin's Blessing", "dices": "+5", "tags": ["buff"], "applyOn": ["initRoll", "percepRoll"] },
+      { "nom": "Warden of the Wilds", "dices": "+3", "tags": ["buff"], "applyOn": ["percepRoll"], "description": "+3 perception." },
+      { "nom": "Warden of the Wilds (beasts)", "dices": "+1d6", "tags": ["buff"], "applyOn": ["atkRoll"], "condition": { "targetHasTag": "beast" }, "description": "+1d6 damage against beasts." },
+      { "nom": "Ranger", "tags": ["buff"], "applyOn": [], "description": "+3 lockpicking, perception, disarming and trap setting. Traps and locks are not implemented yet." },
       {
         "nom": "Bone Armor",
         "dices": "+4",
@@ -1958,7 +2093,7 @@
       {
         "category": "spell",
         "base": { "nom": "Bone Prison", "dices": "1d10", "tags": ["magic", "physical", "root"] },
-        "target": "mono", "range": 8, "spellCost": 1
+        "target": "mono", "range": 8, "effect": "1d2 root", "spellCost": 1
       },
       {
         "category": "spell",
@@ -1969,9 +2104,10 @@
       },
       {
         "category": "spell",
-        "base": { "nom": "Marrow Spear", "dices": "1d20", "tags": ["magic", "physical"] },
-        "target": "mono", "range": 12,
-        "description": "Ignores 50% armor.",
+        "base": { "nom": "Marrow Spear", "dices": "1d8", "tags": ["magic", "physical"] },
+        "target": "splash", "range": 12, "radius": 2,
+        "splashDice": "1d6",
+        "description": "1d8 on the target, 1d6 on those around it.",
         "spellCost": 1
       },
       {
@@ -2044,18 +2180,18 @@
         "category": "spell",
         "base": { "nom": "Sacrifice", "tags": ["magic", "unblockabled", "execute"] },
         "target": "mono", "range": 3,
-        "description": "If the attack lands on a target under 10% HP it dies instantly, resurrection included. The caster regains 1 spell slot and 50 HP. Guardbreak.",
+        "description": "If the attack lands on a target under 10% of its HP (never less than 10 HP) it dies instantly, resurrection included. The caster regains 1 spell slot and 50 HP. Guardbreak.",
         "spellCost": 1
       },
       {
         "category": "technique",
         "base": { "nom": "Grand Destruct", "dices": "1d12+6", "tags": ["physical", "grounded"] },
-        "target": "aoe", "range": 4, "radius": 3, "cooldown": 2
+        "target": "aoe", "range": 4, "radius": 3, "groundChance": 0.5, "cooldown": 2
       },
       {
         "category": "technique",
-        "base": { "nom": "Explode Catapult", "dices": "2d8+12", "tags": ["physical", "dash", "bleed"] },
-        "target": "mono", "range": 8, "cooldown": 3
+        "base": { "nom": "Explode Catapult", "dices": "2d8+12", "tags": ["physical", "dash"] },
+        "target": "mono", "range": 8, "effect": "1d2 bleed", "cooldown": 3
       },
       {
         "category": "technique",
@@ -2091,7 +2227,8 @@
         "category": "technique",
         "base": { "nom": "GunRang", "dices": "1d6+1d4", "tags": ["physical"] },
         "target": "bounce", "range": 8, "maxBounce": 2,
-        "description": "Boomerang attack. 1d4 bonus damage next turn.",
+        "followUp": "1d4",
+        "description": "Boomerang attack. At the start of the next turn it comes back: another 1d4 on each target it hit.",
         "cooldown": 3
       }
     ]
@@ -2105,12 +2242,20 @@
     "speed": 6,
     "autority": 0,
     "immunities": [],
-    "baseAtk": { "nom": "Ice Flame", "dices": "1d8+2", "tags": ["physical", "fire", "ice", "freeze"] },
+    "baseAtk": { "nom": "Ice Flame (single target)", "dices": "1d8+2", "tags": ["fire", "ice"], "effect": "1d2 freeze" },
     "passif": [
       { "nom": "Professional Diver", "dices": "+2", "tags": ["buff"], "applyOn": ["constRoll"], "condition": { "contextHasTag": "water" } },
       { "nom": "Survivalist", "dices": "+2", "tags": ["buff"], "applyOn": ["constRoll", "percepRoll", "deceptionRoll"] }
     ],
     "moveSet": [
+      {
+        "category": "technique",
+        "base": { "nom": "Ice Flame", "dices": "1d8+2", "tags": ["fire", "ice"] },
+        "target": "cone", "range": 4,
+        "effect": "1d2 freeze",
+        "description": "Glysain's basic attack as a cone: elemental, not magical, free, no cooldown. 1 in 2 chance to freeze.",
+        "cooldown": 0
+      },
       {
         "category": "technique",
         "base": { "nom": "Ice Pillar", "dices": "40", "tags": ["ice", "block", "react"] },
@@ -2147,8 +2292,8 @@
         "category": "Art",
         "base": { "nom": "Smoke Screen", "tags": ["disv", "debuff", "smoke"] },
         "target": "self", "range": 0, "radius": 4,
-        "description": "Everyone within 4 cells except the user rolls attack and defense with disadvantage for 3 turns.",
-        "duration": 3,
+        "description": "Everyone within 4 cells except the user rolls attack and defense with disadvantage for 4 turns.",
+        "duration": 4,
         "kiCost": 1
       },
       {
@@ -2208,12 +2353,13 @@
   {
     "nom": "Hela, Goddess of Death",
     "hp": 450,
-    "spellSlot": 15,
+    "spellSlot": 20,
     "ki": 0,
     "kiRegen": 0,
     "speed": 6,
     "autority": 8,
     "immunities": ["magic", "status"],
+    "tags": ["divinity"],
     "baseAtk": {
       "nom": "Abyssal Necro-Blade",
       "dices": "3d12+10+2d10",
@@ -2221,17 +2367,17 @@
     },
     "passif": [
       { "nom": "True Weapon Goddess", "tags": ["buff", "adv"], "applyOn": ["atkRoll"], "description": "Advantage on ALL attack rolls." },
-      { "nom": "Anti-Magic", "tags": ["buff"], "applyOn": [], "authorityGate": 8, "description": "Immune to magic/status below Authority 8. In immunities[]." },
+      { "nom": "Anti-Magic", "tags": ["buff"], "applyOn": [], "authorityGate": 9, "description": "Immune to magic/status below Authority 9. In immunities[]." },
       { "nom": "Death Presence", "tags": ["debuff", "firstAttackDisadvantage"], "applyOn": [], "description": "All foes have disadvantage on their first attack each fight." },
-      { "nom": "Undying Queen", "dices": "20", "tags": ["regen", "buff"], "applyOn": ["hpPerTurn"], "description": "Heal 20 HP each turn. Resurrection active." }
+      { "nom": "Undying Queen", "dices": "30", "tags": ["regen", "buff"], "applyOn": ["hpPerTurn"], "description": "Heal 30 HP each turn. Resurrection active." }
     ],
     "moveSet": [
       {
         "category": "technique",
-        "base": { "nom": "Perfect Reflection", "tags": ["react", "antiMagic", "reflect"] },
+        "base": { "nom": "Perfect Reflection", "tags": ["react", "antiMagic", "reflect", "reflect_plain"] },
         "target": "mono", "range": 20,
         "bypassAuthority": 8,
-        "description": "React: sends a spell back at its caster with the damage doubled. Only bypassed by Authority 8.",
+        "description": "React: sends a spell back at its caster, as it was cast. Only bypassed by Authority 8.",
         "cooldown": 0
       },
       {
@@ -2257,9 +2403,9 @@
       },
       {
         "category": "technique",
-        "base": { "nom": "Final Reckoning", "tags": ["buff"] },
+        "base": { "nom": "Final Reckoning", "tags": ["buff", "final_reckoning"] },
         "target": "self", "range": 0,
-        "description": "Act twice per turn + 2d12 damage bonus.",
+        "description": "A third action each turn (on top of Divinity's two), +2d12 damage bonus and +1d10 HP at the start of each turn.",
         "cooldown": 99
       },
       {
@@ -2271,9 +2417,11 @@
       },
       {
         "category": "spell",
-        "base": { "nom": "Death Gaze", "tags": ["magic", "stun", "fear"] },
+        "base": { "nom": "Death Gaze", "tags": ["magic"] },
         "target": "mono", "range": 12,
-        "description": "2 turn stun + fear (disadvantage on rolls).",
+        "inflicts": { "status": "hindered", "turns": 2 },
+        "effect": "1d2 stun",
+        "description": "2 turns of disadvantage on attack and defense rolls, and a 1 in 2 chance of a stun.",
         "spellCost": 1
       },
       {
@@ -2285,9 +2433,11 @@
       },
       {
         "category": "spell",
-        "base": { "nom": "Anti-magic Slash", "dices": "2d12", "tags": ["magic", "antiMagic", "passives_off"] },
+        "base": { "nom": "Anti-magic Slash", "dices": "2d12+4", "tags": ["magic", "antiMagic"] },
         "target": "cone", "range": 6,
-        "description": "True damage + disables target passives for 1 turn.",
+        "effect": "silence", "statusTurns": 1,
+        "description": "Anti-magic damage + seals the magic of those it hits for 1 turn (silence).",
+        "cooldown": 4,
         "spellCost": 1
       },
       {
@@ -2306,7 +2456,7 @@
       "rafinement": 7,
       "radius": 8,
       "description": "Un cimetière désolé sous un ciel de sang, où des milliers d'armes divines sont plantées dans le sol, vibrant d'anti-magie.",
-      "spellCost": 7,
+      "charges": 2,
       "effects": [
         {
           "nom": "Foe Authority Reduction",
@@ -2401,6 +2551,20 @@
           "defRoll"
         ],
         "description": "Advantage on all defense rolls."
+      },
+      {
+        "nom": "Divine Hunter",
+        "dices": "+1d20",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ],
+        "condition": {
+          "targetHasTag": "divinity"
+        },
+        "description": "Bonus damage against divinities."
       }
     ],
     "divineSync": {
@@ -3826,6 +3990,7 @@
     "speed": 6,
     "autority": 9,
     "immunities": ["status"],
+    "tags": ["divinity"],
     "baseAtk": {
       "nom": "Hand of the Hour",
       "dices": "4d12+27",
@@ -3932,7 +4097,7 @@
       "rafinement": 7,
       "radius": 8,
       "description": "Une salle sans fin au cœur du Tartare, remplie d'horloges arrêtées. Le temps y coule pour Chronos seul : chaque tour, il reprend ce que le temps lui doit.",
-      "spellCost": 7,
+      "charges": 2,
       "effects": [
         {
           "nom": "Hours Regained",
@@ -3965,5 +4130,4978 @@
         }
       ]
     }
+  },
+  {
+    "nom": "Irina",
+    "hp": 60,
+    "spellSlot": 0,
+    "ki": 9,
+    "kiRegen": 2,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [
+      "burn"
+    ],
+    "baseAtk": {
+      "nom": "Staff",
+      "dices": "1d6",
+      "tags": [
+        "physical",
+        "burn"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Child of the Phoenix",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [],
+        "description": "Immune to burn. Shares the vision of her fire spirits. Immunity handled in immunities[]."
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "Art",
+        "base": {
+          "nom": "Flaming Bird",
+          "tags": [
+            "buff",
+            "fire",
+            "summon"
+          ]
+        },
+        "target": "self",
+        "range": 0,
+        "summon": { "unit": "Fire Spirit", "count": "1" },
+        "description": "Summons one Fire Spirit per ki spent (1 ki, one spirit per cast). It acts right after Irina.",
+        "kiCost": 1
+      },
+      {
+        "category": "Art",
+        "base": {
+          "nom": "Living Bomb",
+          "dices": "1d12+6",
+          "tags": [
+            "fire",
+            "detonate"
+          ]
+        },
+        "target": "self",
+        "range": 0,
+        "radius": 3,
+        "description": "Detonates every Fire Spirit: each one bursts on its own spot (radius 3) and hits the foes caught in it.",
+        "kiCost": 5
+      },
+      {
+        "category": "Art",
+        "base": {
+          "nom": "Fire Ray",
+          "dices": "1d12+4",
+          "tags": [
+            "fire",
+            "burn"
+          ]
+        },
+        "target": "mono",
+        "range": 10,
+        "description": "Damage is multiplied by the number of combustion stacks on the target. Applies one combustion debuff.",
+        "kiCost": 1
+      }
+    ]
+  },
+  {
+    "nom": "Fire Spirit",
+    "hp": 15,
+    "spellSlot": 0,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [
+      "fire",
+      "physical"
+    ],
+    "baseAtk": {
+      "nom": "Blazing Dash",
+      "dices": "1d6+2",
+      "tags": [
+        "fire"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Fly",
+        "dices": "18",
+        "tags": [
+          "buff",
+          "fly"
+        ],
+        "applyOn": [
+          "speed"
+        ]
+      }
+    ],
+    "moveSet": [],
+    "tags": [
+      "summon"
+    ]
+  },
+  {
+    "nom": "Ray",
+    "hp": 90,
+    "spellSlot": 6,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [],
+    "baseAtk": {
+      "nom": "Hybrid Weapon",
+      "dices": "2d8+8",
+      "tags": [
+        "physical",
+        "fire"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Solid Flames",
+        "dices": "+1d4",
+        "tags": [
+          "buff",
+          "fire"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ],
+        "description": "Every attack deals 1d4 bonus damage and 1d2 burn."
+      },
+      {
+        "nom": "Master Blacksmith",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [],
+        "description": "Can reinforce an ally's weapon: +1d4."
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Heat Haze",
+          "tags": [
+            "magic",
+            "fire",
+            "buff",
+            "react"
+          ]
+        },
+        "target": "aoe",
+        "range": 3,
+        "radius": 3,
+        "description": "Instant react. Allies in the area get +4 to their defense roll.",
+        "spellCost": 1
+      }
+    ]
+  },
+  {
+    "nom": "Maya",
+    "hp": 90,
+    "spellSlot": 8,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [],
+    "baseAtk": {
+      "nom": "Weapon",
+      "dices": "1d10+4",
+      "tags": [
+        "physical",
+        "arPen"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "High-Pressure Mastery",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [],
+        "description": "All attacks have armor penetration."
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Fluid Parry",
+          "dices": "1d8+4",
+          "tags": [
+            "magic",
+            "react",
+            "counter"
+          ]
+        },
+        "target": "mono",
+        "range": 3,
+        "description": "Instant react: counter-attack.",
+        "spellCost": 1
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Crushing Weight",
+          "dices": "1d12+4",
+          "tags": [
+            "physical",
+            "arPen"
+          ]
+        },
+        "target": "mono",
+        "range": 3,
+        "effect": "1d2 prone",
+        "cooldown": 1
+      }
+    ]
+  },
+  {
+    "nom": "Libber",
+    "hp": 85,
+    "spellSlot": 0,
+    "ki": 12,
+    "kiRegen": 2,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [],
+    "baseAtk": {
+      "nom": "Weapon",
+      "dices": "2d6+2",
+      "tags": [
+        "physical"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Static Charge",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [],
+        "description": "The next attack gains +2 per step walked."
+      },
+      {
+        "nom": "Lightning Reflexes",
+        "dices": "+2",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "initRoll"
+        ]
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "Art",
+        "base": {
+          "nom": "Thunder Step",
+          "tags": [
+            "lightning",
+            "physical",
+            "bounce"
+          ]
+        },
+        "target": "bounce",
+        "range": 6,
+        "maxBounce": 5,
+        "description": "Bounces between targets; damage is bounce count × 1d8.",
+        "kiCost": 3
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Volt Crash",
+          "dices": "4d8+2d6",
+          "tags": [
+            "physical",
+            "lightning",
+            "arPen"
+          ]
+        },
+        "target": "mono",
+        "range": 3,
+        "cooldown": 3
+      }
+    ]
+  },
+  {
+    "nom": "Bentei",
+    "hp": 120,
+    "spellSlot": 6,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [],
+    "baseAtk": {
+      "nom": "Weapon",
+      "dices": "2d6+8",
+      "tags": [
+        "physical"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Mountain's Weight",
+        "tags": [
+          "buff",
+          "immovable"
+        ],
+        "applyOn": [],
+        "description": "Cannot be knocked prone or pushed back."
+      },
+      {
+        "nom": "Tectonic Skin",
+        "dices": "-8",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "incomingDam"
+        ],
+        "condition": {
+          "incomingHasTag": "physical"
+        }
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Earthquake Slam",
+          "dices": "1d10",
+          "tags": [
+            "physical",
+            "earth",
+            "disv"
+          ]
+        },
+        "target": "aoe",
+        "range": 3,
+        "radius": 3,
+        "effect": "1d2 prone",
+        "cooldown": 2
+      },
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Obsidian Wall",
+          "dices": "60",
+          "tags": [
+            "magic",
+            "block",
+            "react"
+          ]
+        },
+        "target": "self",
+        "range": 0,
+        "description": "Instant react: creates a wall with 60 HP.",
+        "spellCost": 1
+      }
+    ]
+  },
+  {
+    "nom": "Ivo",
+    "hp": 90,
+    "spellSlot": 6,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [],
+    "baseAtk": {
+      "nom": "Weapon",
+      "dices": "1d8+4",
+      "tags": [
+        "physical"
+      ]
+    },
+    "passif": [],
+    "moveSet": [
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Cryostase",
+          "dices": "1d8+8",
+          "tags": [
+            "magic",
+            "ice",
+            "heal",
+            "cleans"
+          ]
+        },
+        "target": "mono",
+        "range": 8,
+        "description": "Removes bleed and burn, then heals.",
+        "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Ice Cannon",
+          "dices": "1d10+1d6+4",
+          "tags": [
+            "magic",
+            "ice"
+          ]
+        },
+        "target": "mono",
+        "range": 12,
+        "spellCost": 1
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Freeze",
+          "tags": [
+            "magic",
+            "ice",
+            "freeze"
+          ]
+        },
+        "target": "mono",
+        "range": 8,
+        "effect": "1d2 freeze",
+        "cooldown": 2
+      }
+    ]
+  },
+  {
+    "nom": "Stormer",
+    "hp": 75,
+    "spellSlot": 11,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [
+      "lightning",
+      "radiant"
+    ],
+    "baseAtk": {
+      "nom": "Weapon",
+      "dices": "1d8+4",
+      "tags": [
+        "physical"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Thunder Defense",
+        "dices": "+4",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "initRoll",
+          "defRoll"
+        ]
+      },
+      {
+        "nom": "Thor's Blessing",
+        "dices": "+1d6",
+        "tags": [
+          "buff",
+          "lightning"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ],
+        "description": "Immune to lightning damage; +1d6 lightning damage."
+      },
+      {
+        "nom": "Hero of Dawn",
+        "dices": "-1d8",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "incomingDam"
+        ],
+        "condition": {
+          "incomingHasTag": "dark"
+        },
+        "description": "Immune to radiant damage; -1d8 dark damage taken; +1d12 damage vs evil foes."
+      },
+      {
+        "nom": "Hero of Dawn (Evil Slayer)",
+        "dices": "+1d12",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ],
+        "condition": {
+          "targetHasTag": "evil"
+        }
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Electro Shield",
+          "tags": [
+            "magic",
+            "lightning",
+            "block",
+            "react"
+          ]
+        },
+        "target": "self",
+        "range": 0,
+        "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Thunder",
+          "dices": "1d12+8",
+          "tags": [
+            "magic",
+            "lightning"
+          ]
+        },
+        "target": "mono",
+        "range": 12,
+        "effect": "1d2 para",
+        "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Cumulonimbus",
+          "dices": "2d10+4",
+          "tags": [
+            "magic",
+            "lightning"
+          ]
+        },
+        "target": "aoe",
+        "range": 10,
+        "radius": 4,
+        "effect": "1d2 para",
+        "spellCost": 1
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Shield Bash",
+          "dices": "1d8+2",
+          "tags": [
+            "physical",
+            "heavy"
+          ]
+        },
+        "target": "cone",
+        "range": 2,
+        "effect": "1d2 para",
+        "cooldown": 1
+      },
+      {
+        "category": "relic",
+        "base": {
+          "nom": "Storm End",
+          "dices": "1d12+4",
+          "tags": [
+            "lightning",
+            "taunt"
+          ]
+        },
+        "target": "aoe",
+        "range": 0,
+        "radius": 4,
+        "description": "Self-centred taunt for 2 turns, plus damage.",
+        "duration": 2,
+        "cooldown": 99
+      }
+    ]
+  },
+  {
+    "nom": "Leonidas",
+    "hp": 75,
+    "spellSlot": 7,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [],
+    "baseAtk": {
+      "nom": "Weapon",
+      "dices": "2d8+4",
+      "tags": [
+        "physical"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Odin's Blessing",
+        "dices": "+5",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "initRoll",
+          "percepRoll"
+        ]
+      },
+      {
+        "nom": "Armor Breaker",
+        "dices": "+1d4+2",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ],
+        "condition": {
+          "targetArmored": true
+        }
+      },
+      {
+        "nom": "Heavy Striker",
+        "dices": "+1d4+1",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ],
+        "condition": {
+          "weaponType": "heavy"
+        }
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Golem Creation",
+          "tags": [
+            "magic",
+            "buff",
+            "summon"
+          ]
+        },
+        "target": "self",
+        "range": 0,
+        "summon": { "unit": "Golem", "count": "1d4" },
+        "description": "Creates 1d4 Golems beside him. They act right after Leonidas.",
+        "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Weapon Creation",
+          "tags": [
+            "magic",
+            "buff"
+          ]
+        },
+        "target": "self",
+        "range": 0,
+        "description": "Creates a weapon.",
+        "spellCost": 1
+      }
+    ]
+  },
+  {
+    "nom": "Golem",
+    "hp": 15,
+    "spellSlot": 0,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [],
+    "baseAtk": {
+      "nom": "Punch",
+      "dices": "1d4+2",
+      "tags": [
+        "physical"
+      ]
+    },
+    "passif": [],
+    "moveSet": [],
+    "tags": [
+      "summon"
+    ]
+  },
+  {
+    "nom": "Ouroboros",
+    "hp": 75,
+    "spellSlot": 4,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [],
+    "baseAtk": {
+      "nom": "Spear",
+      "dices": "1d8+2",
+      "tags": [
+        "physical"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Shield",
+        "dices": "+2",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "defRoll"
+        ]
+      },
+      {
+        "nom": "Beast Hunter",
+        "dices": "+1d6+4",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ],
+        "condition": {
+          "targetHasTag": "beast"
+        },
+        "description": "Also applies to monsters."
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Hypnosis",
+          "tags": [
+            "psy",
+            "stun",
+            "controled"
+          ]
+        },
+        "target": "mono",
+        "range": 8,
+        "effect": "1d2 control",
+        "description": "Stun, with a 1d2 chance of control.",
+        "cooldown": 2
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Stance Switch",
+          "tags": [
+            "buff"
+          ]
+        },
+        "target": "self",
+        "range": 0,
+        "description": "Defense stance: +4 to defense rolls. Attack stance: +2 to attack rolls.",
+        "cooldown": 0
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Spear Gatling",
+          "dices": "1d4*1d8",
+          "tags": [
+            "physical"
+          ]
+        },
+        "target": "cone",
+        "range": 4,
+        "description": "1d4 hits of 1d8 each.",
+        "cooldown": 2
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Lan Na Zha",
+          "dices": "1d8+8",
+          "tags": [
+            "physical",
+            "block",
+            "react",
+            "dash"
+          ]
+        },
+        "target": "mono",
+        "range": 6,
+        "description": "Instant block, then dash.",
+        "cooldown": 0
+      }
+    ]
+  },
+  {
+    "nom": "Libra",
+    "hp": 75,
+    "spellSlot": 5,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [],
+    "baseAtk": {
+      "nom": "Variable Weapon",
+      "dices": "1d8+2",
+      "tags": [
+        "physical"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Arrow Dancer",
+        "dices": "+3",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "defRoll"
+        ],
+        "condition": {
+          "incomingHasTag": "ranged"
+        },
+        "description": "+3 defense roll vs ranged attacks."
+      },
+      {
+        "nom": "Battle Medic",
+        "dices": "+3",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "healRoll"
+        ],
+        "description": "+3 healing roll; can heal as a bonus action."
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Reequip",
+          "tags": [
+            "magic",
+            "buff"
+          ]
+        },
+        "target": "self",
+        "range": 0,
+        "description": "Changes weapons.",
+        "spellCost": 1
+      }
+    ]
+  },
+  {
+    "nom": "Argo",
+    "hp": 75,
+    "spellSlot": 0,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [
+      "poison",
+      "freeze"
+    ],
+    "baseAtk": {
+      "nom": "Weapon",
+      "dices": "1d8+2",
+      "tags": [
+        "physical"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Blood of Fire",
+        "dices": "1d6+2",
+        "tags": [
+          "regen",
+          "fire",
+          "buff"
+        ],
+        "applyOn": [
+          "hpPerHit"
+        ],
+        "description": "Cauterises: heals 1d6+2 on every hit taken. Immune to toxic and freeze; -1d4+2 ice damage taken."
+      },
+      {
+        "nom": "Opportunist",
+        "dices": "+1d8",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ],
+        "condition": {
+          "targetHasTag": "stun"
+        },
+        "description": "Also applies to prone enemies."
+      },
+      {
+        "nom": "Iron Sentinel",
+        "dices": "+3",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "defRoll"
+        ],
+        "description": "+3 defense roll when guarding an ally."
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Guard",
+          "tags": [
+            "block",
+            "buff"
+          ]
+        },
+        "target": "mono",
+        "range": 4,
+        "description": "Prepares to block for an ally for 1 turn.",
+        "cooldown": 1
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Spear Gatling",
+          "dices": "1d4*1d8",
+          "tags": [
+            "physical"
+          ]
+        },
+        "target": "cone",
+        "range": 4,
+        "cooldown": 2
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Lan Na Zha",
+          "dices": "1d8+8",
+          "tags": [
+            "physical",
+            "block",
+            "react",
+            "dash"
+          ]
+        },
+        "target": "mono",
+        "range": 6,
+        "cooldown": 0
+      }
+    ]
+  },
+  {
+    "nom": "Starburst",
+    "hp": 65,
+    "spellSlot": 9,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [
+      "poison",
+      "burn",
+      "para"
+    ],
+    "baseAtk": {
+      "nom": "Punch",
+      "dices": "1d4",
+      "tags": [
+        "physical"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Star Link",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [],
+        "description": "Rolls 1d100 to link to a star (see the star table)."
+      },
+      {
+        "nom": "Fly",
+        "dices": "18",
+        "tags": [
+          "buff",
+          "fly"
+        ],
+        "applyOn": [
+          "speed"
+        ]
+      },
+      {
+        "nom": "Star Blood",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [],
+        "description": "Immune to poison, burn and paralysis. In immunities[]."
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Star Cannon",
+          "dices": "1d20+4",
+          "tags": [
+            "magic",
+            "light"
+          ]
+        },
+        "target": "mono",
+        "range": 12,
+        "description": "Mono hit plus 1d10 area splash.",
+        "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Star Burst",
+          "dices": "1d12+4",
+          "tags": [
+            "magic",
+            "light"
+          ]
+        },
+        "target": "aoe",
+        "range": 0,
+        "radius": 3,
+        "spellCost": 1
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Combo Star",
+          "dices": "1d4+1d6+1d8+1d10",
+          "tags": [
+            "magic"
+          ]
+        },
+        "target": "mono",
+        "range": 6,
+        "cooldown": 3
+      }
+    ]
+  },
+  {
+    "nom": "Graviton",
+    "hp": 65,
+    "spellSlot": 9,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [],
+    "baseAtk": {
+      "nom": "Staff",
+      "dices": "1d4",
+      "tags": [
+        "physical"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Fly",
+        "dices": "18",
+        "tags": [
+          "buff",
+          "fly"
+        ],
+        "applyOn": [
+          "speed"
+        ]
+      },
+      {
+        "nom": "Gravity Master",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [],
+        "description": "Flying adversaries must save each turn or lose flight for a turn."
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Levitate",
+          "tags": [
+            "magic",
+            "buff",
+            "fly"
+          ]
+        },
+        "target": "mono",
+        "range": 8,
+        "description": "Grants flight to an ally.",
+        "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Black Hole",
+          "tags": [
+            "magic",
+            "react",
+            "void"
+          ]
+        },
+        "target": "self",
+        "range": 0,
+        "description": "React: absorbs a ranged attack.",
+        "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Crush",
+          "dices": "1d10+4",
+          "tags": [
+            "magic"
+          ]
+        },
+        "target": "aoe",
+        "range": 8,
+        "radius": 3,
+        "spellCost": 1
+      },
+      {
+        "category": "relic",
+        "base": {
+          "nom": "Meteor",
+          "dices": "2d20+1d10",
+          "tags": [
+            "fire",
+            "earth"
+          ]
+        },
+        "target": "aoe",
+        "range": 15,
+        "radius": 4,
+        "cooldown": 6
+      }
+    ]
+  },
+  {
+    "nom": "Ivy",
+    "hp": 65,
+    "spellSlot": 9,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [],
+    "baseAtk": {
+      "nom": "Acid Spear",
+      "dices": "1d8+1d6+4",
+      "tags": [
+        "physical",
+        "toxic"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Acid Armor",
+        "dices": "1d4",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "incomingDam"
+        ],
+        "description": "Melee attackers take 1d4 damage and a 1d2 toxic chance."
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Acid Torrent",
+          "dices": "4d4+4",
+          "tags": [
+            "magic",
+            "toxic"
+          ]
+        },
+        "target": "mono",
+        "range": 10,
+        "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Acid Rain",
+          "dices": "2d6+6",
+          "tags": [
+            "magic",
+            "toxic"
+          ]
+        },
+        "target": "aoe",
+        "range": 10,
+        "radius": 4,
+        "effect": "1d2 toxic",
+        "spellCost": 1
+      }
+    ]
+  },
+  {
+    "nom": "Electro",
+    "hp": 65,
+    "spellSlot": 9,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [],
+    "baseAtk": {
+      "nom": "Weapon",
+      "dices": "1d6+1",
+      "tags": [
+        "physical"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Lightning Rod",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [],
+        "description": "Absorbs all electric attacks."
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Thunder",
+          "dices": "1d20",
+          "tags": [
+            "magic",
+            "lightning"
+          ]
+        },
+        "target": "mono",
+        "range": 12,
+        "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Thunder Storm",
+          "dices": "1d12+1d8+4",
+          "tags": [
+            "magic",
+            "lightning"
+          ]
+        },
+        "target": "aoe",
+        "range": 10,
+        "radius": 4,
+        "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Stun Field",
+          "tags": [
+            "magic",
+            "lightning",
+            "para"
+          ]
+        },
+        "target": "aoe",
+        "range": 8,
+        "radius": 3,
+        "effect": "1d2 para",
+        "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Energise",
+          "tags": [
+            "magic",
+            "buff",
+            "adv_next"
+          ]
+        },
+        "target": "mono",
+        "range": 8,
+        "description": "An ally rolls with advantage on everything next turn.",
+        "spellCost": 1
+      }
+    ]
+  },
+  {
+    "nom": "Arthur",
+    "hp": 65,
+    "spellSlot": 0,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [
+      "radiant",
+      "fear"
+    ],
+    "baseAtk": {
+      "nom": "Sword",
+      "dices": "1d8+4",
+      "tags": [
+        "physical",
+        "sword"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Hero of Dawn",
+        "dices": "-1d8",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "incomingDam"
+        ],
+        "condition": {
+          "incomingHasTag": "dark"
+        },
+        "description": "Immune to radiant damage; -1d8 dark damage taken."
+      },
+      {
+        "nom": "Hero of Dawn (Evil Slayer)",
+        "dices": "+1d12",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ],
+        "condition": {
+          "targetHasTag": "evil"
+        }
+      },
+      {
+        "nom": "Holy Knight",
+        "dices": "+1d6",
+        "tags": [
+          "buff",
+          "radiant"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ],
+        "condition": {
+          "weaponType": "sword"
+        },
+        "description": "+1d6 radiant damage when using a weapon."
+      },
+      {
+        "nom": "Sword Master",
+        "tags": [
+          "buff",
+          "adv"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ],
+        "condition": {
+          "weaponType": "sword"
+        },
+        "description": "Advantage on sword rolls."
+      },
+      {
+        "nom": "Titan Slayer",
+        "dices": "+1d12",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ],
+        "condition": {
+          "targetMoreHp": true
+        }
+      },
+      {
+        "nom": "Dragon Slayer",
+        "dices": "+1d8+4",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ],
+        "condition": {
+          "targetHasTag": "dragon"
+        }
+      },
+      {
+        "nom": "Lion Heart",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [],
+        "description": "Immune to fear and mental attacks. Fear in immunities[]."
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Holy Duel",
+          "dices": "4d20",
+          "tags": [
+            "magic",
+            "radiant",
+            "adv"
+          ]
+        },
+        "target": "mono",
+        "range": 8,
+        "description": "Targets one adversary: Arthur gains 2× the target's max HP, advantage on all rolls vs it, and 4d20 damage vs it.",
+        "spellCost": 0,
+        "cooldown": 99
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Estoc",
+          "dices": "1d12+4",
+          "tags": [
+            "physical",
+            "sword",
+            "dash"
+          ]
+        },
+        "target": "mono",
+        "range": 6,
+        "cooldown": 2
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Horizontal Cut",
+          "dices": "1d8+4",
+          "tags": [
+            "physical",
+            "sword"
+          ]
+        },
+        "target": "cone",
+        "range": 3,
+        "cooldown": 0
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Vertical Cut",
+          "dices": "2d8+4",
+          "tags": [
+            "physical",
+            "sword"
+          ]
+        },
+        "target": "mono",
+        "range": 3,
+        "cooldown": 0
+      }
+    ]
+  },
+  {
+    "nom": "Diamant Dunmara",
+    "hp": 90,
+    "spellSlot": 0,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [],
+    "baseAtk": {
+      "nom": "Sword",
+      "dices": "1d8+4",
+      "tags": [
+        "physical",
+        "sword"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Armored",
+        "dices": "+8",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "defRoll"
+        ]
+      },
+      {
+        "nom": "Avatar of War",
+        "dices": "+3",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ],
+        "description": "+3 to all weapon rolls, +1d6 damage, cannot be disarmed."
+      },
+      {
+        "nom": "Avatar of War (Damage)",
+        "dices": "+1d6",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ]
+      },
+      {
+        "nom": "Retribution Shard",
+        "dices": "1d6",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "incomingDam"
+        ],
+        "description": "1d2 chance of dealing 1d6 to everyone around when hit (aoe self)."
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Quartz Thrust",
+          "dices": "1d12+8",
+          "tags": [
+            "physical",
+            "arPen"
+          ]
+        },
+        "target": "mono",
+        "range": 3,
+        "cooldown": 2
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Crystal Resonance",
+          "dices": "1d8+4",
+          "tags": [
+            "physical"
+          ]
+        },
+        "target": "aoe",
+        "range": 0,
+        "radius": 3,
+        "cooldown": 3
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Prismatic Guard",
+          "dices": "-20",
+          "tags": [
+            "block",
+            "react",
+            "magic"
+          ]
+        },
+        "target": "self",
+        "range": 0,
+        "description": "React: -20 flat magic damage.",
+        "cooldown": 1
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Stained Glass Edge",
+          "dices": "2d8+2",
+          "tags": [
+            "physical"
+          ]
+        },
+        "target": "aoe",
+        "range": 3,
+        "radius": 3,
+        "effect": "1d2 bleed",
+        "cooldown": 3
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Geode Impact",
+          "dices": "3d10+6",
+          "tags": [
+            "physical",
+            "dash",
+            "guardbreak"
+          ]
+        },
+        "target": "mono",
+        "range": 6,
+        "cooldown": 4
+      }
+    ]
+  },
+  {
+    "nom": "Rubis Ignir",
+    "hp": 90,
+    "spellSlot": 0,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [],
+    "baseAtk": {
+      "nom": "Sword",
+      "dices": "1d8+4",
+      "tags": [
+        "physical",
+        "sword"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Armored",
+        "dices": "+2",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "defRoll"
+        ]
+      },
+      {
+        "nom": "Avatar of War",
+        "dices": "+3",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ],
+        "description": "+3 to all weapon rolls, +1d6 damage, cannot be disarmed."
+      },
+      {
+        "nom": "Avatar of War (Damage)",
+        "dices": "+1d6",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ]
+      },
+      {
+        "nom": "Hit Count",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [],
+        "description": "Counts the hits taken (starts at 0). Feeds Retribution Shard."
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Retribution Shard",
+          "tags": [
+            "physical",
+            "burn",
+            "guardbreak"
+          ]
+        },
+        "target": "mono",
+        "range": 3,
+        "effect": "1d2 burn",
+        "description": "Damage is hitCount × 0.8, then the count resets.",
+        "cooldown": 0
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Quartz Thrust",
+          "dices": "1d12+8",
+          "tags": [
+            "physical",
+            "arPen"
+          ]
+        },
+        "target": "mono",
+        "range": 3,
+        "cooldown": 2
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Crystal Resonance",
+          "dices": "1d8+4",
+          "tags": [
+            "physical"
+          ]
+        },
+        "target": "aoe",
+        "range": 0,
+        "radius": 3,
+        "cooldown": 3
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Prismatic Guard",
+          "dices": "-20",
+          "tags": [
+            "block",
+            "react",
+            "magic"
+          ]
+        },
+        "target": "self",
+        "range": 0,
+        "description": "React: -20 flat magic damage.",
+        "cooldown": 1
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Stained Glass Edge",
+          "dices": "2d8+2",
+          "tags": [
+            "physical"
+          ]
+        },
+        "target": "aoe",
+        "range": 3,
+        "radius": 3,
+        "effect": "1d2 bleed",
+        "cooldown": 3
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Geode Impact",
+          "dices": "3d10+6",
+          "tags": [
+            "physical",
+            "dash",
+            "guardbreak"
+          ]
+        },
+        "target": "mono",
+        "range": 6,
+        "cooldown": 4
+      }
+    ]
+  },
+  {
+    "nom": "Emeraud Brannoc",
+    "hp": 90,
+    "spellSlot": 0,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [],
+    "baseAtk": {
+      "nom": "Sword",
+      "dices": "1d8+4",
+      "tags": [
+        "physical",
+        "sword"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Armored",
+        "dices": "+3",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "defRoll"
+        ]
+      },
+      {
+        "nom": "Avatar of War",
+        "dices": "+3",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ],
+        "description": "+3 to all weapon rolls, +1d6 damage, cannot be disarmed."
+      },
+      {
+        "nom": "Avatar of War (Damage)",
+        "dices": "+1d6",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ]
+      },
+      {
+        "nom": "Retribution Shard",
+        "dices": "1d6",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "incomingDam"
+        ],
+        "description": "1d2 chance of dealing 1d6 to everyone around when hit (aoe self)."
+      },
+      {
+        "nom": "Petrification",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [],
+        "description": "Each hit applies a petrification stack."
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Petrify",
+          "tags": [
+            "magic",
+            "psy"
+          ]
+        },
+        "target": "mono",
+        "range": 6,
+        "description": "Roll 1d20 + stacks: chance to petrify.",
+        "cooldown": 0
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Quartz Thrust",
+          "dices": "1d12+8",
+          "tags": [
+            "physical",
+            "arPen"
+          ]
+        },
+        "target": "mono",
+        "range": 3,
+        "cooldown": 2
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Crystal Resonance",
+          "dices": "1d8+4",
+          "tags": [
+            "physical"
+          ]
+        },
+        "target": "aoe",
+        "range": 0,
+        "radius": 3,
+        "cooldown": 3
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Prismatic Guard",
+          "dices": "-20",
+          "tags": [
+            "block",
+            "react",
+            "magic"
+          ]
+        },
+        "target": "self",
+        "range": 0,
+        "description": "React: -20 flat magic damage.",
+        "cooldown": 1
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Stained Glass Edge",
+          "dices": "2d8+2",
+          "tags": [
+            "physical"
+          ]
+        },
+        "target": "aoe",
+        "range": 3,
+        "radius": 3,
+        "effect": "1d2 bleed",
+        "cooldown": 3
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Geode Impact",
+          "dices": "3d10+6",
+          "tags": [
+            "physical",
+            "dash",
+            "guardbreak"
+          ]
+        },
+        "target": "mono",
+        "range": 6,
+        "cooldown": 4
+      }
+    ]
+  },
+  {
+    "nom": "Saphir Thalor",
+    "hp": 90,
+    "spellSlot": 0,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [],
+    "baseAtk": {
+      "nom": "Sword",
+      "dices": "1d8+4",
+      "tags": [
+        "physical",
+        "sword"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Armored",
+        "dices": "+2",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "defRoll"
+        ]
+      },
+      {
+        "nom": "Avatar of War",
+        "dices": "+3",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ],
+        "description": "+3 to all weapon rolls, +1d6 damage, cannot be disarmed."
+      },
+      {
+        "nom": "Avatar of War (Damage)",
+        "dices": "+1d6",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ]
+      },
+      {
+        "nom": "Retribution Shard",
+        "dices": "1d6",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "incomingDam"
+        ],
+        "description": "1d2 chance of dealing 1d6 to everyone around when hit (aoe self)."
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Quartz Thrust",
+          "dices": "1d12+4",
+          "tags": [
+            "physical",
+            "arPen"
+          ]
+        },
+        "target": "mono",
+        "range": 3,
+        "cooldown": 2
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Crystal Resonance",
+          "dices": "1d8+4",
+          "tags": [
+            "physical"
+          ]
+        },
+        "target": "aoe",
+        "range": 0,
+        "radius": 3,
+        "cooldown": 3
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Prismatic Guard",
+          "tags": [
+            "block",
+            "react",
+            "magic",
+            "reflect"
+          ]
+        },
+        "target": "self",
+        "range": 0,
+        "radius": 3,
+        "description": "React self/aoe: reflects magic damage.",
+        "cooldown": 0
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Stained Glass Edge",
+          "dices": "2d6+2",
+          "tags": [
+            "physical"
+          ]
+        },
+        "target": "aoe",
+        "range": 3,
+        "radius": 3,
+        "effect": "1d2 bleed",
+        "cooldown": 3
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Geode Impact",
+          "dices": "2d10+3",
+          "tags": [
+            "physical",
+            "dash",
+            "guardbreak"
+          ]
+        },
+        "target": "mono",
+        "range": 6,
+        "cooldown": 4
+      }
+    ]
+  },
+  {
+    "nom": "Amethyst Ysmar",
+    "hp": 90,
+    "spellSlot": 0,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [],
+    "baseAtk": {
+      "nom": "Sword",
+      "dices": "1d8+4",
+      "tags": [
+        "physical",
+        "sword"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Armored",
+        "dices": "+2",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "defRoll"
+        ]
+      },
+      {
+        "nom": "Avatar of War",
+        "dices": "+3",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ],
+        "description": "+3 to all weapon rolls, +1d6 damage, cannot be disarmed."
+      },
+      {
+        "nom": "Avatar of War (Damage)",
+        "dices": "+1d6",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ]
+      },
+      {
+        "nom": "Retribution Shard",
+        "dices": "1d6",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "incomingDam"
+        ],
+        "description": "1d2 chance of dealing 1d6 to everyone around when hit (aoe self)."
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Quartz Thrust",
+          "dices": "1d12+8",
+          "tags": [
+            "physical",
+            "arPen"
+          ]
+        },
+        "target": "mono",
+        "range": 3,
+        "cooldown": 2
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Crystal Resonance",
+          "dices": "1d8+4",
+          "tags": [
+            "physical",
+            "psy"
+          ]
+        },
+        "target": "aoe",
+        "range": 0,
+        "radius": 3,
+        "description": "Targets must make a psy save or attack their allies. (Listed as a passive on the sheet.)",
+        "cooldown": 3
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Prismatic Guard",
+          "dices": "-20",
+          "tags": [
+            "block",
+            "react",
+            "magic"
+          ]
+        },
+        "target": "self",
+        "range": 0,
+        "description": "React: -20 flat magic damage.",
+        "cooldown": 1
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Stained Glass Edge",
+          "dices": "2d8+2",
+          "tags": [
+            "physical"
+          ]
+        },
+        "target": "aoe",
+        "range": 3,
+        "radius": 3,
+        "effect": "1d2 bleed",
+        "cooldown": 3
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Geode Impact",
+          "dices": "3d10+6",
+          "tags": [
+            "physical",
+            "dash",
+            "guardbreak"
+          ]
+        },
+        "target": "mono",
+        "range": 6,
+        "cooldown": 4
+      }
+    ]
+  },
+  {
+    "nom": "Aquiel",
+    "hp": 90,
+    "spellSlot": 0,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [],
+    "baseAtk": {
+      "nom": "Great Sword",
+      "dices": "1d10+4",
+      "tags": [
+        "physical",
+        "sword"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Fly",
+        "dices": "18",
+        "tags": [
+          "buff",
+          "fly"
+        ],
+        "applyOn": [
+          "speed"
+        ]
+      },
+      {
+        "nom": "Chi Overdrive",
+        "dices": "+1d8",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ],
+        "description": "Immune to stun, fear and paralysis. +/-1d8 damage."
+      },
+      {
+        "nom": "Finest Sword of Chima",
+        "dices": "+1d8",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ],
+        "condition": {
+          "weaponType": "sword"
+        },
+        "description": "+1d8 damage, advantage on all weapon-related rolls."
+      },
+      {
+        "nom": "Dragon Slayer",
+        "dices": "+1d8+4",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ],
+        "condition": {
+          "targetHasTag": "dragon"
+        }
+      },
+      {
+        "nom": "Eagle's Eyes",
+        "dices": "+10",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "percepRoll"
+        ]
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Chi Cut",
+          "dices": "1d8+2",
+          "tags": [
+            "physical",
+            "sword"
+          ]
+        },
+        "target": "cone",
+        "range": 4,
+        "cooldown": 1
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Falcon Dive",
+          "dices": "1d20+10",
+          "tags": [
+            "physical",
+            "dash"
+          ]
+        },
+        "target": "mono",
+        "range": 8,
+        "cooldown": 2
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Dissect",
+          "dices": "2d12+4",
+          "tags": [
+            "physical",
+            "sword"
+          ]
+        },
+        "target": "mono",
+        "range": 3,
+        "cooldown": 2
+      }
+    ]
+  },
+  {
+    "nom": "Escanor",
+    "hp": 120,
+    "spellSlot": 0,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [
+      "status",
+      "fire"
+    ],
+    "baseAtk": {
+      "nom": "Sunshine Strike",
+      "dices": "1d12+6",
+      "tags": [
+        "physical",
+        "fire"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Sunshine",
+        "dices": "+5",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "atkRoll",
+          "defRoll"
+        ],
+        "description": "Immune to all status effects and fire damage. Deals 1d4 damage around him. +5 attack/defense for each calcinated stack on the target."
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Cruel Sun",
+          "dices": "1d20+10",
+          "tags": [
+            "magic",
+            "fire"
+          ]
+        },
+        "target": "aoe",
+        "range": 10,
+        "radius": 4,
+        "effect": "1d2 calcinated",
+        "spellCost": 1
+      }
+    ]
+  },
+  {
+    "nom": "Scorpio",
+    "hp": 70,
+    "spellSlot": 0,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [],
+    "baseAtk": {
+      "nom": "Pincers",
+      "dices": "2d4",
+      "tags": [
+        "physical",
+        "toxic"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Exoskeleton",
+        "dices": "+5",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "defRoll"
+        ]
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Poison Breath",
+          "dices": "1d12+8",
+          "tags": [
+            "toxic"
+          ]
+        },
+        "target": "cone",
+        "range": 4,
+        "effect": "1d2 toxic",
+        "cooldown": 2
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Darts",
+          "dices": "1d8+4",
+          "tags": [
+            "physical",
+            "toxic",
+            "ranged"
+          ]
+        },
+        "target": "mono",
+        "range": 10,
+        "effect": "1d2 toxic",
+        "cooldown": 1
+      }
+    ]
+  },
+  {
+    "nom": "Phoenix King",
+    "hp": 75,
+    "spellSlot": 8,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [],
+    "baseAtk": {
+      "nom": "Halberd",
+      "dices": "1d12+6",
+      "tags": [
+        "physical"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Fly",
+        "dices": "18",
+        "tags": [
+          "buff",
+          "fly"
+        ],
+        "applyOn": [
+          "speed"
+        ]
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Flaming Dash",
+          "dices": "1d8+4",
+          "tags": [
+            "magic",
+            "fire",
+            "dash"
+          ]
+        },
+        "target": "aoe",
+        "range": 6,
+        "radius": 2,
+        "description": "Dash through the line of enemies.",
+        "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Fire Missile",
+          "dices": "1d12+1d8+4",
+          "tags": [
+            "magic",
+            "fire",
+            "adv"
+          ]
+        },
+        "target": "mono",
+        "range": 12,
+        "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Ardent Wind",
+          "tags": [
+            "magic",
+            "buff",
+            "wind"
+          ]
+        },
+        "target": "aoe",
+        "range": 0,
+        "radius": 8,
+        "description": "Allies roll with advantage vs ranged attacks.",
+        "spellCost": 1
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Radiant Sun",
+          "dices": "2d12+1d8+4",
+          "tags": [
+            "radiant",
+            "fire"
+          ]
+        },
+        "target": "mono",
+        "range": 10,
+        "cooldown": 3
+      },
+      {
+        "category": "relic",
+        "base": {
+          "nom": "Phoenix Feathers",
+          "tags": [
+            "revive",
+            "heal"
+          ]
+        },
+        "target": "mono",
+        "range": 6,
+        "description": "Resurrects the target (4/4 feathers) and regains all spell slots.",
+        "charges": 4,
+        "cooldown": 0,
+        "slotRegen": 99
+      }
+    ]
+  },
+  {
+    "nom": "Phoenix Prince",
+    "hp": 55,
+    "spellSlot": 0,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [],
+    "baseAtk": {
+      "nom": "Sword",
+      "dices": "1d8",
+      "tags": [
+        "physical"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Fly",
+        "dices": "18",
+        "tags": [
+          "buff",
+          "fly"
+        ],
+        "applyOn": [
+          "speed"
+        ]
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Grow Spurt",
+          "tags": [
+            "buff"
+          ]
+        },
+        "target": "self",
+        "range": 0,
+        "description": "Grows into the Adult form for 4 turns.",
+        "duration": 4,
+        "cooldown": 99
+      }
+    ],
+    "transformation": {
+      "base": {
+        "nom": "Adult Form",
+        "tags": [
+          "buff"
+        ]
+      },
+      "hp": 20,
+      "spellSlot": 3,
+      "ki": 0,
+      "kiRegen": 0,
+      "speed": 6,
+      "autority": 0,
+      "baseAtk": {
+        "nom": "Sword",
+        "dices": "1d8+4",
+        "tags": [
+          "physical"
+        ]
+      },
+      "moveSet": [
+        {
+          "category": "spell",
+          "base": {
+            "nom": "Flaming Dash",
+            "dices": "1d8+4",
+            "tags": [
+              "magic",
+              "fire",
+              "dash"
+            ]
+          },
+          "target": "aoe",
+          "range": 6,
+          "radius": 2,
+          "spellCost": 1
+        },
+        {
+          "category": "spell",
+          "base": {
+            "nom": "Phoenix Hug",
+            "dices": "1d8+4",
+            "tags": [
+              "magic",
+              "fire",
+              "heal"
+            ]
+          },
+          "target": "mono",
+          "range": 2,
+          "description": "Heals the Prince and the target, then again next turn.",
+          "spellCost": 1
+        },
+        {
+          "category": "relic",
+          "base": {
+            "nom": "Phoenix Feather",
+            "tags": [
+              "revive",
+              "heal"
+            ]
+          },
+          "target": "mono",
+          "range": 6,
+          "description": "Resurrects one.",
+          "charges": 1,
+          "cooldown": 0
+        }
+      ]
+    }
+  },
+  {
+    "nom": "Arya",
+    "hp": 70,
+    "spellSlot": 9,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [],
+    "baseAtk": {
+      "nom": "Punch",
+      "dices": "1d4+2",
+      "tags": [
+        "physical"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Elf",
+        "dices": "+3",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "initRoll"
+        ]
+      },
+      {
+        "nom": "Elf (Perception)",
+        "dices": "+5",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "percepRoll"
+        ]
+      },
+      {
+        "nom": "Blessing of Oberon",
+        "dices": "1d6",
+        "tags": [
+          "regen",
+          "buff"
+        ],
+        "applyOn": [
+          "hpPerTurn"
+        ],
+        "target": "allies",
+        "radius": 4,
+        "description": "Self aoe: heals 1d6 each turn."
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Toxic Pollen",
+          "tags": [
+            "magic",
+            "poison",
+            "para"
+          ]
+        },
+        "target": "cone",
+        "range": 5,
+        "effect": "1d2 para",
+        "description": "1d2 para, 1d2 poison.",
+        "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Curative Pollen",
+          "dices": "2d6+2",
+          "tags": [
+            "magic",
+            "heal"
+          ]
+        },
+        "target": "aoe",
+        "range": 6,
+        "radius": 3,
+        "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Laying Hand",
+          "dices": "2d12+8",
+          "tags": [
+            "magic",
+            "heal"
+          ]
+        },
+        "target": "mono",
+        "range": 3,
+        "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Energy Beam",
+          "dices": "1d8+2",
+          "tags": [
+            "magic"
+          ]
+        },
+        "target": "mono",
+        "range": 12,
+        "spellCost": 1
+      }
+    ]
+  },
+  {
+    "nom": "Aron",
+    "hp": 65,
+    "spellSlot": 5,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [],
+    "baseAtk": {
+      "nom": "Weapon",
+      "dices": "1d4+6",
+      "tags": [
+        "physical",
+        "ranged"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Heavy Armor & Shield",
+        "dices": "+5",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "defRoll"
+        ]
+      },
+      {
+        "nom": "Holy Knight",
+        "dices": "+1d6",
+        "tags": [
+          "buff",
+          "radiant"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ],
+        "condition": {
+          "weaponType": "sword"
+        },
+        "description": "+1d6 radiant damage when using a weapon."
+      },
+      {
+        "nom": "Dead Eye",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [],
+        "description": "Ranged attacks cannot be dodged."
+      },
+      {
+        "nom": "Ranger",
+        "dices": "+3",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "utilityRoll"
+        ],
+        "description": "+3 lockpicking/perception/defuse/set trap."
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Nexo Power: Fire Dragon Breath",
+          "dices": "1d12+1d8",
+          "tags": [
+            "fire",
+            "magic"
+          ]
+        },
+        "target": "cone",
+        "range": 5,
+        "cooldown": 3
+      }
+    ]
+  },
+  {
+    "nom": "Lance",
+    "hp": 65,
+    "spellSlot": 5,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [],
+    "baseAtk": {
+      "nom": "Weapon",
+      "dices": "1d8+4",
+      "tags": [
+        "physical"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Heavy Armor & Shield",
+        "dices": "+5",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "defRoll"
+        ]
+      },
+      {
+        "nom": "Holy Knight",
+        "dices": "+1d6",
+        "tags": [
+          "buff",
+          "radiant"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ],
+        "condition": {
+          "weaponType": "sword"
+        },
+        "description": "+1d6 radiant damage when using a weapon."
+      },
+      {
+        "nom": "Faster",
+        "dices": "+5",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "initRoll"
+        ],
+        "description": "Takes half damage from anything with a lower initiative than his."
+      },
+      {
+        "nom": "Dragon Slayer",
+        "dices": "+1d8+4",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ],
+        "condition": {
+          "targetHasTag": "dragon"
+        }
+      },
+      {
+        "nom": "Titan Slayer",
+        "dices": "+1d12",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ],
+        "condition": {
+          "targetMoreHp": true
+        }
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Nexo Power: Fire Dragon Breath",
+          "dices": "1d12+1d8",
+          "tags": [
+            "fire",
+            "magic"
+          ]
+        },
+        "target": "cone",
+        "range": 5,
+        "cooldown": 3
+      }
+    ]
+  },
+  {
+    "nom": "Axel",
+    "hp": 90,
+    "spellSlot": 5,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [],
+    "baseAtk": {
+      "nom": "Weapon",
+      "dices": "1d8+8",
+      "tags": [
+        "physical"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Heavy Armor & Shield",
+        "dices": "+5",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "defRoll"
+        ]
+      },
+      {
+        "nom": "Holy Knight",
+        "dices": "+1d6",
+        "tags": [
+          "buff",
+          "radiant"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ],
+        "condition": {
+          "weaponType": "sword"
+        },
+        "description": "+1d6 radiant damage when using a weapon."
+      },
+      {
+        "nom": "Sturdy",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [],
+        "chance": 0.25,
+        "description": "1d4 chance to ignore damage."
+      },
+      {
+        "nom": "Close Quarters Expert",
+        "dices": "+1d4+2",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ],
+        "condition": {
+          "contextHasTag": "melee"
+        }
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Nexo Power: Fire Dragon Breath",
+          "dices": "1d12+1d8",
+          "tags": [
+            "fire",
+            "magic"
+          ]
+        },
+        "target": "cone",
+        "range": 5,
+        "cooldown": 3
+      }
+    ]
+  },
+  {
+    "nom": "Clay",
+    "hp": 65,
+    "spellSlot": 5,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [],
+    "baseAtk": {
+      "nom": "Weapon",
+      "dices": "1d6+4",
+      "tags": [
+        "physical"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Heavy Armor & Shield",
+        "dices": "+5",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "defRoll"
+        ]
+      },
+      {
+        "nom": "Holy Knight",
+        "dices": "+1d6",
+        "tags": [
+          "buff",
+          "radiant"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ],
+        "condition": {
+          "weaponType": "sword"
+        },
+        "description": "+1d6 radiant damage when using a weapon."
+      },
+      {
+        "nom": "Leader",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [],
+        "description": "The first time an ally dies, he saves them and takes the damage instead."
+      },
+      {
+        "nom": "Battle Tactician",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [],
+        "description": "Title. Unlocks Give Orders: an ally gets +2 on its attack rolls."
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Give Orders",
+          "tags": [
+            "buff",
+            "orders"
+          ]
+        },
+        "target": "mono",
+        "range": 10,
+        "description": "Battle Tactician. Ends the turn; an ally gets +2 on its attack rolls until its next turn is over."
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Nexo Power: Fire Dragon Breath",
+          "dices": "1d12+1d8",
+          "tags": [
+            "fire",
+            "magic"
+          ]
+        },
+        "target": "cone",
+        "range": 5,
+        "cooldown": 3
+      }
+    ]
+  },
+  {
+    "nom": "Kyros",
+    "hp": 65,
+    "spellSlot": 10,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [],
+    "baseAtk": {
+      "nom": "Slash",
+      "dices": "1d8",
+      "tags": [
+        "physical",
+        "sword"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Survivor",
+        "dices": "+4",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "defRoll",
+          "percepRoll",
+          "initRoll"
+        ]
+      },
+      {
+        "nom": "Monster Slayer",
+        "dices": "+3",
+        "tags": [
+          "buff",
+          "adv"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ],
+        "description": "+3 and advantage on attack rolls, +1d12 on spells and legendary attacks."
+      },
+      {
+        "nom": "Shadow Master",
+        "dices": "+2",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "stealthRoll"
+        ],
+        "description": "+2 stealth; opponents -3 perception if in the same room."
+      },
+      {
+        "nom": "Destiny's Fire",
+        "dices": "+1d10",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ],
+        "condition": {
+          "selfBelow50pct": true
+        },
+        "description": "At 30 HP: +1d10 on all attacks until the end of battle."
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Fire Slash",
+          "dices": "1d12+1d6",
+          "tags": [
+            "magic",
+            "fire"
+          ]
+        },
+        "target": "mono",
+        "range": 3,
+        "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Fire Vortex",
+          "dices": "2d8",
+          "tags": [
+            "magic",
+            "fire"
+          ]
+        },
+        "target": "aoe",
+        "range": 8,
+        "radius": 3,
+        "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Instant Fire Wall",
+          "tags": [
+            "magic",
+            "fire",
+            "block",
+            "react",
+            "half_phys"
+          ]
+        },
+        "target": "self",
+        "range": 0,
+        "description": "Halves mono damage and negates aoe.",
+        "spellCost": 1
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Motion Channel",
+          "dices": "1d6",
+          "tags": [
+            "unblockabled",
+            "burn"
+          ]
+        },
+        "target": "mono",
+        "range": 6,
+        "cooldown": 4
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Motion Guard",
+          "tags": [
+            "block",
+            "react",
+            "ultimate"
+          ]
+        },
+        "target": "self",
+        "range": 0,
+        "description": "Ultimate block, 1d2 disadvantage.",
+        "cooldown": 8
+      },
+      {
+        "category": "relic",
+        "base": {
+          "nom": "Destiny's Fire",
+          "dices": "2d20",
+          "tags": [
+            "fire"
+          ]
+        },
+        "target": "mono",
+        "range": 6,
+        "description": "When HP is 30: mono 2d20, aoe 1d20+1d12.",
+        "cooldown": 99
+      },
+      {
+        "category": "relic",
+        "base": {
+          "nom": "The End Slash",
+          "dices": "4d20",
+          "tags": [
+            "fire",
+            "para",
+            "execute"
+          ]
+        },
+        "target": "mono",
+        "range": 3,
+        "description": "Under 25 HP. Mono 4d20, aoe 2d20 + burn + para + 1d8 heal.",
+        "cooldown": 99
+      }
+    ]
+  },
+  {
+    "nom": "Krux & Acronix",
+    "hp": 180,
+    "spellSlot": 25,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [],
+    "baseAtk": {
+      "nom": "Time Blade",
+      "dices": "1d8+4",
+      "tags": [
+        "physical"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Geminy",
+        "tags": [
+          "buff",
+          "extraAction"
+        ],
+        "applyOn": [],
+        "description": "Can make two actions per turn."
+      },
+      {
+        "nom": "Vision of Time",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [],
+        "description": "Immune to natural 1; cannot be at disadvantage."
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Summoning Portal",
+          "tags": [
+            "magic",
+            "buff",
+            "summon",
+            "void"
+          ]
+        },
+        "target": "self",
+        "range": 0,
+        "description": "A rift in time summons a time remnant to fight for them; cost at the DM's discretion.",
+        "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Pause",
+          "tags": [
+            "magic",
+            "react",
+            "block"
+          ]
+        },
+        "target": "mono",
+        "range": 12,
+        "description": "React: stops an attack.",
+        "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Play",
+          "tags": [
+            "magic",
+            "buff"
+          ]
+        },
+        "target": "mono",
+        "range": 12,
+        "description": "Unpause.",
+        "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Forward",
+          "tags": [
+            "magic",
+            "necro"
+          ]
+        },
+        "target": "aoe",
+        "range": 8,
+        "radius": 4,
+        "description": "Drains 1d4 spell slots from the area.",
+        "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Backward",
+          "tags": [
+            "magic",
+            "heal"
+          ]
+        },
+        "target": "mono",
+        "range": 12,
+        "description": "Rewinds time: heals all damage since the last turn.",
+        "spellCost": 1
+      },
+      {
+        "category": "relic",
+        "base": {
+          "nom": "Memento Mori Beam",
+          "dices": "1d20+1d12+1d8+1d6+1d4",
+          "tags": [
+            "magic",
+            "necro"
+          ]
+        },
+        "target": "aoe",
+        "range": 15,
+        "radius": 4,
+        "cooldown": 99
+      }
+    ]
+  },
+  {
+    "nom": "Annastasia",
+    "hp": 60,
+    "spellSlot": 8,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [],
+    "baseAtk": {
+      "nom": "Butcher Knife",
+      "dices": "1d4",
+      "tags": [
+        "physical"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Demon Pact",
+        "dices": "1d10",
+        "tags": [
+          "regen",
+          "buff"
+        ],
+        "applyOn": [
+          "hpPerHit"
+        ],
+        "description": "-10 HP = 1 spell slot. Heals 1d10 when dealing damage."
+      },
+      {
+        "nom": "Sacrifice Mark",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [],
+        "description": "Marks a random enemy. On its death, summons one or two demons depending on its strength."
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Eldritch Blast",
+          "dices": "2d8",
+          "tags": [
+            "magic",
+            "fear"
+          ]
+        },
+        "target": "mono",
+        "range": 10,
+        "effect": "1d2 fear",
+        "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Cry of Agony",
+          "dices": "1d6",
+          "tags": [
+            "magic",
+            "fear",
+            "stun",
+            "root"
+          ]
+        },
+        "target": "aoe",
+        "range": 0,
+        "radius": 3,
+        "description": "1d2 fear, 1d2 stun, 1d2 root.",
+        "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Berserk",
+          "dices": "1d4+2",
+          "tags": [
+            "magic",
+            "buff"
+          ]
+        },
+        "target": "aoe",
+        "range": 0,
+        "radius": 3,
+        "description": "Gives +1d8 bonus damage for 2 turns.",
+        "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Taboo",
+          "tags": [
+            "magic",
+            "buff"
+          ]
+        },
+        "target": "self",
+        "range": 0,
+        "description": "Loses half current HP but instantly triggers the Sacrifice Mark.",
+        "spellCost": 1
+      }
+    ]
+  },
+  {
+    "nom": "Vampire Sienna",
+    "hp": 111,
+    "spellSlot": 11,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [],
+    "baseAtk": {
+      "nom": "Blade Mode",
+      "dices": "1d6+4",
+      "tags": [
+        "physical",
+        "bleed"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Fly",
+        "dices": "18",
+        "tags": [
+          "buff",
+          "fly"
+        ],
+        "applyOn": [
+          "speed"
+        ]
+      },
+      {
+        "nom": "Apex Predator",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [],
+        "description": "At the start of the battle, marks a random enemy: x2 damage against it, advantage on all defense throws against it. When it dies, restore 100% HP and spell slots."
+      },
+      {
+        "nom": "Magical Race",
+        "tags": [
+          "buff",
+          "adv"
+        ],
+        "applyOn": [
+          "magicRoll"
+        ],
+        "description": "Advantage on all magic spells."
+      },
+      {
+        "nom": "Precise Shot",
+        "dices": "+1d4+2",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ],
+        "condition": {
+          "weaponType": "ranged"
+        }
+      },
+      {
+        "nom": "Blood Magic",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [],
+        "description": "Every hit drains 50%. Overheal becomes a blood shield. Regenerates 10 HP per turn."
+      },
+      {
+        "nom": "Basic Training",
+        "dices": "+1",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ]
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Hypnosis",
+          "tags": [
+            "magic",
+            "psy",
+            "controled"
+          ]
+        },
+        "target": "mono",
+        "range": 8,
+        "description": "Submits the target to her will.",
+        "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Blood Drain",
+          "dices": "2d10+5",
+          "tags": [
+            "magic",
+            "necro",
+            "heal"
+          ]
+        },
+        "target": "aoe",
+        "range": 6,
+        "radius": 3,
+        "description": "Drains 100%.",
+        "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Blood Torpedo",
+          "dices": "2d12+10",
+          "tags": [
+            "magic",
+            "necro",
+            "guardbreak"
+          ]
+        },
+        "target": "mono",
+        "range": 12,
+        "spellCost": 1
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Range Mode",
+          "dices": "1d10+8",
+          "tags": [
+            "physical",
+            "ranged",
+            "burn"
+          ]
+        },
+        "target": "mono",
+        "range": 12,
+        "effect": "1d2 burn",
+        "description": "Mono hit plus 1d10 aoe.",
+        "cooldown": 1
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Rodent Mode",
+          "dices": "1d12+4",
+          "tags": [
+            "physical",
+            "burn"
+          ]
+        },
+        "target": "cone",
+        "range": 4,
+        "effect": "1d2 burn",
+        "cooldown": 1
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Bite",
+          "dices": "2d12",
+          "tags": [
+            "physical",
+            "necro",
+            "heal"
+          ]
+        },
+        "target": "mono",
+        "range": 2,
+        "description": "Drains 2d12 HP, 1d4 spell slots and 2d4 ki, healing 100%.",
+        "cooldown": 0
+      }
+    ]
+  },
+  {
+    "nom": "Sword Master",
+    "hp": 120,
+    "spellSlot": 0,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [
+      "magic"
+    ],
+    "baseAtk": {
+      "nom": "Blade",
+      "dices": "1d8+4",
+      "tags": [
+        "physical",
+        "sword"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Anti-Magic",
+        "dices": "-20",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "incomingDam"
+        ],
+        "condition": {
+          "incomingHasTag": "magic"
+        }
+      },
+      {
+        "nom": "Undead Army",
+        "dices": "20",
+        "tags": [
+          "regen",
+          "buff"
+        ],
+        "applyOn": [
+          "hpPerTurn"
+        ]
+      },
+      {
+        "nom": "Avatar of War",
+        "dices": "+3",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ],
+        "description": "+3 to all weapon rolls, +1d6 damage, cannot be disarmed."
+      },
+      {
+        "nom": "Avatar of War (Damage)",
+        "dices": "+1d6",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ]
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Anti-Magic Slash",
+          "dices": "2d8+2",
+          "tags": [
+            "physical",
+            "antiMagic",
+            "passives_off"
+          ]
+        },
+        "target": "cone",
+        "range": 4,
+        "description": "Seals magic for 1 turn.",
+        "cooldown": 3
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Thousand Cuts",
+          "dices": "8d4",
+          "tags": [
+            "physical",
+            "bleed"
+          ]
+        },
+        "target": "mono",
+        "range": 3,
+        "effect": "1d2 bleed",
+        "cooldown": 2
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Sionshu",
+          "tags": [
+            "block",
+            "react"
+          ]
+        },
+        "target": "self",
+        "range": 0,
+        "cooldown": 1
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Farant Newmoon",
+          "dices": "4d6+8",
+          "tags": [
+            "physical"
+          ]
+        },
+        "target": "aoe",
+        "range": 3,
+        "radius": 3,
+        "cooldown": 2
+      }
+    ]
+  },
+  {
+    "nom": "Sorcerer Master",
+    "companion": "Floating Head",
+    "hp": 120,
+    "spellSlot": 8,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [
+      "magic"
+    ],
+    "baseAtk": {
+      "nom": "Staff",
+      "dices": "1d8+4",
+      "tags": [
+        "physical"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Anti-Magic",
+        "dices": "-20",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "incomingDam"
+        ],
+        "condition": {
+          "incomingHasTag": "magic"
+        }
+      },
+      {
+        "nom": "Undead Army",
+        "dices": "15",
+        "tags": [
+          "regen",
+          "buff"
+        ],
+        "applyOn": [
+          "hpPerTurn"
+        ]
+      },
+      {
+        "nom": "Runik Mage",
+        "dices": "+1d12",
+        "tags": [
+          "runik",
+          "buff"
+        ],
+        "applyOn": [
+          "magicRoll"
+        ]
+      },
+      {
+        "nom": "Floating Head",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [],
+        "description": "A flying head is bound to him: it enters the fight beside him, acts right after him, and falls with him (see Floating Head)."
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Anti-Magic Ray",
+          "dices": "2d8+2",
+          "tags": [
+            "magic",
+            "antiMagic",
+            "passives_off"
+          ]
+        },
+        "target": "cone",
+        "range": 6,
+        "description": "Seals magic for 1 turn.",
+        "cooldown": 4
+      },
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Fly",
+          "tags": [
+            "magic",
+            "dodge",
+            "react",
+            "fly"
+          ]
+        },
+        "target": "self",
+        "range": 0,
+        "description": "Instant dodge.",
+        "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Fireball",
+          "dices": "1d12+6",
+          "tags": [
+            "magic",
+            "fire"
+          ]
+        },
+        "target": "aoe",
+        "range": 10,
+        "radius": 3,
+        "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Arcane Missile",
+          "dices": "1d12+1d8+5",
+          "tags": [
+            "magic",
+            "adv"
+          ]
+        },
+        "target": "mono",
+        "range": 15,
+        "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Fire Pit",
+          "dices": "1d10",
+          "tags": [
+            "magic",
+            "fire",
+            "root"
+          ]
+        },
+        "target": "mono",
+        "range": 8,
+        "effect": "1d2 burn",
+        "description": "1d2 burn, 1d2 root.",
+        "spellCost": 1
+      }
+    ]
+  },
+  {
+    "nom": "Floating Head",
+    "hp": 50,
+    "spellSlot": 8,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [],
+    "baseAtk": {
+      "nom": "Laser Eyes",
+      "dices": "1d8",
+      "tags": [
+        "magic",
+        "fire"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Fly",
+        "dices": "18",
+        "tags": [
+          "buff",
+          "fly"
+        ],
+        "applyOn": [
+          "speed"
+        ]
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Laser Eyes",
+          "dices": "1d8",
+          "tags": [
+            "magic",
+            "fire",
+            "para"
+          ]
+        },
+        "target": "mono",
+        "range": 10,
+        "effect": "1d2 burn",
+        "description": "1d2 burn, 1d2 para.",
+        "spellCost": 1
+      }
+    ],
+    "tags": [
+      "summon"
+    ]
+  },
+  {
+    "nom": "Anti-magic Goul Egypte",
+    "hp": 70,
+    "spellSlot": 0,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [],
+    "baseAtk": {
+      "nom": "Claws",
+      "dices": "1d6+2",
+      "tags": [
+        "physical",
+        "bleed"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Magic Resist",
+        "dices": "-10",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "incomingDam"
+        ],
+        "condition": {
+          "incomingHasTag": "magic"
+        }
+      },
+      {
+        "nom": "Undead Army",
+        "dices": "10",
+        "tags": [
+          "regen",
+          "buff"
+        ],
+        "applyOn": [
+          "hpPerTurn"
+        ]
+      },
+      {
+        "nom": "Shield",
+        "dices": "+2",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "defRoll"
+        ]
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Calamity",
+          "dices": "1d12+1d4",
+          "tags": [
+            "magic",
+            "necro",
+            "toxic"
+          ]
+        },
+        "target": "mono",
+        "range": 6,
+        "description": "Drains HP and spell slots.",
+        "cooldown": 1
+      }
+    ]
+  },
+  {
+    "nom": "Anti-magic Goul Nordic",
+    "hp": 70,
+    "spellSlot": 0,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [],
+    "baseAtk": {
+      "nom": "Weapon",
+      "dices": "1d8+2",
+      "tags": [
+        "physical"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Magic Resist",
+        "dices": "-10",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "incomingDam"
+        ],
+        "condition": {
+          "incomingHasTag": "magic"
+        }
+      },
+      {
+        "nom": "Undead Army",
+        "dices": "10",
+        "tags": [
+          "regen",
+          "buff"
+        ],
+        "applyOn": [
+          "hpPerTurn"
+        ]
+      },
+      {
+        "nom": "Shield",
+        "dices": "+2",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "defRoll"
+        ]
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Thunder Storm",
+          "dices": "1d20+1d8+4",
+          "tags": [
+            "magic",
+            "lightning"
+          ]
+        },
+        "target": "aoe",
+        "range": 8,
+        "radius": 3,
+        "cooldown": 1
+      }
+    ]
+  },
+  {
+    "nom": "Amalgame",
+    "hp": 70,
+    "spellSlot": 0,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [],
+    "baseAtk": {
+      "nom": "Weapon",
+      "dices": "1d8+2",
+      "tags": [
+        "physical"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Magic Resist",
+        "dices": "-10",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "incomingDam"
+        ],
+        "condition": {
+          "incomingHasTag": "magic"
+        }
+      },
+      {
+        "nom": "Undead Army",
+        "dices": "10",
+        "tags": [
+          "regen",
+          "buff"
+        ],
+        "applyOn": [
+          "hpPerTurn"
+        ]
+      },
+      {
+        "nom": "Slime",
+        "dices": "-10",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "incomingDam"
+        ],
+        "condition": {
+          "incomingHasTag": "physical"
+        }
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Spike Cone",
+          "dices": "8d4+2",
+          "tags": [
+            "physical"
+          ]
+        },
+        "target": "cone",
+        "range": 4,
+        "cooldown": 2
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Whip",
+          "dices": "1d12+2",
+          "tags": [
+            "physical",
+            "bleed"
+          ]
+        },
+        "target": "mono",
+        "range": 4,
+        "effect": "1d2 bleed",
+        "cooldown": 2
+      }
+    ]
+  },
+  {
+    "nom": "Nokt",
+    "hp": 90,
+    "spellSlot": 4,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [],
+    "baseAtk": {
+      "nom": "Anchor Swipe",
+      "dices": "1d10+10",
+      "tags": [
+        "physical"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Unstoppable Force",
+        "dices": "+1d4+2",
+        "tags": [
+          "buff",
+          "immovable"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ],
+        "description": "Immune to knockback and immobilisation."
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Shatter Spin",
+          "dices": "1d12",
+          "tags": [
+            "physical"
+          ]
+        },
+        "target": "bounce",
+        "range": 2,
+        "maxBounce": 5,
+        "cooldown": 2
+      },
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Impact Tremor",
+          "dices": "1d12+6",
+          "tags": [
+            "magic",
+            "earth",
+            "stun"
+          ]
+        },
+        "target": "aoe",
+        "range": 0,
+        "radius": 3,
+        "effect": "1d2 stun",
+        "spellCost": 1
+      }
+    ]
+  },
+  {
+    "nom": "Rox",
+    "hp": 80,
+    "spellSlot": 10,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [],
+    "baseAtk": {
+      "nom": "Claw",
+      "dices": "2d4",
+      "tags": [
+        "physical",
+        "fear"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Aura of Terror",
+        "dices": "-3",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ],
+        "description": "-3 to all attack rolls of enemies around her."
+      },
+      {
+        "nom": "Theroxian Mastery",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [],
+        "description": "Her debuffs cannot be removed."
+      },
+      {
+        "nom": "Psychic Link",
+        "dices": "+2",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "allRolls"
+        ],
+        "target": "allies",
+        "radius": 8,
+        "description": "+2 to all friendly rolls."
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Containment Spell",
+          "dices": "40",
+          "tags": [
+            "magic",
+            "debuff",
+            "root"
+          ]
+        },
+        "target": "mono",
+        "range": 10,
+        "description": "Energy cage around a target with 40 HP; only destroyable from the outside.",
+        "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Immobilization Seal",
+          "tags": [
+            "magic",
+            "debuff",
+            "react"
+          ]
+        },
+        "target": "mono",
+        "range": 10,
+        "description": "React: stops a dash or blink.",
+        "spellCost": 1
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Shatter Spin",
+          "dices": "1d12",
+          "tags": [
+            "physical"
+          ]
+        },
+        "target": "bounce",
+        "range": 2,
+        "maxBounce": 5,
+        "cooldown": 2
+      }
+    ]
+  },
+  {
+    "nom": "Zarkt",
+    "hp": 80,
+    "spellSlot": 8,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [],
+    "baseAtk": {
+      "nom": "Curse Sword",
+      "dices": "1d8+2",
+      "tags": [
+        "physical",
+        "sword"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Tides of Misfortune",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [],
+        "description": "Once per turn, forces an enemy to reroll a die that succeeded."
+      },
+      {
+        "nom": "Curse Reflect",
+        "tags": [
+          "buff",
+          "reflect"
+        ],
+        "applyOn": [],
+        "description": "Sends any debuff that targets him back to its source."
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Entropy Field",
+          "tags": [
+            "magic",
+            "debuff",
+            "field"
+          ]
+        },
+        "target": "aoe",
+        "range": 8,
+        "radius": 4,
+        "description": "Field: for enemies, 2 and 3 become critical fails like 1.",
+        "spellCost": 1
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Shatter Spin",
+          "dices": "1d12",
+          "tags": [
+            "physical"
+          ]
+        },
+        "target": "bounce",
+        "range": 2,
+        "maxBounce": 5,
+        "cooldown": 2
+      }
+    ]
+  },
+  {
+    "nom": "Drix",
+    "hp": 80,
+    "spellSlot": 0,
+    "ki": 8,
+    "kiRegen": 2,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [],
+    "baseAtk": {
+      "nom": "Stingers",
+      "dices": "2d6",
+      "tags": [
+        "physical",
+        "poison"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Chitin Armor",
+        "dices": "-20",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "incomingDam"
+        ],
+        "condition": {
+          "incomingHasTag": "physical"
+        },
+        "description": "-20 physical damage, +10 area damage, +10 fire/lightning damage."
+      },
+      {
+        "nom": "Hive Mind",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [],
+        "description": "+x to each roll for each ally; Drix counts as one; poison can stack."
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "Art",
+        "base": {
+          "nom": "Swarm Dash",
+          "dices": "5d4",
+          "tags": [
+            "physical",
+            "poison",
+            "dash",
+            "react"
+          ]
+        },
+        "target": "aoe",
+        "range": 6,
+        "radius": 2,
+        "effect": "1d2 poison",
+        "kiCost": 3
+      },
+      {
+        "category": "Art",
+        "base": {
+          "nom": "Nesting Strike",
+          "dices": "10d2",
+          "tags": [
+            "physical",
+            "poison"
+          ]
+        },
+        "target": "mono",
+        "range": 3,
+        "effect": "1d2 poison",
+        "description": "10d2 damage, 10×1d2 poison, 1d2 para.",
+        "kiCost": 3
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Shatter Spin",
+          "dices": "1d12",
+          "tags": [
+            "physical"
+          ]
+        },
+        "target": "bounce",
+        "range": 2,
+        "maxBounce": 5,
+        "cooldown": 2
+      }
+    ]
+  },
+  {
+    "nom": "Kur",
+    "hp": 70,
+    "spellSlot": 7,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [],
+    "baseAtk": {
+      "nom": "Sword",
+      "dices": "1d8+2",
+      "tags": [
+        "physical",
+        "sword"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Life Siphon",
+        "dices": "1d6+4",
+        "tags": [
+          "regen",
+          "buff"
+        ],
+        "applyOn": [
+          "hpPerHit"
+        ],
+        "description": "On touch, drains 1d6+4 HP."
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Decay Wave",
+          "dices": "1d10",
+          "tags": [
+            "magic",
+            "necro"
+          ]
+        },
+        "target": "cone",
+        "range": 5,
+        "description": "1d10 necrotic, +1d10+5 vs energy/life/plant.",
+        "spellCost": 1
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Bandage Coil",
+          "dices": "1d10+5",
+          "tags": [
+            "necro",
+            "root",
+            "heal"
+          ]
+        },
+        "target": "mono",
+        "range": 6,
+        "description": "Roots the target to himself, draining.",
+        "cooldown": 1
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Shatter Spin",
+          "dices": "1d12",
+          "tags": [
+            "physical"
+          ]
+        },
+        "target": "bounce",
+        "range": 2,
+        "maxBounce": 5,
+        "cooldown": 2
+      }
+    ]
+  },
+  {
+    "nom": "Simo",
+    "hp": 60,
+    "spellSlot": 0,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [],
+    "baseAtk": {
+      "nom": "Long Range Plasma Rifle",
+      "dices": "1d4+8",
+      "tags": [
+        "physical",
+        "ranged"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "Ranger",
+        "dices": "+3",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "utilityRoll"
+        ],
+        "description": "+3 lockpicking/perception/defuse/set trap."
+      },
+      {
+        "nom": "Sharp-Eyed",
+        "dices": "+2",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "percepRoll"
+        ]
+      },
+      {
+        "nom": "Basic Training",
+        "dices": "+1",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ]
+      },
+      {
+        "nom": "Precise Shot",
+        "dices": "+1d4+2",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ],
+        "condition": {
+          "weaponType": "ranged"
+        }
+      },
+      {
+        "nom": "Battle Medic",
+        "dices": "+3",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "healRoll"
+        ],
+        "description": "+3 healing roll; can heal as a bonus action."
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "technique",
+        "base": {
+          "nom": "First Aid Kit",
+          "dices": "1d6+1",
+          "tags": [
+            "heal"
+          ]
+        },
+        "target": "mono",
+        "range": 2,
+        "cooldown": 0
+      }
+    ]
+  },
+  {
+    "nom": "Atila",
+    "hp": 65,
+    "spellSlot": 0,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [],
+    "baseAtk": {
+      "nom": "Weapon",
+      "dices": "1d8+2",
+      "tags": [
+        "physical"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "War Banner Carrier",
+        "dices": "+2",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "allRolls"
+        ],
+        "target": "allies",
+        "radius": 10,
+        "description": "+2 to all ally rolls within 10m."
+      },
+      {
+        "nom": "Blood Tracker",
+        "dices": "+1d6",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ],
+        "condition": {
+          "targetHasTag": "wounded"
+        },
+        "description": "+3 perception; +1d6 damage vs wounded targets."
+      },
+      {
+        "nom": "Beast Intimidator",
+        "dices": "+2",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "intimidateRoll"
+        ]
+      },
+      {
+        "nom": "Asia Style",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [],
+        "description": "Inflicts bleed 1d4 on hit; can convert bleed to hemorrhage 2d4."
+      },
+      {
+        "nom": "Cook",
+        "dices": "+1",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "utilityRoll"
+        ]
+      }
+    ],
+    "moveSet": []
+  },
+  {
+    "nom": "Sienna",
+    "hp": 60,
+    "spellSlot": 0,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [],
+    "baseAtk": {
+      "nom": "Blade Mode",
+      "dices": "1d6+4",
+      "tags": [
+        "physical"
+      ]
+    },
+    "passif": [
+      {
+        "nom": "SteamGun",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [],
+        "description": "A normal attack after a technique applies burn. Using two techniques in a row halves damage."
+      },
+      {
+        "nom": "Huntress",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [],
+        "description": "At the start of the battle marks a random enemy: x2 damage against it, advantage on all defense throws against it."
+      },
+      {
+        "nom": "Precise Shot",
+        "dices": "+1d4+2",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ],
+        "condition": {
+          "weaponType": "ranged"
+        }
+      },
+      {
+        "nom": "Battle Medic",
+        "dices": "+3",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "healRoll"
+        ]
+      },
+      {
+        "nom": "Basic Training",
+        "dices": "+1",
+        "tags": [
+          "buff"
+        ],
+        "applyOn": [
+          "atkRoll"
+        ]
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Healing Potion",
+          "dices": "1d10+2",
+          "tags": [
+            "heal"
+          ]
+        },
+        "target": "mono",
+        "range": 4,
+        "cooldown": 0
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Range Mode",
+          "dices": "1d10+8",
+          "tags": [
+            "physical",
+            "ranged"
+          ]
+        },
+        "target": "mono",
+        "range": 12,
+        "description": "Mono hit plus 1d10 aoe.",
+        "cooldown": 1
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Rodent Mode",
+          "dices": "1d12+4",
+          "tags": [
+            "physical",
+            "burn"
+          ]
+        },
+        "target": "cone",
+        "range": 4,
+        "effect": "1d2 burn",
+        "cooldown": 1
+      }
+    ]
   }
 ]

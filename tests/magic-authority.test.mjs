@@ -119,6 +119,7 @@ test('an Authority 8 relic pierces Anti-Magic: Hela\'s Balmung hurts Hela in ful
   place(b, spot.x + 1, spot.y);
   const balmung = ability(a, 'Balmung (Sealed)');
   assert.equal(balmung.authority, 8);
+  balmung.authority = 9;   // Anti-Magic now holds up to Authority 8: the relic needs 9 to pierce it
   toTurn(a.name);
   const act = L.activeCombatant();
   const foe = S.combatants.find(c => c.teamIndex !== act.teamIndex);

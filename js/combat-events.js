@@ -5,7 +5,7 @@
 import {
   S,
   activeCombatant, livingCombatants, enemies, targetPool,
-  hasValidTarget, drawMap,
+  hasValidTarget, drawMap, repeatsAction,
   handlePass, handleAttack, handleCastAbility, handleOpenDoor, handleAttackDoor,
   handleTransform, handleActivateDomain,
   handleReactYes, handleReactNo, handleFreeAction,
@@ -161,7 +161,7 @@ export function bindCombatEvents() {
     if (!ab || !btn) return;
     const isImmediate = ab.targetKind === 'self' && !ab.tags?.includes('teleportation');
     btn.textContent = abilityFireLabel(ab);
-    btn.disabled = !hasValidTarget(active, ab) || (S.hasActed && !ab.isInstant);
+    btn.disabled = !hasValidTarget(active, ab) || (S.hasActed && !ab.isInstant) || (!ab.isInstant && repeatsAction(active, ab.name));
 
     // Update no-map fallback dropdown
     const nomapSel = document.getElementById('ability-target-nomap');

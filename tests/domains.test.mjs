@@ -50,3 +50,26 @@ test('an enemy domain does not count as an ally domain', () => {
   expand(susano);
   assert.equal(L.activeAllyDomain(hela), null);
 });
+
+// ── No slot cost; one charge, two for Hela and Chronos ─────────────────────
+
+test('a domain costs no spell slot; each sheet has one charge, Hela and Chronos two', async () => {
+  const { readFileSync } = await import('node:fs');
+  const roster = JSON.parse(readFileSync(new URL('../js/characters.json', import.meta.url), 'utf8'));
+  const owners = roster.filter(c => c.domain);
+  assert.ok(owners.length >= 5);
+  for (const c of owners) {
+    assert.equal(c.domain.spellCost, undefined, `${c.nom} pays no slots`);
+    assert.equal(L.domainChargesOf(c.domain), /^(Hela|Chronos)/.test(c.nom) ? 2 : 1, c.nom);
+  }
+});
+
+test('expanding a domain spends a charge and no slot, even with no slot left', () => {
+  const { susano } = setup();
+  susano.spellSlots = 0;
+  assert.equal(susano.domainCharges, 1);
+  expand(susano);
+  assert.equal(susano.domainActive, true);
+  assert.equal(susano.domainCharges, 0);
+  assert.equal(susano.spellSlots, 0);
+});

@@ -3,7 +3,7 @@
 import {
   S, activeCombatant, bfsReachable, isOccupied, abilityAvailable, hasValidTarget, targetInRange,
   aoeCenterValid, aoeCombatantHits, blastReaches, coneCells, enemies, tauntSource, targetPool,
-  allies, trappingDomainOwner, SPELL_RANGE, moveSpeed,
+  allies, trappingDomainOwner, SPELL_RANGE, moveSpeed, isSummonUnit, chebyshev, hasControlEffect, repeatsAction, healsTarget,
 } from '../combat-logic.js';
 import { foeDistance } from './paths.js';
 
@@ -23,7 +23,7 @@ export function avgDice(expr) {
 }
 
 // Instant abilities are skipped: they leave the turn open, so a loop asking the policy again could chain them
-const usable = (c, ab) => abilityAvailable(c, ab) && !ab.reactOnly && !ab.isReact && !ab.isBlock
+const usable = (c, ab) => abilityAvailable(c, ab) && !repeatsAction(c, ab.name) && !ab.reactOnly && !ab.isReact && !ab.isBlock
   && !ab.isGate && !ab.isTransform && !ab.isRevive && !ab.isInstant && !ab.tags?.includes('teleportation');
 
 // Cone cells depend only on the caster's cell, the aim, the range and the terrain: kept per map, the table
@@ -99,8 +99,8 @@ function healCast(c) {
     .sort((a, b) => a.currentHp / a.maxHp - b.currentHp / b.maxHp);
   for (const ab of c.abilities) {
     if (!usable(c, ab) || !ab.isHeal || !hasValidTarget(c, ab)) continue;
-    const patient = ab.targetKind === 'self' ? hurt.find(a => a.id === c.id)
-      : hurt.find(a => a.id === c.id || targetInRange(c, a, ab).inRange);
+    const patient = ab.targetKind === 'self' ? hurt.find(a => a.id === c.id && healsTarget(ab, a))
+      : hurt.find(a => healsTarget(ab, a) && (a.id === c.id || targetInRange(c, a, ab).inRange));
     if (patient) return { type: 'cast', ability: ab.name, targetIds: [patient.id] };
   }
   return null;
@@ -110,12 +110,31 @@ function healCast(c) {
 function offence(c) {
   const cast = bestCast(c);
   if (cast) return cast.action;
+  if (repeatsAction(c, 'attack')) return null;   // a divinity's second action must differ from its first
   const foe = targetPool(c).filter(t => targetInRange(c, t, null).inRange).sort((a, b) => a.currentHp - b.currentHp)[0];
   return foe ? { type: 'attack', targetId: foe.id } : null;
 }
 
+// Call summons while few stand (at most SUMMON_CAP of a kind), burst them once a foe is within reach of one
+const SUMMON_CAP = 3;
+function summonCast(c) {
+  const owned = S.combatants.filter(u => u.ownerId === c.id && !u.isKO);
+  for (const ab of c.abilities) {
+    if (!usable(c, ab)) continue;
+    if (ab.tags?.includes('chain_grab')) {   // grab the healthiest foe in reach that is not already held down
+      const foe = targetPool(c).filter(t => !hasControlEffect(t) && targetInRange(c, t, ab).inRange).sort((a, b) => b.currentHp - a.currentHp)[0];
+      if (foe) return { type: 'cast', ability: ab.name, targetIds: [foe.id] };
+    }
+    if (ab.summon && owned.filter(u => u.name === ab.summon.unit).length < SUMMON_CAP) return { type: 'cast', ability: ab.name, targetIds: [c.id] };
+    if (ab.isDetonate && owned.some(u => enemies(c).some(f => !S.currentMap || chebyshev(u, f) <= (ab.radius || 1)))) {
+      return { type: 'cast', ability: ab.name, targetIds: [c.id] };
+    }
+  }
+  return null;
+}
+
 // What c does with its action from where it stands, or null when nothing is legal
-const chooseAction = c => healCast(c) ?? offence(c);
+const chooseAction = c => healCast(c) ?? summonCast(c) ?? offence(c);
 
 // The free reachable cell that most shortens the walk to a foe, or null when none does
 function approachCell(c, foes) {
@@ -134,12 +153,14 @@ export function greedyTurn(c) {
   try {
     // Already within reach of a foe: hold position and act (chooseAction, without computing offence twice)
     const strike = offence(c);
-    if (strike) return { move: null, action: healCast(c) ?? strike };
+    if (strike) return { move: null, action: healCast(c) ?? summonCast(c) ?? strike };
     const foes = targetPool(c);
     const rooted = c.statusEffects.some(e => e.name.toLowerCase() === 'root');
-    const move = foes.length && !rooted && moveSpeed(c) > 0 ? approachCell(c, foes) : null;
+    // A divinity's second action comes after its move: it can only act where it stands
+    const moved = c === activeCombatant() && S.hasMoved;
+    const move = foes.length && !rooted && !moved && moveSpeed(c) > 0 ? approachCell(c, foes) : null;
     // Cannot get closer to any foe (stalled): a heal is still worth casting, else pass
-    if (!move) return { move: null, action: healCast(c) ?? { type: 'pass' } };
+    if (!move) return { move: null, action: healCast(c) ?? summonCast(c) ?? { type: 'pass' } };
     // Judge the action from the cell the unit is about to stand on
     const from = { x: c.x, y: c.y };
     c.x = move.x; c.y = move.y;

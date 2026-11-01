@@ -85,7 +85,7 @@ if (o.apply) {
 // ── the run ────────────────────────────────────────────────────────────────
 
 await mkdir(o.dir, { recursive: true });
-const names = JSON.parse(await readFile(new URL('js/characters.json', ROOT), 'utf8')).map(c => c.nom);
+const names = JSON.parse(await readFile(new URL('js/characters.json', ROOT), 'utf8')).filter(c => !c.tags?.includes('summon')).map(c => c.nom);
 const maps = JSON.parse(await readFile(new URL('maps/manifest.json', ROOT), 'utf8'));
 const startWeights = Object.fromEntries(TUNABLE.map(k => [k, WEIGHTS[k]]));
 

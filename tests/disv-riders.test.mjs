@@ -54,7 +54,7 @@ async function castOnRas(caster, move, seed = 1) {
 // ── Moves that leave their targets at disadvantage for a turn ──────────────
 
 for (const [who, move] of [
-  ['Vorrakan Duskbane', 'Earthquake'], ['Cole Climber', 'Quake Wave'], ['Morrow', 'Wind Tornado'],
+  ['Vorrakan Duskbane', 'Earthquake'], ['Cole Climber', 'Quake Wave'],
   ['MaracachaCoocaracha', 'Vicious Mockery'], ['Jay, Azure Dragon', 'Azure Dragon Roar'],
 ]) {
   test(`${move} leaves its target rolling with disadvantage`, async () => {
@@ -64,8 +64,8 @@ for (const [who, move] of [
 }
 
 test('a hindered unit rolls its attack and its defense twice and keeps the worse', async () => {
-  const { ras } = await castOnRas('Morrow', 'Wind Tornado');
-  const me = byName('Morrow');
+  const { ras } = await castOnRas('Cole Climber', 'Quake Wave');
+  const me = byName('Cole Climber');
   forceD20(15, 4, 12);   // Ras attacks: 15 & 4 kept 4; Morrow defends: 12
   const r = L.resolveAttack(ras, me, '1d6');
   assert.equal(r.atkRoll, 4);
@@ -76,7 +76,7 @@ test('a hindered unit rolls its attack and its defense twice and keeps the worse
 });
 
 test('the disadvantage lasts one of the target\'s turns and no longer', async () => {
-  const { ras } = await castOnRas('Morrow', 'Wind Tornado');
+  const { ras } = await castOnRas('Cole Climber', 'Quake Wave');
   toTurn('Ras');
   assert.ok(has(ras, 'hindered'), 'still on during its turn');
   L.handlePass();
@@ -85,10 +85,10 @@ test('the disadvantage lasts one of the target\'s turns and no longer', async ()
 });
 
 test('a second cast refreshes the disadvantage instead of stacking it', async () => {
-  const { me, ras } = await castOnRas('Morrow', 'Wind Tornado');
-  toTurn('Morrow');
+  const { me, ras } = await castOnRas('Cole Climber', 'Quake Wave');
+  toTurn('Cole Climber');
   me.statusEffects.push({ name: 'sure_hit', turnsLeft: 2, dice: null, damType: null, notes: '' });
-  L.handleCastAbility(me.id, 'Wind Tornado', [ras.id]);
+  L.handleCastAbility(me.id, 'Quake Wave', [ras.id]);
   if (S.awaitingReact) settleReacts(() => null);
   assert.equal(ras.statusEffects.filter(e => e.name === 'hindered').length, 1);
 });

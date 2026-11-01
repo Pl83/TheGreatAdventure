@@ -60,7 +60,9 @@ export const S = {
   winnerTeam: null,
   aiTeam: null,         // team the bot plays (0 | 1), or null for two human players
   turnSerial: 0,        // bumped on every turn change; stale timers compare against it
-  hasActed:    false,   // active combatant used their action this turn
+  hasActed:    false,   // active combatant has no action left this turn
+  actionsDone: [],      // labels of the actions spent this turn ('attack', an ability's name, 'transform', 'domain', 'door')
+  bonusActions: 0,      // extra actions earned this turn (Borrowed Time)
   // ── Map system ──────────────────────────────────────────────────────────
   currentMap:     null,
   mapChoice:      null,   // manifest slug or 'random', picked on the map-choice screen
@@ -191,7 +193,9 @@ const STATUS_TURNS = { wet: 3, para: 4 };   // para: three of its owner's turns
 // A status and the tag it is applied from are interchangeable for immunity checks
 const STATUS_ALIASES = { gel: 'freeze', freeze: 'gel' };
 // Self/ally buffs are never blocked by a "status" immunity
-const BENEFICIAL_STATUSES = ['regen', 'regeneration', 'domain regen', 'water_shield', 'fly'];
+const BENEFICIAL_STATUSES = ['regen', 'regeneration', 'domain regen', 'water_shield', 'fly', 'invisible'];
+// What Dispel Magic strips from its target
+const DISPELLABLE = [...BENEFICIAL_STATUSES, 'ward', 'damage_shield', 'advantage', 'sure_hit', 'orders', 'living_blade_armor', 'runik_precast'];
 // Physical/elemental damage types. Delivery tags such as "magic" and "runik" are not types.
 const DAMAGE_TYPES = ['physical','fire','ice','lightning','earth','water','necro','psy','radiant','wind','holy','dark','poison'];
 
@@ -239,6 +243,11 @@ export function resolveAbilitiesFromList(moveList) {
       maxBounce:     move.maxBounce ?? 0,
       bounceRange:   move.range ?? SPELL_RANGE,
       slotRegen:     move.slotRegen ?? 0,
+      ifPoisoned:    move.ifPoisoned ?? null,   // dice dealt instead of the status when the target is already poisoned (Spheras' breath, Astrid Nightmare's daggers)
+      groundChance:  move.groundChance ?? 1,   // the odds that a 'grounded' move brings a flier down
+      followUp:      move.followUp ?? null,   // dice of a second blow that lands on each target the move hit, at the start of the caster's next turn (GunRang)
+      excludeSelf:   move.excludeSelf ?? false,   // an area boon the caster does not share (Arcane Canal)
+      splashDice:    move.splashDice ?? null,   // a splash move's damage to the bystanders (otherwise half the main dice)
       bonusVs:       move.bonusVs ?? null,   // { vs: 'wet' | a unit tag, dice }: extra damage against such a target
       precastDice:   move.precastDice ?? null,
       field:         move.field ?? null,     // { turns, affects: 'foes'|'allies', effect, cleanse, heal }: leaves a lingering area that works on the units inside each round
@@ -254,7 +263,7 @@ export function resolveAbilitiesFromList(moveList) {
       // Reactions that do nothing when cast proactively
       reactOnly:  tags.includes('void') || tags.includes('reflect') || tags.includes('onDeath') || (tags.includes('dodge') && tags.includes('react')),
       // Attack-versus-defense roll with no damage dice (the effect applies when the defense fails)
-      isContest:  tags.some(t => ['disv_next', 'execute', 'puppet'].includes(t)),
+      isContest:  tags.some(t => ['disv_next', 'execute', 'puppet', 'chain_grab'].includes(t)),
       bypassAuthority: move.bypassAuthority ?? 0,
       authority:  move.authority ?? 0,   // a relic's own Authority, when higher than its wielder's
       isAoe:      move.target === 'aoe',
@@ -264,6 +273,8 @@ export function resolveAbilitiesFromList(moveList) {
       isRevive:   tags.includes('revive'),
       isTransform: move.category === 'transformation',
       duration:   move.duration ?? null,
+      summon:     move.summon ?? null,   // { unit, count }: calls `count` (dice or number) units of that sheet beside the caster
+      isDetonate: tags.includes('detonate'),   // bursts every living unit the caster owns, on its own spot
     });
   }
   return list;
@@ -274,6 +285,9 @@ export function resolveAbilities(char) {
 }
 
 // ── §5  Factory ────────────────────────────────────────────────────────────
+
+/** Times a domain can be expanded in one fight: 1, or the `charges` its sheet gives (Hela and Chronos: 2). No spell slot is paid. */
+export const domainChargesOf = domain => Math.max(1, domain?.charges ?? 1);
 
 export function buildCombatant(char, teamIndex, id) {
   const maxKi = char.ki ?? 0;
@@ -306,14 +320,247 @@ export function buildCombatant(char, teamIndex, id) {
     isTransformed:    false,
     transformedBaseAtk: null,
     domainActive:     false,
-    domainCharges:    char.domain ? Math.max(1, Math.floor((char.domain.rafinement ?? 0) / 3)) : 0,
+    domainCharges:    char.domain ? domainChargesOf(char.domain) : 0,
     shadowCounterBonus: 0,
     deathSaves: {},   // lives spent by passives like Nine Lives: passive name -> times used
     attacked: false,   // has made its first attack roll of the fight (Death Presence)
     stacks: {},   // stacking passives (Relentless Warrior): passive name -> stacks gained this fight
+    chains: chainsFor(char),   // Vorrakan's Left and Right Chain: [{ name, hp, maxHp, holdingId, freed }] (they are not units)
+    ownerId: null,   // a summon or companion: id of the unit that called it (it acts right after, and falls with, that unit)
     x: 0,
     y: 0,
   };
+}
+
+// ── Vorrakan's chains ──
+// Two chains of 150 HP that are not units and take no turn. Free, they soak damage meant for Vorrakan (split evenly).
+// A chain that grabs a foe holds it stunned and rooted, drains it every turn, and no longer guards. The foe's allies
+// free it by dealing `free` damage to the chain through the prisoner; a chain at 0 HP lets go for good.
+
+function chainsFor(char) {
+  const spec = char.chains;
+  if (!spec) return null;
+  const names = ['Left Chain', 'Right Chain'];
+  return Array.from({ length: spec.count ?? 2 }, (_, i) => ({ name: names[i] ?? `Chain ${i + 1}`, hp: spec.hp, maxHp: spec.hp, holdingId: null, freed: 0 }));
+}
+const freeChains = v => (v.chains ?? []).filter(ch => ch.hp > 0 && ch.holdingId == null);
+function chainHolding(unit) {
+  for (const v of S.combatants) {
+    const ch = v.chains?.find(x => x.hp > 0 && x.holdingId === unit.id);
+    if (ch) return { owner: v, chain: ch };
+  }
+  return null;
+}
+
+function releasePrisoner(owner, ch, why) {
+  const prisoner = getCombatant(ch.holdingId);
+  ch.holdingId = null;
+  ch.freed = 0;
+  if (!prisoner) return;
+  prisoner.statusEffects = prisoner.statusEffects.filter(e => !(e.chainOf === owner.id && e.chainName === ch.name));
+  addLog(`⛓ ${prisoner.name} is free of ${ch.name}${why ? ` (${why})` : ''}.`, 'info');
+  updateCombatantCardDOM(prisoner);
+}
+
+function breakChain(owner, ch) {
+  ch.hp = 0;
+  addLog(`⛓💥 ${owner.name}'s ${ch.name} shatters!`, 'crit');
+  if (ch.holdingId != null) releasePrisoner(owner, ch, 'the chain is broken');
+  updateCombatantCardDOM(owner);
+}
+
+function releaseAllChains(owner) {
+  for (const ch of owner.chains ?? []) if (ch.holdingId != null) releasePrisoner(owner, ch, `${owner.name} has fallen`);
+}
+
+// A hit meant for Vorrakan: the free chains take it, evenly; what a chain cannot hold still reaches him
+function chainGuard(v, amount) {
+  const guards = freeChains(v);
+  if (!guards.length || amount <= 0) return amount;
+  let left = amount;
+  const per = Math.floor(amount / guards.length), extra = amount - per * guards.length;
+  guards.forEach((ch, i) => {
+    const take = Math.min(ch.hp, per + (i === 0 ? extra : 0));
+    ch.hp -= take;
+    left -= take;
+    addLog(`⛓ ${v.name}'s ${ch.name} takes ${take}. (${ch.hp}/${ch.maxHp})`, 'spell');
+    if (ch.hp <= 0) breakChain(v, ch);
+  });
+  updateCombatantCardDOM(v);
+  return left;
+}
+
+// The prisoner's allies hit the chain through it: the blow lands on the chain, and enough of them let go
+function chainTakesHit(prisoner, hold, amount) {
+  const { owner, chain } = hold;
+  const need = owner.sourceChar.chains.free ?? 50;
+  chain.hp -= amount;
+  chain.freed += amount;
+  addLog(`⛓ The blow lands on ${owner.name}'s ${chain.name} instead: ${amount}. (${Math.max(0, chain.hp)}/${chain.maxHp}; ${Math.min(chain.freed, need)}/${need} to free ${prisoner.name})`, 'hit');
+  if (chain.hp <= 0) breakChain(owner, chain);
+  else if (chain.freed >= need) releasePrisoner(owner, chain, `${need} damage dealt to the chain`);
+  updateCombatantCardDOM(owner);
+}
+
+// HP and spell slots drained from the prisoner, and given to Vorrakan
+function chainDrain(owner, prisoner) {
+  const spec = owner.sourceChar.chains;
+  const hp = parseDice(spec.drainHp ?? '10+1d10').total;
+  const dealt = applyDamage(prisoner, hp, null, ['drain'], true);
+  if (dealt > 0) applyHeal(owner, String(dealt), 'Chains of Apophis');
+  if (prisoner.isKO) return;
+  const slots = Math.min(prisoner.spellSlots, parseDice(spec.drainSlots ?? '1d4').total);
+  if (slots > 0) {
+    prisoner.spellSlots -= slots;
+    addLog(`⛓ ${prisoner.name} loses ${slots} spell slot${slots > 1 ? 's' : ''}. (${prisoner.spellSlots}/${prisoner.maxSpellSlots})`, 'status');
+    restoreSlots(owner, slots, 'Chains of Apophis');
+  }
+  updateCombatantCardDOM(prisoner);
+}
+
+// Chains of Apophis landed: a free chain wraps the target (stun and root until freed) and drains it at once
+function chainBind(owner, target) {
+  const ch = freeChains(owner)[0];
+  if (!ch) return;
+  // Authority, not the target's immunities, decides: only an Authority gate above the relic's holds (strikeAuthority)
+  const gate = authorityGate(target);
+  if (gate > 0 && !piercesGate(target) && (target.sourceChar.immunities ?? []).includes('status')) {
+    addLog(`🛡 ${target.name}'s Authority-${gate} immunity turns the chain aside!`, 'info');
+    return;
+  }
+  const mark = { chainOf: owner.id, chainName: ch.name };
+  for (const name of ['stun', 'root']) {
+    target.statusEffects = target.statusEffects.filter(e => e.name !== name);
+    target.statusEffects.push({ name, turnsLeft: 999, dice: null, damType: null, notes: '', ...mark });
+  }
+  ch.holdingId = target.id;
+  ch.freed = 0;
+  addLog(`⛓ ${owner.name}'s ${ch.name} wraps around ${target.name} — stunned and rooted until ${owner.sourceChar.chains.free ?? 50} damage is dealt to the chain!`, 'crit');
+  chainDrain(owner, target);
+}
+
+// Start of the prisoner's turn: the chain drains again (a dead master or a broken chain has already let go)
+function chainTick(prisoner) {
+  const hold = chainHolding(prisoner);
+  if (!hold) return;
+  if (hold.owner.isKO) { releasePrisoner(hold.owner, hold.chain, `${hold.owner.name} has fallen`); return; }
+  chainDrain(hold.owner, prisoner);
+}
+
+// ── Summons and companions ──
+
+/** A unit called by another one (Fire Spirit, Golem, Floating Head): it never counts toward victory. */
+export const isSummonUnit = c => c.ownerId != null;
+const ownedBy = owner => S.combatants.filter(c => c.ownerId === owner.id);
+
+const isPoisoned = c => c.statusEffects.some(e => ['poison', 'toxic'].includes(e.name.toLowerCase()));
+
+// A move that poisons, and hurts instead when the target is already poisoned. Returns true when it hurt (so no status follows).
+function poisonCombo(move, target, mult = 1) {
+  if (!move?.ifPoisoned || target.isKO || !isPoisoned(target)) return false;
+  const r = parseDice(move.ifPoisoned);
+  const dmg = Math.floor(r.total * mult);
+  addLog(`  ☠ ${target.name} is already poisoned — ${dmg} poison damage instead (${r.breakdown}).`, 'hit');
+  applyDamage(target, dmg, 'poison', ['poison']);
+  return true;
+}
+
+// Dream Hunter: every landed attack adds corruption to the target; at 100 it changes sides and becomes the hunter's summon
+const CORRUPTION_LIMIT = 100;
+function corruptTarget(hunter, target) {
+  const p = (hunter.sourceChar.passif ?? []).find(q => q.tags?.includes('corrupting') && !passiveLost(hunter, q));
+  if (!p || target.isKO || target.teamIndex === hunter.teamIndex) return;
+  const add = parseDice(p.dices).total;
+  let st = target.statusEffects.find(e => e.name === 'corruption');
+  if (!st) { st = { name: 'corruption', turnsLeft: 9999, dice: null, damType: null, notes: '', value: 0 }; target.statusEffects.push(st); }
+  st.value += add;
+  st.notes = `${st.value}/${CORRUPTION_LIMIT}`;
+  addLog(`  🕳 ${target.name} is corrupted by ${add}. (${st.value}/${CORRUPTION_LIMIT})`, 'status');
+  updateCombatantCardDOM(target);
+  if (st.value >= CORRUPTION_LIMIT) turnCorrupted(hunter, target);
+}
+
+// The corrupted unit is dead for its own side (its allies feel the loss) and fights on as a summon of the hunter
+function turnCorrupted(hunter, target) {
+  noteFallen(target);
+  if (target.domainActive) suppressDomain(target);
+  addLog(`🕳 ${target.name} is consumed by the corruption and joins ${hunter.name}!`, 'crit');
+  target.teamIndex = hunter.teamIndex;
+  target.ownerId   = hunter.id;
+  target.freeActionTarget = null;   // a free action it was owed against the hunter dies with its old allegiance
+  target.statusEffects = target.statusEffects.filter(e => e.name === 'corruption');
+  const order = S.initiativeOrder;
+  const from = order.indexOf(target.id);
+  if (from >= 0) order.splice(from, 1);
+  let at = order.indexOf(hunter.id) + 1;
+  while (at < order.length && getCombatant(order[at])?.ownerId === hunter.id) at++;
+  order.splice(at, 0, target.id);
+  updateCombatantCardDOM(target);
+}
+
+/**
+ * Bring a unit of sheet `unitName` into the fight for `owner`. It joins the owner's team, takes a free cell beside
+ * the owner (the first ring with room; none left on the map means it is lost) and slots into the initiative order
+ * right after the owner and the units the owner already called. Returns the new unit, or null.
+ */
+export function spawnSummon(owner, unitName, { place = true } = {}) {
+  const sheet = allChars.find(c => c.nom === unitName);
+  if (!sheet) return null;
+  const id = S.combatants.reduce((m, c) => Math.max(m, c.id), -1) + 1;
+  const unit = buildCombatant(sheet, owner.teamIndex, id);
+  unit.ownerId = owner.id;
+  unit.initiativeRoll = owner.initiativeRoll;
+  if (place && S.currentMap) {
+    const cell = freeCellNear(owner, owner, 4, id);
+    if (!cell) { addLog(`  No room beside ${owner.name} for ${unit.name}.`, 'info'); return null; }
+    unit.x = cell.x; unit.y = cell.y;
+  }
+  S.combatants.push(unit);
+  const order = S.initiativeOrder;
+  let at = order.indexOf(owner.id) + 1;
+  while (at < order.length && getCombatant(order[at])?.ownerId === owner.id) at++;
+  order.splice(at, 0, id);
+  return unit;
+}
+
+// The owner has fallen: what it called goes with it
+function dismissOwned(owner) {
+  for (const u of ownedBy(owner)) {
+    if (u.isKO) continue;
+    u.currentHp = 0;
+    u.isKO = true;
+    u.statusEffects = [];
+    addLog(`💨 ${u.name} fades with ${owner.name}.`, 'death');
+    updateCombatantCardDOM(u);
+  }
+}
+
+// Irina's Flaming Bird / Leonidas' Golem Creation
+function castSummon(caster, ability) {
+  const { unit, count } = ability.summon;
+  const n = Math.max(1, parseDice(String(count)).total);
+  let made = 0;
+  for (let i = 0; i < n; i++) if (spawnSummon(caster, unit)) made++;
+  addLog(`  ✦ ${made} ${unit}${made === 1 ? '' : 's'} join${made === 1 ? 's' : ''} ${caster.name}'s side — they act right after ${caster.name}.`, 'spell');
+}
+
+// Irina's Living Bomb: every Fire Spirit she owns bursts where it stands, and is spent
+function castDetonate(caster, ability) {
+  const bombs = ownedBy(caster).filter(u => !u.isKO && u.name === 'Fire Spirit');
+  const tags = ability.tags ?? [];
+  for (const b of bombs) {
+    addLog(`💥 ${b.name} bursts at (${b.x}, ${b.y})!`, 'crit');
+    for (const foe of enemies(caster)) {
+      if (foe.isKO || (S.currentMap && chebyshev(b, foe) > (ability.radius || 1))) continue;
+      const r = resolveAttack(caster, foe, ability.dice, ability);
+      logAttackResult(caster, foe, r);
+      if (r.hit) applyDamage(foe, r.damage, damTypeFromTags(tags), tags);
+    }
+    b.currentHp = 0;
+    b.isKO = true;
+    b.statusEffects = [];
+    updateCombatantCardDOM(b);
+  }
 }
 
 // ── §6  Lookups ────────────────────────────────────────────────────────────
@@ -392,6 +639,8 @@ export function abilityAvailable(c, ab) {
     if (domainNoCD.length === 0) return false;
   }
   if (ab.isOncePerFight && c.usedThisFight.includes(ab.name)) return false;
+  if ((ab.tags?.includes('chain_grab') || ab.tags?.includes('chain_guard')) && !freeChains(c).length) return false;   // no free chain, no grab and no guard
+  if (ab.isDetonate && !ownedBy(c).some(u => !u.isKO && u.name === 'Fire Spirit')) return false;   // nothing to burst
   if (ab.tags?.includes('sleeping') && c.statusEffects.some(e => e.name === 'relic_awake')) return false;
   if (ab.maxCharges > 0 && (c.remainingCharges[ab.name] ?? ab.maxCharges) <= 0) return false;
   if (ab.cost) {
@@ -404,6 +653,39 @@ export function abilityAvailable(c, ab) {
 
 export function hasSilence(c) {
   return c.statusEffects.some(e => e.name.toLowerCase() === 'silence');
+}
+
+// Divinity (sheet tag, or the tag of the form that is active): two actions a turn, and they must differ
+export const hasDivinity = c => !!c && unitHasTag(c, 'divinity');
+// Final Reckoning (Hela) adds a third action to a divinity's two
+export // The Great Staff (Kadgar): a second action, as long as every action of the turn is a spell
+const isSpellLabel = (c, label) => c.abilities.some(a => a.name === label && (a.source === 'spell' || a.source === 'technoSpell'));
+const twoSpells = c => !!c.sourceChar.passif?.some(p => p.tags?.includes('twoSpells') && !passiveLost(c, p));
+const spellOnlyNow = c => c === activeCombatant() && twoSpells(c) && !hasDivinity(c) && S.actionsDone.length > 0;
+export const actionBudget = c => {
+  let n = hasDivinity(c) ? 2 : 1;
+  if (twoSpells(c) && S.actionsDone.every(l => isSpellLabel(c, l))) n = Math.max(n, 2);
+  return n + (c.statusEffects.some(e => e.name === 'final_reckoning') ? 1 : 0) + S.bonusActions;
+};
+// True when `label` is closed to `c` right now: a divinity may not repeat an action, and a Great Staff's
+// second action must be a spell
+export const repeatsAction = (c, label) =>
+  (hasDivinity(c) && c === activeCombatant() && S.actionsDone.includes(label)) || (spellOnlyNow(c) && !isSpellLabel(c, label));
+function refuseRepeat(c, label, name = label) {
+  if (!repeatsAction(c, label)) return false;
+  addLog(spellOnlyNow(c)
+    ? `⚠ ${c.name}'s Great Staff allows a second spell only — not ${name}.`
+    : `⚠ ${c.name} has already used ${name} this turn — a divinity's two actions must differ.`, 'info');
+  return true;
+}
+// An action is spent; the turn has no action left once the budget is used
+function spendAction(c, label) {
+  S.actionsDone.push(label);
+  S.hasActed = S.actionsDone.length >= actionBudget(c);
+}
+// After an action: the turn moves on, unless an action remains (an instant never ends it)
+function endAction(instant) {
+  if (instant || !S.hasActed) R.renderCombatScreen(); else advanceTurn();
 }
 
 export function hasControlEffect(c) {
@@ -608,7 +890,7 @@ function pullTarget(caster, target) {
 export function placeCharacters(map) {
   for (const teamIdx of [0, 1]) {
     const spots = map.starts[teamIdx];
-    const team  = S.combatants.filter(c => c.teamIndex === teamIdx);
+    const team  = S.combatants.filter(c => c.teamIndex === teamIdx && !isSummonUnit(c));
     const taken = new Set();
     team.forEach((c, i) => {
       let pos = spots[i];
@@ -624,6 +906,12 @@ export function placeCharacters(map) {
       taken.add(`${pos.x},${pos.y}`);
       c.x = pos.x; c.y = pos.y;
     });
+  }
+  // Companions start beside the unit they are bound to
+  for (const u of S.combatants.filter(isSummonUnit)) {
+    const owner = getCombatant(u.ownerId);
+    const cell = owner && freeCellNear(owner, owner, 4, u.id);
+    if (cell) { u.x = cell.x; u.y = cell.y; }
   }
 }
 
@@ -748,9 +1036,10 @@ export function handleOpenDoor(actorId, x, y) {
   const door  = closedDoors().find(d => d.x === x && d.y === y);
   if (!actor || !door || S.hasActed) return;
   if (chebyshev(actor, door) > MELEE_RANGE) { addLog(`⚠ ${actor.name} must stand next to the ${doorLabel(door)}.`, 'info'); return; }
-  S.hasActed = true;
+  if (refuseRepeat(actor, 'door', 'a door')) return;
+  spendAction(actor, 'door');
   swingDoorOpen(door, `🚪 ${actor.name} opens the ${doorLabel(door)}.`);
-  advanceTurn();
+  endAction(false);
 }
 
 export function handleAttackDoor(attackerId, x, y) {
@@ -758,10 +1047,11 @@ export function handleAttackDoor(attackerId, x, y) {
   const door = closedDoors().find(d => d.x === x && d.y === y);
   if (!atk || !door || S.hasActed) return;
   if (chebyshev(atk, door) > MELEE_RANGE) { addLog(`⚠ ${atk.name} must stand next to the ${doorLabel(door)}.`, 'info'); return; }
-  S.hasActed = true;
+  if (refuseRepeat(atk, 'door', 'a door')) return;
+  spendAction(atk, 'door');
   const dice = atk.transformedBaseAtk?.dices ?? atk.sourceChar.baseAtk?.dices ?? '1d4';
   wearDoor(door, parseDice(dice).total, atk.name);
-  advanceTurn();
+  endAction(false);
 }
 
 export function coneCellTargets(caster, ability, dirCell) {
@@ -795,6 +1085,7 @@ export function hasValidTarget(actor, ability) {
   if (ability.isAoe || ability.isCone || ability.isSplash) return true;
   if (ability.targetKind === 'self')  return true;
   if (ability.isRevive)               return koAllies(actor.teamIndex).length > 0;
+  if (ability.tags?.includes('repair')) return livingCombatants(actor.teamIndex).some(isMecha);   // Remake needs a machine to mend
   if (ability.targetKind === 'ally')  return livingCombatants(actor.teamIndex).length > 0;
   if (ability.targetKind === 'any')
     return S.combatants.some(t => !t.isKO && t.id !== actor.id && targetInRange(actor, t, ability).inRange);
@@ -1280,8 +1571,17 @@ export function updateCombatantCardDOM(c) {
   }
 }
 
-export function applyHeal(combatant, diceExpr, label = null) {
+// A machine (tag mecha) is mended only by a repair (Sora's Remake); a classic heal does nothing to it
+export const isMecha = c => !!c && unitHasTag(c, 'mecha');
+// Can heal `ability` mend `target`? Remake mends only machines, every other heal only the living
+export const healsTarget = (ability, target) => ability?.tags?.includes('repair') ? isMecha(target) : !(ability?.isHeal && isMecha(target));
+
+export function applyHeal(combatant, diceExpr, label = null, repair = false) {
   if (!diceExpr) return;
+  if (isMecha(combatant) && !repair) {
+    if (combatant.currentHp < combatant.maxHp) addLog(`⚙ ${combatant.name} is a machine${label ? ` — ${label} cannot mend it` : ' — a classic heal cannot mend it'}. Only a repair can.`, 'info');
+    return;
+  }
   const r      = parseDice(diceExpr);
   const amount = Math.max(0, r.total);
   const healed = Math.min(amount, combatant.maxHp - combatant.currentHp);
@@ -1294,8 +1594,26 @@ export function applyHeal(combatant, diceExpr, label = null) {
 // Applies one hit to `combatant` and returns the HP it actually lost (0 when fully
 // absorbed or immune). The "HP before → after" line is logged here, after every
 // mitigation step, so callers never need to predict the result themselves.
+// Every blow of a Dream Hunter that lands (attack, spell, technique...) corrupts its target: `strikeSource` is the unit whose action is being settled
 export function applyDamage(combatant, amount, damType = null, atkTags = [], ignoreDR = false) {
+  const before = combatant.currentHp;
+  const dealt = applyDamageCore(combatant, amount, damType, atkTags, ignoreDR);
+  if (strikeSource && strikeSource !== combatant && (dealt > 0 || combatant.currentHp < before)) corruptTarget(strikeSource, combatant);
+  return dealt;
+}
+
+function applyDamageCore(combatant, amount, damType = null, atkTags = [], ignoreDR = false) {
   const done = () => { updateCombatantCardDOM(combatant); return 0; };
+
+  // A prisoner of a chain: its allies' blows land on the chain, which is how they free it
+  const hold = amount > 0 ? chainHolding(combatant) : null;
+  if (hold) {
+    const actor = activeCombatant();
+    if (actor && actor.teamIndex === combatant.teamIndex && actor.id !== combatant.id) {
+      chainTakesHit(combatant, hold, amount);
+      return done();
+    }
+  }
 
   // Immunity — only the damage *types* of the hit count (status tags are handled in applyStatus).
   // Fully immune → nothing lands. Immune to only some of the types → the hit is split
@@ -1334,6 +1652,14 @@ export function applyDamage(combatant, amount, damType = null, atkTags = [], ign
     dropWetStatus(combatant);
     addLog(`♨ The fire dries ${combatant.name}.`, 'info');
   }
+  // Thermal shock: a fire attack that reaches a frozen target thaws it and hurts it for 2d12 more
+  const frozen = types.includes('fire') && amount > 0 ? combatant.statusEffects.find(e => ['gel', 'freeze'].includes(e.name.toLowerCase())) : null;
+  if (frozen) {
+    combatant.statusEffects = combatant.statusEffects.filter(e => e !== frozen);
+    const shock = parseDice('2d12');
+    amount += shock.total;
+    addLog(`🔥❄ Thermal shock! The fire thaws ${combatant.name}: +${shock.total} (${shock.breakdown}).`, 'crit');
+  }
 
   // Living Blade Armor: halve incoming physical before any absorption
   const bladeArmor = combatant.statusEffects.find(e => e.name === 'living_blade_armor');
@@ -1350,7 +1676,7 @@ export function applyDamage(combatant, amount, damType = null, atkTags = [], ign
     addLog(`🐗 ${combatant.name}'s ${stance.label ?? 'stance'} shaves ${before - amount} off the hit! (${before} → ${amount})`, 'spell');
   }
   // Damage-absorption shield / chains check (bypassed by unblockabled or antiMagic on spell/art shields)
-  const dmgShield = combatant.statusEffects.find(e => e.name === 'damage_shield' || e.name === 'chains_of_apophis');
+  const dmgShield = combatant.statusEffects.find(e => e.name === 'damage_shield');
   const MAGIC_SOURCES = ['spell', 'Art', 'technoSpell'];
   if (dmgShield && atkTags.includes('antiMagic') && MAGIC_SOURCES.includes(dmgShield.source)) {
     addLog(`🔮 ${combatant.name}'s magical shield is dispelled by Anti-Magic!`, 'info');
@@ -1361,11 +1687,10 @@ export function applyDamage(combatant, amount, damType = null, atkTags = [], ign
     const absorbed = Math.min(dmgShield.shieldHp, amount);
     dmgShield.shieldHp -= absorbed;
     amount -= absorbed;
-    const isChains = dmgShield.name === 'chains_of_apophis';
-    addLog(`${isChains ? '⛓' : '🛡'} ${combatant.name}'s ${isChains ? 'Chains of Apophis absorb' : 'shield absorbs'} ${absorbed}! (${dmgShield.shieldHp} HP left)`, 'spell');
+    addLog(`🛡 ${combatant.name}'s shield absorbs ${absorbed}! (${dmgShield.shieldHp} HP left)`, 'spell');
     if (dmgShield.shieldHp <= 0) {
       combatant.statusEffects = combatant.statusEffects.filter(e => e !== dmgShield);
-      addLog(isChains ? `⛓ Chains of Apophis shattered!` : `🛡 ${combatant.name}'s shield is destroyed!`, 'spell');
+      addLog(`🛡 ${combatant.name}'s shield is destroyed!`, 'spell');
     }
     if (amount <= 0) return done();
   }
@@ -1385,6 +1710,14 @@ export function applyDamage(combatant, amount, damType = null, atkTags = [], ign
     amount = Math.max(0, amount - r.total);
     addLog(`🛡 ${combatant.name}'s "${p.nom}" reduces incoming damage by ${before - amount}! (${before} → ${amount})`, 'info');
   }
+  // Relentless Warrior: every fallen ally takes the passive's dice (1d10+2) off each hit the owner takes
+  for (const p of combatant.sourceChar.passif ?? []) {
+    if (ignoreDR || amount <= 0) break;
+    if (!p.tags?.includes('relentless') || passiveLost(combatant, p)) continue;
+    const before = amount;
+    for (let i = combatant.stacks[p.nom] ?? 0; i > 0 && amount > 0; i--) amount = Math.max(0, amount - parseDice(String(p.dices).replace(/^[+-]/, '')).total);
+    if (amount < before) addLog(`🛡 ${combatant.name}'s ${p.nom} reduces the hit by ${before - amount}! (${before} → ${amount})`, 'info');
+  }
   // Divine Beast synergy (Northern Depths): "-1d8" off every hit taken by the allies of a synced Beast
   for (const e of divineEffects(combatant, 'incomingDam')) {
     if (ignoreDR || amount <= 0 || !e.dices || !String(e.dices).trim().startsWith('-')) continue;
@@ -1392,6 +1725,10 @@ export function applyDamage(combatant, amount, damType = null, atkTags = [], ign
     const before = amount;
     amount = Math.max(0, amount - r.total);
     addLog(`🛡 ${e.nom} reduces ${combatant.name}'s damage by ${before - amount}! (${before} → ${amount})`, 'info');
+  }
+  // Vorrakan's free chains take the hit in his stead once he has answered it with Chain Guard (a hit that cannot be blocked goes through)
+  if (combatant.chains && !atkTags.includes('unblockabled') && combatant.statusEffects.some(e => e.name === 'chain_guard')) {
+    amount = chainGuard(combatant, amount);
   }
   // Lethal-hit passives (Unkillable): a coin flip to survive, at the cost of dropping to 1 HP
   for (const p of combatant.sourceChar.passif ?? []) {
@@ -1441,7 +1778,7 @@ export function applyDamage(combatant, amount, damType = null, atkTags = [], ign
       combatant.currentHp = 150;
       combatant.usedThisFight.push('Resurrection');
       addLog(`💀✨ ${combatant.name} RESURRECTS with 150 HP — Final Reckoning activates!`, 'crit');
-      combatant.statusEffects.push({ name: 'final_reckoning', turnsLeft: 999, dice: '2d12', damType: null, notes: '+2d12 atk bonus' });
+      combatant.statusEffects.push({ name: 'final_reckoning', turnsLeft: 999, dice: '2d12', damType: null, notes: '+2d12 atk bonus, one more action a turn' });
     } else if (!survived) {
       combatant.isKO = true;
       noteFallen(combatant);
@@ -1515,7 +1852,7 @@ export function applyStatus(combatant, effectStr, defaultTurns = 2) {
         addLog(`🪞 Authority ${strikeAuthority} pierces ${combatant.name}'s Anti-Magic!`, 'crit');
       }
       if (immunities.includes(key) || (STATUS_ALIASES[key] && immunities.includes(STATUS_ALIASES[key]))
-          || (DOTS[key] && immunities.includes(DOTS[key].base))) {
+          || (DOTS[key] && immunities.includes(DOTS[key].base) && !combatant.sourceChar.dotDamage?.[key])) {   // `dotDamage` names an upgrade the basic immunity does not cover (Wyldfire's toxic)
         addLog(`🛡 ${combatant.name} is immune to ${effName}!`, 'info');
         continue;
       }
@@ -1590,20 +1927,26 @@ export function tickTurn(c) {
   for (const eff of c.statusEffects) {
     const n = eff.name.toLowerCase();
     if (TICKING_DOTS.includes(n) && eff.dice && eff.dice !== '—') {
-      const r = parseDice(DOTS[n].grows ? grownDice(eff) : eff.dice);
+      // A sheet can cap what one damage over time does to its owner (`dotDamage`: Wyldfire takes 1d4 from toxic)
+      const cap = c.sourceChar.dotDamage?.[n];
+      const r = parseDice(cap ?? (DOTS[n].grows ? grownDice(eff) : eff.dice));
       eff.ticks = (eff.ticks ?? 0) + 1;
-      const dealt = applyDamage(c, r.total, eff.damType);
-      if (dealt > 0) addLog(`${c.name} takes ${dealt} ${eff.damType} from ${eff.name}. (${r.breakdown})`, 'status');
+      // A capped tick is no longer poison damage, so the owner's poison immunity does not swallow it
+      const tickType = cap ? n : eff.damType;
+      const dealt = applyDamage(c, r.total, tickType);
+      if (dealt > 0) addLog(`${c.name} takes ${dealt} ${tickType} from ${eff.name}. (${r.breakdown})`, 'status');
       if (c.isKO) return false;
     }
     if (regenNames.some(rn => n.includes(rn)) && eff.dice && eff.dice !== '—') {
       applyHeal(c, eff.dice);
     }
+    if (n === 'final_reckoning') applyHeal(c, '1d10', 'Final Reckoning');
     eff.turnsLeft--;
     if (eff.turnsLeft <= 0) expired.push(eff);
   }
   c.statusEffects = c.statusEffects.filter(e => !expired.includes(e));
-  for (const e of expired) addLog(`${c.name}'s ${e.name} wears off.`, 'info');
+  for (const e of expired) if (e.name !== 'form_timer') addLog(`${c.name}'s ${e.name} wears off.`, 'info');
+  if (expired.some(e => e.name === 'form_timer')) revertForm(c);
 
   if (c.kiRegen > 0 && c.ki < c.maxKi) c.ki = Math.min(c.maxKi, c.ki + c.kiRegen);
 
@@ -1631,10 +1974,12 @@ export function removeFlying(target) {
 
 const NEGATIVE_STATUSES = ['para','gel','freeze','burn','calcinated','bleed','hemoragie','stun','root','fear','silence','blind','toxic','poison'];
 const isDebuff = e => NEGATIVE_STATUSES.some(n => e.name.toLowerCase().includes(n));
+// A chain's hold is no ordinary status: Cleanse (Zhuqiao, Nya) cannot lift it, only damage to the chain does
+const cleansable = e => isDebuff(e) && e.chainOf == null;
 
 // Lifts one debuff (the first it finds), the way Phoenix Grace does
 function cleanseOne(target, source) {
-  const bad = target.statusEffects.find(isDebuff);
+  const bad = target.statusEffects.find(cleansable);
   if (!bad) return;
   target.statusEffects = target.statusEffects.filter(e => e !== bad);
   addLog(`✨ ${source} lifts ${bad.name} from ${target.name}.`, 'heal');
@@ -1693,8 +2038,8 @@ function applyWard(ability, target) {
 }
 
 export function applyCleanse(target) {
-  const removed = target.statusEffects.filter(isDebuff);
-  target.statusEffects = target.statusEffects.filter(e => !isDebuff(e));
+  const removed = target.statusEffects.filter(cleansable);
+  target.statusEffects = target.statusEffects.filter(e => !cleansable(e));
   if (removed.length > 0)
     addLog(`✨ ${target.name}'s ${removed.map(e => e.name).join(', ')} cleansed!`, 'heal');
   else
@@ -1718,7 +2063,9 @@ export function unitHasTag(c, tag) {
   const t = String(tag).toLowerCase();
   const shed = c.isTransformed ? (c.sourceChar.transformation?.loseTags ?? []) : [];
   if (shed.some(x => x.toLowerCase() === t)) return false;
-  return (c.sourceChar.tags ?? []).some(x => x.toLowerCase() === t) || c.statusEffects.some(e => e.name.toLowerCase() === t);
+  // a form can add tags of its own (Nirvana is a divinity)
+  const formTags = c.isTransformed ? (c.sourceChar.transformation?.tags ?? []) : [];
+  return [...(c.sourceChar.tags ?? []), ...formTags].some(x => x.toLowerCase() === t) || c.statusEffects.some(e => e.name.toLowerCase() === t);
 }
 
 // The extra dice a move deals to this target (Force Lightning vs mechas, Ice Coffin vs the wet), or null
@@ -1763,7 +2110,8 @@ function passiveConditionMet(p, owner, other, ability) {
 // ── Passive helpers: lost passives, stacks, Divine Beast synergy ────────────
 
 // A passive can be switched off for a while (Oslo's Bone Armor after Bone Shatter)
-const passiveLost = (c, p) => c.statusEffects.some(e => e.name === `lost:${p.nom}` || e.name === 'passives_off');
+const passiveLost = (c, p) => c.statusEffects.some(e => e.name === `lost:${p.nom}` || e.name === 'passives_off')
+  || (c.isTransformed && !!c.sourceChar.transformation?.losePassives?.includes(p.nom));   // Dragon forms lose Armored until they end
 
 // Off for the owner's next `turns` turns, back on the one after (statuses tick when the owner's turn starts)
 function losePassive(c, nom, turns) {
@@ -1774,6 +2122,9 @@ function losePassive(c, nom, turns) {
 
 // An ally falling feeds the stacking passives of the fighters still standing (Relentless Warrior)
 function noteFallen(fallen) {
+  dismissOwned(fallen);
+  releaseAllChains(fallen);
+  if (isSummonUnit(fallen)) return;   // a summon's fall is no ally's death
   for (const o of livingCombatants(fallen.teamIndex)) {
     for (const p of o.sourceChar.passif ?? []) {
       if (!p.maxStacks || !p.condition?.allyKO) continue;
@@ -1921,7 +2272,8 @@ export function applyMoveEffect(ability, target, guaranteed = false) {
 // Does a passive of `owner` grant advantage on this kind of roll? (tag "adv" on the passive; a weapon condition
 // looks at the move, anything else needs the opponent, so an area roll made against nobody in particular skips it)
 function passiveAdvantage(owner, applyOn, other, ability) {
-  return (owner.sourceChar.passif ?? []).some(p => {
+  const formPassives = owner.isTransformed ? owner.sourceChar.transformation?.passif ?? [] : [];   // a form's own passives (Jay's Dragon Reflexes)
+  return [...(owner.sourceChar.passif ?? []), ...formPassives].some(p => {
     if (!p.tags?.includes('adv') || !p.applyOn?.includes(applyOn) || passiveLost(owner, p)) return false;
     const needsFoe = p.condition && Object.keys(p.condition).some(k => k !== 'weaponType');
     return (!needsFoe || !!other) && passiveConditionMet(p, owner, other, ability);
@@ -2003,6 +2355,38 @@ function rollD20Raw(c, baseAdv, baseDis, role) {
   return keep;
 }
 
+// Team spells (Greater Levitation, Greater Invisibility, Mana Wall): the caster's allies within the radius share the
+// boon (no map: the whole team). The caster's own share comes from the ordinary self-cast path, except invisibility.
+function teamBoon(caster, ability, shieldHp = null) {
+  const radius = ability.radius || 1;
+  const members = livingCombatants(caster.teamIndex).filter(a => !S.currentMap || chebyshev(caster, a) <= radius);
+  const shield = shieldHp ?? (ability.isBlock && ability.dice ? Math.max(0, parseDice(ability.dice).total) : 0);
+  for (const a of members) {
+    if (ability.tags?.includes('invisible') && pushStatus(a, { name: 'invisible', turnsLeft: (ability.duration > 0 ? ability.duration : 3) + 1 }, true)) {
+      addLog(`👻 ${a.name} vanishes from sight — foes attack at disadvantage.`, 'spell');
+    }
+    if (a.id === caster.id) continue;
+    if (ability.tags?.includes('fly') && !a.statusEffects.some(e => e.name.toLowerCase() === 'fly')) {
+      a.statusEffects.push({ name: 'fly', turnsLeft: ability.duration > 0 ? ability.duration : 999, dice: null, damType: null, notes: '' });
+      addLog(`🦅 ${a.name} is now flying!`, 'spell');
+    }
+    if (shield > 0) {
+      grantDamageShield(a, shield, ability.source);
+      addLog(`🛡 ${a.name} gains a ${shield} HP damage shield!`, 'spell');
+    }
+    updateCombatantCardDOM(a);
+  }
+}
+
+// Dispel Magic: the target loses every boon that can be unravelled
+function dispelTarget(caster, target) {
+  const gone = target.statusEffects.filter(e => DISPELLABLE.includes(e.name.toLowerCase()));
+  target.statusEffects = target.statusEffects.filter(e => !gone.includes(e));
+  addLog(gone.length ? `✨ ${caster.name} dispels ${target.name}: ${gone.map(e => statusLabel(e.name)).join(', ')} unravel.` : `✨ ${caster.name}'s dispel finds nothing on ${target.name}.`, 'spell');
+  updateCombatantCardDOM(target);
+}
+const statusLabel = name => name.replace(/_/g, ' ');
+
 // Smoke Screen: everyone near the user except the user fights at disadvantage
 function raiseSmoke(caster, ability) {
   const radius = ability.radius || 1;
@@ -2035,10 +2419,13 @@ function selfDestruct(caster, ability) {
   updateCombatantCardDOM(caster);
 }
 
-// Sacrifice: a landed hit on a target under 10% HP kills outright (no resurrection), and feeds the caster
-function executeStrike(caster, target, ability) {
+const grounds = ab => !!ab.tags?.includes('grounded') && random() < (ab.groundChance ?? 1);
+
+// Sacrifice: a landed hit on a target under 10% of its HP (never less than 10 HP) kills outright (no resurrection), and feeds the caster
+export const executeThreshold = target => Math.max(10, target.maxHp * 0.1);
+export function executeStrike(caster, target, ability) {
   if (target.isKO) return;
-  if (target.currentHp >= target.maxHp * 0.1) {
+  if (target.currentHp >= executeThreshold(target)) {
     addLog(`${ability.name} lands, but ${target.name} (${target.currentHp}/${target.maxHp}) is too healthy to be executed.`, 'info');
     return;
   }
@@ -2061,12 +2448,13 @@ const authorityOf = (c, ability) => Math.max(c.sourceChar.autority ?? 0, ability
 
 // The Authority of the blow being resolved; applyDamage and applyStatus read it to see whether Anti-Magic holds
 let strikeAuthority = 0;
+let strikeSource = null;
 
 // Hela's Anti-Magic: the immunity to magic and status only holds against Authority below the gate
 const authorityGate = c => Math.max(0, ...(c.sourceChar.passif ?? []).filter(p => p.authorityGate && !passiveLost(c, p)).map(p => p.authorityGate));
 const piercesGate = c => { const g = authorityGate(c); return g > 0 && strikeAuthority >= g; };
 
-// Perfect Reflection: the spell goes back to its caster with its damage doubled; high Authority pierces it.
+// Perfect Reflection: the spell goes back to its caster (doubled, unless `reflect_plain`); high Authority pierces it.
 // Returns false when the reflection fails and the spell goes through.
 function reflectSpell(reactor, reflectAb, action) {
   const attacker = getCombatant(action.attackerId ?? action.casterId);
@@ -2078,8 +2466,9 @@ function reflectSpell(reactor, reflectAb, action) {
     return false;
   }
   const rolled = action.result?.damage > 0 ? action.result.damage : parseDice(spell?.dice).total;
-  const damage = rolled * 2;
-  addLog(`🪞 ${reactor.name} sends ${spell?.name ?? 'the spell'} back! ${attacker.name} takes ${damage} (${rolled} ×2)!`, 'crit');
+  const plain  = reflectAb.tags?.includes('reflect_plain');   // Hela's Perfect Reflection sends the spell back as it was cast
+  const damage = plain ? rolled : rolled * 2;
+  addLog(`🪞 ${reactor.name} sends ${spell?.name ?? 'the spell'} back! ${attacker.name} takes ${damage}${plain ? '' : ` (${rolled} ×2)`}!`, 'crit');
   if (damage > 0) applyDamage(attacker, damage, damTypeFromTags(spell?.tags ?? []), spell?.tags ?? []);
   return true;
 }
@@ -2173,7 +2562,10 @@ function rollAttackD20(attacker, ability, defender = null) {
     addLog(`🌟 ${attacker.name}'s destiny strikes true!`, 'spell');
     return { roll: { value: 20, isNat20: true, isNat1: false }, sureHit: true };
   }
-  const roll = rollD20For(attacker, adv, dread, 'atk');
+  // A hidden target is hard to hit
+  const hidden = !!defender?.statusEffects.some(e => e.name === 'invisible');
+  if (hidden) addLog(`👻 ${defender.name} cannot be seen — ${attacker.name} attacks at disadvantage.`, 'info');
+  const roll = rollD20For(attacker, adv, dread || hidden, 'atk');
   return { roll: roll.isNat1 && isSpellMove(ability) ? steadyStaff(attacker, roll) : roll, sureHit };
 }
 
@@ -2424,9 +2816,11 @@ export function logAttackResult(atk, def, r) {
 }
 
 // Returns the index of the winning team, or null while both teams still stand
+// (summons do not hold a team up: once its real fighters are down, the team is beaten)
 export function checkVictory() {
-  if (livingCombatants(0).length === 0) return 1;
-  if (livingCombatants(1).length === 0) return 0;
+  const standing = t => livingCombatants(t).some(c => !isSummonUnit(c));
+  if (!standing(0)) return 1;
+  if (!standing(1)) return 0;
   return null;
 }
 
@@ -2452,10 +2846,12 @@ export function getReacts(target, incoming = null) {
   return target.abilities.filter(ab => {
     if (!ab.isReact && !ab.isInstant && !ab.isBlock) return false;
     if (ab.tags?.includes('extraAction')) return false;   // Borrowed Time is spent on the caster's own turn
+    if (ab.tags?.includes('noReact')) return false;       // instant (no action used) but only on the caster's own turn: Blink, Hunter Instinct
     if (ab.isTransform) return false;
     // Guardbreak beats every block but not a dodge: teleports, dashes and the like still get away
     if (incoming?.tags?.includes('guardbreak') && ab.isBlock && !ab.tags?.some(t => ['dodge', 'dash', 'teleportation'].includes(t))) return false;
     if (ab.tags?.includes('reflect') && !isSpellMove(incoming)) return false;
+    if (ab.tags?.includes('dispel') && !isSpellMove(incoming)) return false;   // Dispel Magic only unravels a spell
     if (insideClosedDomain && ab.tags?.includes('teleportation')) return false;
     return abilityAvailable(target, ab);
   });
@@ -2480,6 +2876,7 @@ export function handleAttack(attackerId, defenderId) {
   const def = getCombatant(defenderId);
   if (!atk || !def || def.isKO) return;
   if (S.hasActed) { addLog('You have already acted this turn!', 'info'); return; }
+  if (refuseRepeat(atk, 'attack', 'a basic attack')) return;
 
   if (tauntViolation(atk, [def])) return;
 
@@ -2493,15 +2890,15 @@ export function handleAttack(attackerId, defenderId) {
 
   const preShield = def.statusEffects.find(e => e.name.toLowerCase() === 'water_shield');
   if (preShield) {
-    S.hasActed = true;
+    spendAction(atk, 'attack');
     addLog(`🛡 ${def.name}'s pre-armed shield blocks ${atk.name}'s attack!`, 'spell');
     def.statusEffects = def.statusEffects.filter(e => e !== preShield);
     updateCombatantCardDOM(def);
-    advanceTurn();
+    endAction(false);
     return;
   }
 
-  S.hasActed = true;
+  spendAction(atk, 'attack');
   const result = resolveAttack(atk, def, null);
   S.pendingAction = { type: 'attack', attackerId, defenderId, result };
 
@@ -2521,8 +2918,13 @@ export function handleCastAbility(casterId, abilityName, targetIds, center = nul
   if (!ability || !abilityAvailable(caster, ability)) return;
   if (ability.reactOnly) { addLog(`⚠ ${ability.name} can only be used as a reaction.`, 'info'); return; }
   if (S.hasActed && !ability.isInstant) { addLog('You have already acted this turn!', 'info'); return; }
+  if (!ability.isInstant && refuseRepeat(caster, ability.name)) return;
 
   let targets = targetIds.map(id => getCombatant(id)).filter(t => t && (ability.isRevive || !t.isKO));
+  if (ability.tags?.includes('repair') && !targets.every(isMecha)) {
+    addLog(`⚠ ${ability.name} only mends machines (allies with the mecha tag).`, 'info');
+    return;
+  }
 
   const needsRangeCheck = !ability.isAoe && !ability.isCone && ability.targetKind === 'enemy';
   if (S.currentMap && needsRangeCheck && targets.length > 0) {
@@ -2563,18 +2965,28 @@ export function handleCastAbility(casterId, abilityName, targetIds, center = nul
     caster.remainingCharges[ability.name]--;
   }
 
-  if (!ability.isInstant) S.hasActed = true;
+  if (!ability.isInstant) spendAction(caster, ability.name);
 
   addLog(`${caster.name} uses ${ability.name}!`, ability.source === 'spell' ? 'spell' : 'tech');
+  if (ability.summon || ability.isDetonate) {
+    if (ability.summon) castSummon(caster, ability); else castDetonate(caster, ability);
+    concludeAction(!!ability.isInstant);
+    return;
+  }
+  if (ability.tags?.includes('dispel')) {
+    dispelTarget(caster, targets[0]);
+    concludeAction(!!ability.isInstant);
+    return;
+  }
   if (ability.tags?.includes('shatter_armor')) losePassive(caster, 'Bone Armor', 2);
   if (ability.field) {
     raiseField(caster, ability, center ?? { x: targets[0].x, y: targets[0].y });
-    if (ability.isInstant) R.renderCombatScreen(); else advanceTurn();
+    endAction(ability.isInstant);
     return;
   }
   if (isConvert(ability)) {
     convertArea(caster, ability, center ?? { x: targets[0].x, y: targets[0].y });
-    if (ability.isInstant) R.renderCombatScreen(); else advanceTurn();
+    endAction(ability.isInstant);
     return;
   }
   if (ability.tags?.includes('awaken') && pushStatus(caster, { name: 'relic_awake', turnsLeft: 999 }, true)) {
@@ -2597,7 +3009,7 @@ export function handleCastAbility(casterId, abilityName, targetIds, center = nul
 
   // Effects that never prompt a react: friendly buffs, unblockable moves, and moves that deal no damage or status
   const noReacts = ability.targetKind === 'ally' || !!ability.tags?.some(t => t === 'unblockabled' || t === 'taunt');
-  const hasMechanics = ability.dice || ability.effect || ability.precastDice || ability.slotRegen > 0 || ability.isRevive
+  const hasMechanics = ability.summon || ability.isDetonate || ability.dice || ability.effect || ability.precastDice || ability.slotRegen > 0 || ability.isRevive
     || ability.isBlock || ability.targetKind === 'self' || ability.field
     || ability.isContest || ability.tags?.some(t => ['dash', 'fly', 'teleportation', 'cleans', 'pull', 'taunt', 'smoke', 'adv_next', 'orders', 'ward', 'dry'].includes(t));
   if (!hasMechanics) addLog(`  ⚠ ${ability.name} has no mechanical effect in the simulator yet.`, 'info');
@@ -2689,7 +3101,7 @@ export function handleCastAbility(casterId, abilityName, targetIds, center = nul
     target.statusEffects = target.statusEffects.filter(e => e !== preShieldSpell);
     updateCombatantCardDOM(target);
     // Instant moves do not use the action: the turn stays open
-    if (ability.isInstant) R.renderCombatScreen(); else advanceTurn();
+    endAction(ability.isInstant);
     return;
   }
 
@@ -2715,6 +3127,7 @@ export function handleTransform(casterId) {
   const tf = c?.sourceChar.transformation;
   if (!c || !tf || c.isTransformed) return;
   if (S.hasActed) { addLog('You have already acted this turn!', 'info'); return; }
+  if (refuseRepeat(c, 'transform', 'a transformation')) return;
 
   if (c.usedThisFight.includes(tf.base.nom)) {
     addLog(`${c.name} has already transformed this fight!`, 'info'); return;
@@ -2725,9 +3138,21 @@ export function handleTransform(casterId) {
   if (tfAb && !abilityAvailable(c, tfAb)) { addLog(`⚠ ${c.name} cannot pay for ${tf.base.nom}.`, 'info'); return; }
   if (tfAb) spendResource(c, tfAb);
 
+  spendAction(c, 'transform');   // before the form's own traits count: Nirvana's second action starts next turn
+  c.formRestore = { abilities: c.abilities, speed: c.speed };
   c.isTransformed = true;
   c.usedThisFight.push(tf.base.nom);
-  S.hasActed = true;
+  // A form's permanent flight
+  if (tf.passif?.some(p => p.tags?.includes('fly')) && !c.statusEffects.some(e => e.name.toLowerCase() === 'fly')) {
+    c.statusEffects.push({ name: 'fly', turnsLeft: 999, dice: null, damType: null, notes: '', fromForm: true });
+    addLog(`🦅 ${c.name} takes to the air!`, 'spell');
+  }
+  // A form with a duration ends on its own: `duration` turns of the owner's (statuses tick when the owner's turn starts)
+  if (tfAb?.duration > 0) c.statusEffects.push({ name: 'form_timer', turnsLeft: tfAb.duration + 1, dice: null, damType: null, notes: `${tf.base.nom} ends after ${tfAb.duration} turns` });
+  if (tf.regainSlots) {
+    c.spellSlots = c.maxSpellSlots;
+    addLog(`  🔮 ${c.name} regains all spell slots (${c.spellSlots}/${c.maxSpellSlots}).`, 'spell');
+  }
 
   if (tf.hp > 0) {
     c.maxHp     += tf.hp;
@@ -2748,7 +3173,24 @@ export function handleTransform(casterId) {
   addLog(`✨ ${c.name} transforms into ${tf.base.nom}!`, 'crit');
   if (tf.hp > 0) addLog(`  +${tf.hp} max HP. Now ${c.currentHp}/${c.maxHp}.`, 'crit');
   updateCombatantCardDOM(c);
-  advanceTurn();   // transforming uses the action, like every other action
+  endAction(false);   // transforming uses the action, like every other action
+}
+
+// The end of a timed form: back to the normal sheet, the form's extra HP and slots gone, its flight too
+function revertForm(c) {
+  const tf = c.sourceChar.transformation;
+  if (!c.isTransformed || !tf) return;
+  c.isTransformed = false;
+  c.transformedBaseAtk = null;
+  if (c.formRestore) { c.abilities = c.formRestore.abilities; c.speed = c.formRestore.speed; c.formRestore = null; }
+  if (tf.hp > 0) { c.maxHp -= tf.hp; c.currentHp = Math.max(1, Math.min(c.currentHp, c.maxHp)); }
+  if (tf.spellSlot > 0) {
+    c.maxSpellSlots = Math.max(0, c.maxSpellSlots - tf.spellSlot);
+    c.spellSlots    = Math.min(c.spellSlots, c.maxSpellSlots);
+  }
+  c.statusEffects = c.statusEffects.filter(e => !e.fromForm);
+  addLog(`🔙 ${c.name}'s ${tf.base.nom} ends. ${c.name} is back to normal.`, 'status');
+  updateCombatantCardDOM(c);
 }
 
 export function suppressDomain(ownerCombatant) {
@@ -2770,15 +3212,13 @@ export function handleActivateDomain(casterId) {
   const domain = c?.sourceChar.domain;
   if (!c || !domain) return;
   if (S.hasActed) { addLog('You have already acted this turn!', 'info'); return; }
+  if (refuseRepeat(c, 'domain', 'a domain expansion')) return;
   if (c.domainActive)   { addLog(`${c.name}'s domain is already active!`, 'info'); return; }
   const allyDomain = activeAllyDomain(c);
   if (allyDomain) {
     addLog(`⚠ ${getCombatant(allyDomain.casterId).name}'s ${allyDomain.domain.name} is already active — one domain per team.`, 'info'); return;
   }
   if (c.domainCharges <= 0) { addLog(`⚠ ${c.name} has no more domain charges!`, 'info'); return; }
-  if (c.spellSlots < domain.spellCost) {
-    addLog(`⚠ ${c.name} needs ${domain.spellCost} spell slots for ${domain.name}!`, 'info'); return;
-  }
 
   if (domain.type !== 'Ouvert') {
     const enemyEntry = S.activeDomains.find(d => {
@@ -2795,18 +3235,16 @@ export function handleActivateDomain(casterId) {
       } else if (selfRef === enemyRef) {
         suppressDomain(enemyOwner);
         addLog(`🌐 Domain Clash! Equal refinement — both domains cancel out!`, 'crit');
-        // Attacker still pays the cost and loses their action — their domain also cancels
-        c.spellSlots -= domain.spellCost;
+        // Attacker still spends the charge and loses their action — their domain also cancels
         c.domainCharges--;
-        S.hasActed = true;
+        spendAction(c, 'domain');
         updateCombatantCardDOM(c);
-        advanceTurn();
+        endAction(false);
         return;
       } else {
-        // A failed expansion still burns half the slots (the other half is refunded); the action is kept
-        const lost = Math.ceil(domain.spellCost / 2);
-        c.spellSlots -= lost;
-        addLog(`🌐 ${c.name}'s ${domain.name} is suppressed by ${enemyOwner.name}'s stronger domain! (${lost} of ${domain.spellCost} slots lost)`, 'crit');
+        // A failed expansion burns the charge; the action is kept
+        c.domainCharges--;
+        addLog(`🌐 ${c.name}'s ${domain.name} is suppressed by ${enemyOwner.name}'s stronger domain! (charge lost)`, 'crit');
         updateCombatantCardDOM(c);
         R.renderCombatScreen();
         return;
@@ -2814,11 +3252,10 @@ export function handleActivateDomain(casterId) {
     }
   }
 
-  c.spellSlots  -= domain.spellCost;
   c.domainCharges--;
   c.domainActive = true;
   S.activeDomains.push({ casterId: c.id, domain, centerX: c.x, centerY: c.y });
-  S.hasActed = true;
+  spendAction(c, 'domain');
 
   addLog(`🌐 ${c.name} activates Domain Expansion: ${domain.name}! [${domain.type} · Ref. ${domain.rafinement ?? 'N/A'}]`, 'crit');
   addLog(`  "${domain.description}"`, 'spell');
@@ -2837,7 +3274,7 @@ export function handleActivateDomain(casterId) {
 
   addLog(`  Charges remaining: ${c.domainCharges}`, 'info');
   updateCombatantCardDOM(c);
-  advanceTurn();   // expanding a domain uses the action
+  endAction(false);   // expanding a domain uses the action
 }
 
 export function handleReactYes() {
@@ -2894,7 +3331,8 @@ export function resumePendingAction(reactAbility) {
   const action = S.pendingAction;
   const striker = action && getCombatant(action.attackerId ?? action.casterId);
   strikeAuthority = striker ? authorityOf(striker, action.ability) : 0;
-  try { settlePendingAction(reactAbility); } finally { strikeAuthority = 0; }
+  strikeSource = striker ?? null;
+  try { settlePendingAction(reactAbility); } finally { strikeAuthority = 0; strikeSource = null; }
 }
 
 function settlePendingAction(reactAbility) {
@@ -2922,6 +3360,10 @@ function settlePendingAction(reactAbility) {
           blocked = true;
           if (action.type === 'aoe' || action.type === 'cone') action.blockedIds.push(reactor.id);
         }
+      } else if (reactAbility.tags?.includes('chain_guard')) {
+        // The chains are in place before the blow lands; the attack itself is not stopped
+        pushStatus(reactor, { name: 'chain_guard', turnsLeft: 1 }, true);
+        addLog(`⛓ ${reactor.name} throws his chains between himself and the blow!`, 'spell');
       } else if (reactAbility.tags?.includes('half_phys')) {
         raiseBladeArmor(reactor, reactAbility);
       } else if (reactAbility.grants) {
@@ -2940,6 +3382,14 @@ function settlePendingAction(reactAbility) {
         if (action.type === 'aoe' || action.type === 'cone') {
           for (const id of gone) if (!action.blockedIds.includes(id)) action.blockedIds.push(id);
         }
+      } else if (reactAbility.tags?.includes('dispel')) {
+        // The spell is unravelled before it lands
+        addLog(`✨ ${reactor.name} unravels the spell with ${reactAbility.name}!`, 'spell');
+        blocked = true;
+        if (action.type === 'aoe' || action.type === 'cone') {
+          if (!action.blockedIds.includes(reactor.id)) action.blockedIds.push(reactor.id);
+          addLog(`  (${reactor.name} only — others still take damage)`, 'info');
+        }
       } else if (reactAbility.isVoid) {
         addLog(`🌑 ${reactor.name} opens ${reactAbility.name}!`, 'spell');
         absorbIntoVoid(reactor, action);
@@ -2955,20 +3405,11 @@ function settlePendingAction(reactAbility) {
         addLog(`💨 ${reactor.name} reacts with ${reactAbility.name} — half damage from the area.`, 'spell');
         if (!action.halvedIds.includes(reactor.id)) action.halvedIds.push(reactor.id);
       } else if (reactAbility.isBlock) {
-        if (reactAbility.tags?.includes('chains')) {
-          let chainsEff = reactor.statusEffects.find(e => e.name === 'chains_of_apophis');
-          if (!chainsEff) {
-            chainsEff = { name: 'chains_of_apophis', turnsLeft: 999, shieldHp: 8, dice: null, damType: null, notes: '' };
-            reactor.statusEffects.push(chainsEff);
-          } else {
-            chainsEff.shieldHp = 8;
-          }
-          addLog(`⛓ ${reactor.name}'s Chains of Apophis intercept the attack! (${chainsEff.shieldHp} HP)`, 'spell');
-          updateCombatantCardDOM(reactor);
-        } else if (reactAbility.dice && !reactAbility.tags?.includes('regen') && !reactAbility.tags?.includes('heal')) {
+        if (reactAbility.dice && !reactAbility.tags?.includes('regen') && !reactAbility.tags?.includes('heal')) {
           const shieldHp = Math.max(0, parseDice(reactAbility.dice).total);
           grantDamageShield(reactor, shieldHp, reactAbility.source);
           addLog(`🛡 ${reactor.name} raises ${reactAbility.name} — ${shieldHp} HP absorb shield!`, 'spell');
+          if (reactAbility.tags?.includes('team')) teamBoon(reactor, reactAbility, shieldHp);
           updateCombatantCardDOM(reactor);
         } else {
           addLog(`🛡 ${reactor.name} blocks with ${reactAbility.name}!`, 'spell');
@@ -3041,6 +3482,8 @@ function settlePendingAction(reactAbility) {
           const damType = damTypeFromTags(atkTags);
           const ignoreDR = getDomainEffects(atk, { applyOn: 'atkRoll' }).some(e => e.tags?.includes('unblockabled'));
           applyDamage(def, action.result.damage, damType, atkTags, ignoreDR);
+          const basic = atk.transformedBaseAtk ?? atk.sourceChar.baseAtk;
+          if (!poisonCombo(basic, def)) applyStatus(def, basic?.effect);   // a basic attack's rider (Cole's 1d2 stun)
           witherMax(atk, def);
           strikeBack(atk, action.result, damType, atkTags);
           applyHpPerHitPassives(atk);
@@ -3059,7 +3502,7 @@ function settlePendingAction(reactAbility) {
             addLog(`🌑 ${def.name}'s shadows stir — +${bonus} on next attack! (Shadow Counter)`, 'spell');
           }
         }
-        if (action.result.freeAction) def.freeActionTarget = atk.id;
+        if (action.result.freeAction && def.teamIndex !== atk.teamIndex) def.freeActionTarget = atk.id;   // not against a unit the blow just turned to our side
       }
 
     } else if (action.type === 'aoe') {
@@ -3113,7 +3556,7 @@ function settlePendingAction(reactAbility) {
               if (re) re.dice = ability.dice;
               addLog(`  ${target.name} regenerates ${ability.dice}/turn!`, 'heal');
             } else {
-              applyHeal(target, ability.dice);
+              applyHeal(target, ability.dice, null, !!ability.tags?.includes("repair"));
             }
           } else {
             const rd = parseDice(ability.dice, { diceMult: clash.diceMult });
@@ -3125,12 +3568,12 @@ function settlePendingAction(reactAbility) {
             applyDamage(target, totalDmg, damType, ability.tags, aoeIgnoreDR);
             if (clash.mutual) strikeBack(caster, { recoil: totalDmg }, damType, ability.tags);
             if (ability.isHeal) applyHeal(caster, String(totalDmg));
-            if (ability.tags?.includes('grounded')) removeFlying(target);
+            if (grounds(ability)) removeFlying(target);
             if (ability.tags?.includes('knockback')) knockBack(caster, target);
           }
         }
         applyMoveEffect(ability, target, clash.diceMult > 1);
-        if (isPureHeal && ability.slotRegen > 0) restoreSlots(target, ability.slotRegen, ability.name);
+        if (isPureHeal && ability.slotRegen > 0 && !(ability.excludeSelf && target.id === caster.id)) restoreSlots(target, ability.slotRegen, ability.name);
       }
       blastDoors(caster, ability, action.center);
 
@@ -3166,7 +3609,8 @@ function settlePendingAction(reactAbility) {
             applyDamage(current, result.damage, damType, ability.tags, ignoreDR);
             strikeBack(caster, result, damType, ability.tags);
             applyMoveEffect(ability, current, result.guaranteed);
-            if (ability.tags?.includes('grounded')) removeFlying(current);
+            if (grounds(ability)) removeFlying(current);
+            if (ability.followUp) (caster.followUps ??= []).push({ targetId: current.id, dice: ability.followUp, name: ability.name, damType, tags: ability.tags });
           }
           if (result.freeAction) current.freeActionTarget = caster.id;
         }
@@ -3205,9 +3649,9 @@ function settlePendingAction(reactAbility) {
           addLog(`  ${target.name} is hit for ${dmg} (${rd.breakdown}${versus ? ` +${versus.label}` : ''}${arcane ? ` +${arcane.label}` : ''}${mult < 1 ? ' ×½' : ''})`, 'hit');
           applyDamage(target, dmg, damType, ability.tags, coneIgnoreDR);
           if (clash.mutual) strikeBack(caster, { recoil: dmg }, damType, ability.tags);
-          if (ability.tags?.includes('grounded')) removeFlying(target);
+          if (grounds(ability)) removeFlying(target);
         }
-        applyMoveEffect(ability, target, clash.diceMult > 1);
+        if (!poisonCombo(ability, target, mult)) applyMoveEffect(ability, target, clash.diceMult > 1);
         if (ability.tags?.includes('passives_off') && !target.isKO && pushStatus(target, { name: 'passives_off', turnsLeft: 2 })) {
           addLog(`  ✦ ${target.name}'s passives are switched off for 1 turn.`, 'status');
         }
@@ -3236,8 +3680,8 @@ function settlePendingAction(reactAbility) {
                 const clash = areaDefense(splashAtk, t, caster, ability);
                 if (clash.freeAction && !action.free) t.freeActionTarget = caster.id;
                 if (clash.mult === 0) continue;
-                const rd = parseDice(ability.dice, { diceMult: clash.diceMult });
-                const splashDmg = Math.floor(rd.total / 2 * clash.mult);
+                const rd = parseDice(ability.splashDice ?? ability.dice, { diceMult: clash.diceMult });
+                const splashDmg = Math.floor((ability.splashDice ? rd.total : rd.total / 2) * clash.mult);
                 addLog(`  ${t.name} is caught by the splash for ${splashDmg} (${rd.breakdown}).`, 'hit');
                 applyDamage(t, splashDmg, damType, ability.tags);
                 if (clash.mutual) strikeBack(caster, { recoil: splashDmg }, damType, ability.tags);
@@ -3262,9 +3706,14 @@ function settlePendingAction(reactAbility) {
         } else if (isSelf || isPureHeal) {
           if (ability.grants) grantTimed(target, ability);
           // Borrowed Time (instant): the turn's action comes back, so the caster acts once more
-          if (ability.tags?.includes('extraAction') && S.hasActed) {
-            S.hasActed = false;
+          if (ability.tags?.includes('extraAction')) {
+            S.bonusActions++;
+            S.hasActed = S.actionsDone.length >= actionBudget(caster);
             addLog(`⏳ ${caster.name} borrows a moment — he may act again!`, 'spell');
+          }
+          if (ability.tags?.includes('final_reckoning') && !caster.statusEffects.some(e => e.name === 'final_reckoning')) {
+            caster.statusEffects.push({ name: 'final_reckoning', turnsLeft: 999, dice: '2d12', damType: null, notes: '+2d12 atk bonus, one more action a turn' });
+            addLog(`💀 ${caster.name} enters Final Reckoning — a third action each turn and +2d12 damage!`, 'crit');
           }
           if (ability.tags?.includes('gamble')) destinyGamble(caster);
           if (ability.tags?.includes('half_phys')) {
@@ -3291,6 +3740,7 @@ function settlePendingAction(reactAbility) {
           }
           if (ability.tags?.includes('cleans')) applyCleanse(target);
           applyWard(ability, target);
+          if (isSelf && ability.tags?.includes('team')) teamBoon(caster, ability);
           if (ability.tags?.includes('orders') && pushStatus(target, { name: 'orders', turnsLeft: 2 }, true)) {
             addLog(`📣 ${target.name} follows the orders — +2 on attack rolls until their next turn is over.`, 'spell');
           }
@@ -3307,7 +3757,8 @@ function settlePendingAction(reactAbility) {
             addLog(`${caster.name} revives ${target.name} with ${target.currentHp}/${target.maxHp} HP!`, 'heal');
             reviveBeside(caster, target);
             // KO clears every status, so give back innate flight
-            if (target.sourceChar.passif?.some(p => p.tags?.includes('fly')))
+            if (target.sourceChar.passif?.some(p => p.tags?.includes('fly'))
+                || (target.isTransformed && target.sourceChar.transformation?.passif?.some(p => p.tags?.includes('fly'))))
               target.statusEffects.push({ name: 'fly', turnsLeft: 999, dice: null, damType: null, notes: '' });
             updateCombatantCardDOM(target);
           } else if (ability.dice && !ability.isBlock) {
@@ -3317,7 +3768,7 @@ function settlePendingAction(reactAbility) {
               if (re) re.dice = ability.dice;
               addLog(`${target.name} regenerates ${ability.dice}/turn!`, 'heal');
             } else {
-              applyHeal(target, ability.dice);
+              applyHeal(target, ability.dice, null, !!ability.tags?.includes("repair"));
             }
           }
           applyMoveEffect(ability, target);
@@ -3341,7 +3792,7 @@ function settlePendingAction(reactAbility) {
               if (ability.isHeal) applyHeal(caster, String(action.result.damage));
               if (ability.isHeal && ability.slotRegen > 0) restoreSlots(caster, ability.slotRegen, ability.name);
               applyHpPerHitPassives(caster);
-              if (ability.tags?.includes('grounded')) removeFlying(target);
+              if (grounds(ability)) removeFlying(target);
             }
             applyMoveEffect(ability, target, action.result.guaranteed);
             if (ability.grants) grantTimed(caster, ability);   // a hostile move that also arms its caster (Withering Hour)
@@ -3353,6 +3804,7 @@ function settlePendingAction(reactAbility) {
               addLog(`🎭 ${caster.name} seizes ${target.name}'s shadow — they decide what ${target.name} does next turn!`, 'spell');
             }
             if (ability.tags?.includes('execute')) executeStrike(caster, target, ability);
+            if (ability.tags?.includes('chain_grab') && !target.isKO) chainBind(caster, target);
           } else if (!action.result.hit && !action.result.freeAction) {
             const shadowEffs = getDomainEffects(target, { applyOn: 'atkRoll', foeJustMissed: true });
             if (shadowEffs.length > 0 && shadowEffs[0].dices) {
@@ -3368,6 +3820,7 @@ function settlePendingAction(reactAbility) {
   }
 
   // ── Victory check ─────────────────────────────────────────────────────
+  for (const v of S.combatants) if (v.chains) v.statusEffects = v.statusEffects.filter(e => e.name !== 'chain_guard');
   const winner = checkVictory();
   if (winner !== null) { endCombat(winner); return; }
 
@@ -3384,7 +3837,8 @@ function concludeAction(instant) {
   const winner2 = checkVictory();
   if (winner2 !== null) { endCombat(winner2); return; }
 
-  if (instant && !S.hasActed) { R.renderCombatScreen(); return; }
+  // The turn stays open after an instant, or while an action is spent and another remains (a divinity, the Great Staff)
+  if (!S.hasActed && (instant || (S.actionsDone.length > 0 && !activeCombatant()?.isKO))) { R.renderCombatScreen(); return; }
   advanceTurn();
 }
 
@@ -3581,10 +4035,16 @@ export async function startInitiative() {
   S.initiativeOrder = [...S.combatants]
     .sort((a, b) => b.initiativeRoll - a.initiativeRoll)
     .map(c => c.id);
+  // A companion (the Sorcerer Master's Floating Head) is in the fight from the first round, acting right after its master
+  for (const owner of [...S.combatants]) {
+    if (owner.sourceChar.companion) spawnSummon(owner, owner.sourceChar.companion, { place: false });
+  }
 
   S.mapViewFilter  = 'both';
   S.hasMoved       = false;
   S.hasActed       = false;
+  S.actionsDone    = [];
+  S.bonusActions   = 0;
   S.moveMode       = false;
   S.reachableCells = new Map();
 
@@ -3603,6 +4063,8 @@ export function startCombat() {
   S.roundNumber = 1;
   S.log = [];
   S.hasActed = false;
+  S.actionsDone = [];
+  S.bonusActions = 0;
   if (S.currentMap) placeCharacters(S.currentMap);
   S.hasMoved = false;
   addRoundDivider();
@@ -3626,6 +4088,8 @@ export function advanceTurn() {
   S.turnSerial++;
   S.hasMoved         = false;
   S.hasActed         = false;
+  S.actionsDone      = [];
+  S.bonusActions     = 0;
   S.moveMode         = false;
   S.reachableCells   = new Map();
   clearAimState();
@@ -3641,11 +4105,25 @@ export function beginTurn(c) {
   c.luckSpent = false;
   addLog(c.name, 'turn', { team: c.teamIndex });   // start-of-turn ticks belong to this turn
 
-  const survived = tickTurn(c);
+  chainTick(c);
+  const survived = !c.isKO && tickTurn(c);
   if (!survived) {
     const w = checkVictory();
     if (w !== null) { endCombat(w); return; }
     advanceTurn(); return;   // died to damage-over-time: no turn to play
+  }
+
+  // A boomerang comes back: the blow queued by last turn's move lands now, on each target that was hit
+  if (c.followUps?.length) {
+    const due = c.followUps; c.followUps = [];
+    for (const f of due) {
+      const t = getCombatant(f.targetId);
+      if (!t || t.isKO) continue;
+      const r = parseDice(f.dice);
+      addLog(`↩ ${c.name}'s ${f.name} comes back and hits ${t.name} for ${r.total} (${r.breakdown}).`, 'hit');
+      applyDamage(t, r.total, f.damType, f.tags);
+    }
+    if (checkVictory() !== null) { endCombat(checkVictory()); return; }
   }
 
   // Paralysed: each turn it lasts, a 1d2 chance that the body locks up and the turn is lost (a stun that ends with it)

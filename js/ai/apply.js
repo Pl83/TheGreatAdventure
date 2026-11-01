@@ -54,7 +54,7 @@ export function applyPlan(plan) {
     if (moveFail) reasons.push(moveFail);
   }
 
-  const serial = S.turnSerial, acted = S.hasActed, logLen = S.log.length;
+  const serial = S.turnSerial, acted = S.hasActed, logLen = S.log.length, spent = S.actionsDone.length;
   const a = plan.action;
   switch (a?.type) {
     case 'pass':      handlePass(); break;
@@ -72,7 +72,7 @@ export function applyPlan(plan) {
   // An instant cast keeps the turn open and leaves hasActed alone: its "uses" log line (written only once
   // every check has passed and the cost is paid) is the proof it happened
   const cast = a?.type === 'cast' && S.log.slice(logLen).some(e => e.text === `${c.name} uses ${a.ability}!`);
-  const accepted = S.turnSerial !== serial || (!acted && S.hasActed) || cast
+  const accepted = S.turnSerial !== serial || (!acted && S.hasActed) || S.actionsDone.length > spent || cast
     || S.awaitingReact || !!S.pendingAction || S.phase !== 'combat';
   // The engine explains its refusals in the log
   if (!accepted) reasons.push(S.log.slice(logLen).at(-1)?.text ?? `${a?.type} rejected`);

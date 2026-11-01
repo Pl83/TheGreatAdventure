@@ -315,6 +315,7 @@ test('a natural 20 that lands offers the defender no reaction, a plain hit still
   assert.equal(S.awaitingReact, false, 'no react prompt after a natural 20');
   assert.match(logText(), /natural 20 leaves no time to react/);
   settle();
+  L.handlePass();   // a divinity still has a second action: end the turn, then come back round
   toTurn('Chronos');
   place(y, x.x + 1, x.y);
   forceD20(15, 14, 3);

@@ -45,5 +45,10 @@ export function restore(snap) {
   for (const k in state) S[k] = REF_KEYS.has(k) ? state[k] : clone(state[k]);
   S.log.length = logLen;
   if (doors && S.currentMap) { S.currentMap.doors = clone(doors); indexDoors(S.currentMap); }
+  // Units summoned since the snapshot disappear again; the live objects of the others are kept
+  if (S.combatants.length !== combatants.length || S.combatants.some((c, i) => c !== combatants[i].c)) {
+    S.combatants.length = 0;
+    for (const { c } of combatants) S.combatants.push(c);
+  }
   for (const { c, data } of combatants) overwrite(c, data);
 }

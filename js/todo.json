@@ -1,392 +1,1125 @@
 {
   "categories": [
-    { "id": "bugs",      "label": "Bugs",               "icon": "🐞", "hint": "Behaviour that contradicts the rules or the UI" },
-    { "id": "oddities",  "label": "Oddities & balance", "icon": "⚖",  "hint": "Works as coded, but feels wrong or lopsided" },
-    { "id": "mechanics", "label": "No mechanics yet",   "icon": "🕳", "hint": "Listed on the sheet, does nothing in the simulator" }
+    {
+      "id": "bugs",
+      "label": "Bugs",
+      "icon": "🐞",
+      "hint": "Behaviour that contradicts the rules or the UI"
+    },
+    {
+      "id": "oddities",
+      "label": "Oddities & balance",
+      "icon": "⚖",
+      "hint": "Works as coded, but feels wrong or lopsided"
+    },
+    {
+      "id": "mechanics",
+      "label": "No mechanics yet",
+      "icon": "🕳",
+      "hint": "Listed on the sheet, does nothing in the simulator"
+    }
   ],
   "items": [
     {
-      "id": "bug-status-on-ko", "resolution": "Fixed: applyStatus ignores KO'd targets.", "cat": "bugs", "sev": "high",
+      "id": "bug-status-on-ko",
+      "resolution": "Fixed: applyStatus ignores KO'd targets.",
+      "cat": "bugs",
+      "sev": "high",
       "title": "Statuses land on units killed by the same hit",
       "detail": "applyDamage KOs the unit and wipes its statuses, then the move's effect is applied afterwards. applyStatus has no KO check, so the dead unit keeps Stun / Blind / Para / Silence, and a revive brings it back with that status.",
       "evidence": "Tambours de Kamowakeikazuchi, Scream of the Banshee, Chain Thunder, Solar Flare, Odin's Wrath. Seen in 9 of 14 logged fights.",
       "where": "combat-logic.js · applyStatus, AoE / cone / splash / single-target branches"
     },
     {
-      "id": "bug-shield-no-advance", "resolution": "Fixed: a pre-armed shield block now ends the turn.", "cat": "bugs", "sev": "high",
+      "id": "bug-shield-no-advance",
+      "resolution": "Fixed: a pre-armed shield block now ends the turn.",
+      "cat": "bugs",
+      "sev": "high",
       "title": "A pre-armed shield block leaves the turn open",
       "detail": "handleAttack and the single-target cast path set hasActed, re-render and return without advanceTurn(). The player is stuck on an empty turn and has to press Pass. Every other block path advances the turn.",
       "evidence": "Hit 257 times in the 8 domain fights.",
       "where": "combat-logic.js · handleAttack, handleCastAbility (water_shield branch)"
     },
     {
-      "id": "bug-react-vs-proactive", "resolution": "Fixed: shared half-physical effect; Dragon Scale Guard now halves physical damage.", "cat": "bugs", "sev": "med",
+      "id": "bug-react-vs-proactive",
+      "resolution": "Fixed: shared half-physical effect; Dragon Scale Guard now halves physical damage.",
+      "cat": "bugs",
+      "sev": "med",
       "title": "Proactive and react versions of the same move differ",
       "detail": "Dragon Scale Guard says \"reduces physical damage by half\" but fully blocks the next attack, as a react and when pre-armed. Hela's Living Blade Armor halves physical damage as a react, but cast proactively it \"prepares a shield, next attack blocked\".",
       "where": "combat-logic.js · resumePendingAction (half_phys) vs ability branch (water_shield)"
     },
-
     {
-      "id": "odd-hela-resurrection", "resolution": "Balance patch: Resurrection triggers only once per fight.", "cat": "oddities", "sev": "low",
+      "id": "odd-hela-resurrection",
+      "resolution": "Balance patch: Resurrection triggers only once per fight.",
+      "cat": "oddities",
+      "sev": "low",
       "title": "Hela's Resurrection ignores her max HP",
       "detail": "She always comes back with a hard-coded 150 HP out of 450, plus the +2d12 Final Reckoning bonus.",
       "where": "combat-logic.js · applyDamage (Resurrection)"
     },
     {
-      "id": "odd-hela-stalemate", "resolution": "Balance patch: addressed by capping Resurrection to one use.", "cat": "oddities", "sev": "med",
+      "id": "odd-hela-stalemate",
+      "resolution": "Balance patch: addressed by capping Resurrection to one use.",
+      "cat": "oddities",
+      "sev": "med",
       "title": "Hela out-sustains everything",
       "detail": "450 HP and 20 HP regen per turn: two Helas never killed each other, and all 8 domain fights stalled for 117 to 231 rounds with only the Helas left.",
       "where": "characters.json · Hela, Goddess of Death"
     },
     {
-      "id": "odd-domain-refinement", "resolution": "Intended behaviour.", "cat": "oddities", "sev": "med",
+      "id": "odd-domain-refinement",
+      "resolution": "Intended behaviour.",
+      "cat": "oddities",
+      "sev": "med",
       "title": "Domain clashes are decided by refinement alone",
       "detail": "Hela's Complet domain (refinement 7) suppresses every other domain. Sensei Lloyd's Incomplet domain (refinement 0) can never win a clash.",
       "where": "combat-logic.js · handleActivateDomain"
     },
     {
-      "id": "odd-domain-free-retry", "resolution": "Balance patch: a suppressed expansion now costs half the slots (the other half is refunded).", "cat": "oddities", "sev": "low",
+      "id": "odd-domain-free-retry",
+      "resolution": "Balance patch: a suppressed expansion now costs half the slots (the other half is refunded).",
+      "cat": "oddities",
+      "sev": "low",
       "title": "A suppressed domain activation costs nothing",
       "detail": "When a stronger enemy domain suppresses the attempt, no slot is spent and the action is kept, so it can be retried endlessly.",
       "where": "combat-logic.js · handleActivateDomain"
     },
     {
-      "id": "odd-domain-equal-clash", "resolution": "Intended behaviour.", "cat": "oddities", "sev": "low",
+      "id": "odd-domain-equal-clash",
+      "resolution": "Intended behaviour.",
+      "cat": "oddities",
+      "sev": "low",
       "title": "An equal clash cancels both domains but still costs the action",
       "detail": "Both domains drop; the activator still pays the slots and a charge and loses the turn. Check this is intended."
     },
-
     {
-      "id": "mech-gravity", "resolution": "Implemented: Gravity Up (failed defense roll gives the enemy disadvantage on its next d20) and Gravity Down (an ally gets advantage on its next d20).", "cat": "mechanics", "sev": "med",
-      "title": "Gravity Up / Gravity Down", "who": "Akir",
+      "id": "mech-gravity",
+      "resolution": "Implemented: Gravity Up (failed defense roll gives the enemy disadvantage on its next d20) and Gravity Down (an ally gets advantage on its next d20).",
+      "cat": "mechanics",
+      "sev": "med",
+      "title": "Gravity Up / Gravity Down",
+      "who": "Akir",
       "detail": "Target has disadvantage (Up) or advantage (Down) on rolls."
     },
     {
-      "id": "mech-boar", "resolution": "Implemented: full taunt for 1 turn, taunted enemies must target Baal. Baal keeps -10 damage taken.", "cat": "mechanics", "sev": "med",
-      "title": "Spirit of the Wild Boar", "who": "Baal",
+      "id": "mech-boar",
+      "resolution": "Implemented: full taunt for 1 turn, taunted enemies must target Baal. Baal keeps -10 damage taken.",
+      "cat": "mechanics",
+      "sev": "med",
+      "title": "Spirit of the Wild Boar",
+      "who": "Baal",
       "detail": "-10 damage taken, half-taunt."
     },
     {
-      "id": "mech-perfect-reflection", "resolution": "Implemented: reflects a spell back with doubled damage, works on area spells, pierced by Authority 8.", "cat": "mechanics", "sev": "med",
-      "title": "Perfect Reflection", "who": "Hela, Goddess of Death",
+      "id": "mech-perfect-reflection",
+      "resolution": "Implemented: reflects a spell back with doubled damage, works on area spells, pierced by Authority 8.",
+      "cat": "mechanics",
+      "sev": "med",
+      "title": "Perfect Reflection",
+      "who": "Hela, Goddess of Death",
       "detail": "Reflects a spell back at 2x damage. Only bypassed by Authority."
     },
     {
-      "id": "mech-sacrifice", "resolution": "Implemented: a landed hit on a target under 10% HP kills outright (no resurrection); the caster gets 1 slot and 50 HP.", "cat": "mechanics", "sev": "med",
-      "title": "Sacrifice", "who": "Huītzilōpōchtli",
+      "id": "mech-sacrifice",
+      "resolution": "Implemented: a landed hit on a target under 10% HP kills outright (no resurrection); the caster gets 1 slot and 50 HP.",
+      "cat": "mechanics",
+      "sev": "med",
+      "title": "Sacrifice",
+      "who": "Huītzilōpōchtli",
       "detail": "Execute target below 10 HP. Restore 1 spell slot and 50 HP."
     },
     {
-      "id": "mech-greater-teleport", "resolution": "Implemented: the caster and allies within 20 cells teleport to a chosen cell; as a react, they all dodge.", "cat": "mechanics", "sev": "med",
-      "title": "Greater Teleportation", "who": "Kadgar",
+      "id": "mech-greater-teleport",
+      "resolution": "Implemented: the caster and allies within 20 cells teleport to a chosen cell; as a react, they all dodge.",
+      "cat": "mechanics",
+      "sev": "med",
+      "title": "Greater Teleportation",
+      "who": "Kadgar",
       "detail": "Teleport all allies."
     },
     {
-      "id": "mech-spawn-food", "cat": "mechanics", "sev": "low",
-      "title": "Spawn Food", "who": "Krilin",
+      "id": "mech-spawn-food",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "Spawn Food",
+      "who": "Krilin",
       "detail": "Spawn food. Costs 1-5 ki depending on quantity."
     },
     {
-      "id": "mech-mockery", "cat": "mechanics", "sev": "low",
-      "title": "Vicious Mockery", "who": "MaracachaCoocaracha",
+      "id": "mech-mockery",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "Vicious Mockery",
+      "who": "MaracachaCoocaracha",
       "detail": "No description and no dice in the data yet."
     },
     {
-      "id": "mech-scanner", "cat": "mechanics", "sev": "low",
-      "title": "Scanner", "who": "Pixal",
+      "id": "mech-scanner",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "Scanner",
+      "who": "Pixal",
       "detail": "Scan the area for enemies and hidden elements."
     },
     {
-      "id": "mech-hunter-instinct", "resolution": "Implemented: a self technique that ends the turn; the owner's next attack roll is a sure hit (a natural 1 still fumbles).", "cat": "mechanics", "sev": "med",
-      "title": "Hunter Instinct", "who": "Ras",
+      "id": "mech-hunter-instinct",
+      "resolution": "Implemented: a self technique that ends the turn; the owner's next attack roll is a sure hit (a natural 1 still fumbles).",
+      "cat": "mechanics",
+      "sev": "med",
+      "title": "Hunter Instinct",
+      "who": "Ras",
       "detail": "Next attack is a sure hit."
     },
     {
-      "id": "mech-convert", "resolution": "Implemented as two spells, Convert (Freeze) and Convert (Evaporate), each aimed at a cell (radius 4, 1 slot). Freeze turns the water cells in the blast to ice (plain floor) and freezes everyone wet in it (soaked, or standing in that water). Evaporate boils the cells away and dries everyone in the blast. Ice and dried cells are drawn on the map. The bot may cast them but does not aim them deliberately: it centres them on a foe.", "cat": "mechanics", "sev": "low",
-      "title": "Convert", "who": "Wyldfire",
+      "id": "mech-convert",
+      "resolution": "Implemented as two spells, Convert (Freeze) and Convert (Evaporate), each aimed at a cell (radius 4, 1 slot). Freeze turns the water cells in the blast to ice (plain floor) and freezes everyone wet in it (soaked, or standing in that water). Evaporate boils the cells away and dries everyone in the blast. Ice and dried cells are drawn on the map. The bot may cast them but does not aim them deliberately: it centres them on a foe.",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "Convert",
+      "who": "Wyldfire",
       "detail": "Freeze or evaporate water in area."
     },
     {
-      "id": "mech-smoke-screen", "resolution": "Implemented: everyone within 4 cells except Zed has disadvantage on attack and defense rolls for 3 turns.", "cat": "mechanics", "sev": "med",
-      "title": "Smoke Screen", "who": "Zed",
+      "id": "mech-smoke-screen",
+      "resolution": "Implemented: everyone within 4 cells except Zed has disadvantage on attack and defense rolls for 3 turns.",
+      "cat": "mechanics",
+      "sev": "med",
+      "title": "Smoke Screen",
+      "who": "Zed",
       "detail": "Disadvantage on attack and defense rolls for 4 turns."
     },
     {
-      "id": "mech-puppeteer", "resolution": "Implemented: on a landed hit the target may be pointed at anyone during its next turn.", "cat": "mechanics", "sev": "med",
-      "title": "Puppeteer", "who": "Zed",
+      "id": "mech-puppeteer",
+      "resolution": "Implemented: on a landed hit the target may be pointed at anyone during its next turn.",
+      "cat": "mechanics",
+      "sev": "med",
+      "title": "Puppeteer",
+      "who": "Zed",
       "detail": "Take control of a creature via its shadow for 1 turn."
     },
     {
-      "id": "mech-traitor", "cat": "mechanics", "sev": "low",
-      "title": "Traitor (passive): selfBehindTarget condition", "who": "Vorrakan Duskbane",
+      "id": "mech-traitor",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "Traitor (passive): selfBehindTarget condition",
+      "who": "Vorrakan Duskbane",
       "detail": "The +1d8 attack bonus never applies because the engine has no \"behind the target\" check. Found in the first test pass."
     },
     {
-      "id": "mech-elemental-bonus", "cat": "mechanics", "sev": "low",
+      "id": "mech-elemental-bonus",
+      "cat": "mechanics",
+      "sev": "low",
       "title": "Elemental Bonus x2",
       "detail": "The condition is not implemented. Found in the first test pass."
     },
     {
-      "id": "bug-revive-placement", "resolution": "Fixed: the revived ally lands on the free cell nearest to the caster and takes its turn right after the caster. Applies to every revive.", "cat": "bugs", "sev": "high",
-      "title": "Resurrection Ember revives onto the fallen cell and keeps the old turn slot", "who": "Zhuqiao",
+      "id": "bug-revive-placement",
+      "resolution": "Fixed: the revived ally lands on the free cell nearest to the caster and takes its turn right after the caster. Applies to every revive.",
+      "cat": "bugs",
+      "sev": "high",
+      "title": "Resurrection Ember revives onto the fallen cell and keeps the old turn slot",
+      "who": "Zhuqiao",
       "detail": "The revived ally stood back up on the cell where it fell, which could be occupied by a living unit (two units on one cell), and kept its old place in the initiative order.",
       "where": "combat-logic.js · handleCastAbility (isRevive), reviveBeside"
     },
     {
-      "id": "mech-wet", "resolution": "Implemented: Water Dragon and Abyssal Current soak their targets for 2 turns; standing in the map's water also makes a unit wet. Wet units walk at 0.8 speed and take x1.5 lightning; ice freezes them for sure or gives a 1d2 chance; fire dries them and lightning or ice spends the soaking; Ice Coffin hits a wet target for 2d10 more; Fire Tornado removes wet from allies; Black Turtle and Kaelgrym are immune. Left: Runik Sea Bound's advantage on a wet field (see its own item).", "cat": "mechanics", "sev": "med",
-      "title": "Wet status", "who": "Eragon, Black Turtle, Admiral Jaina",
+      "id": "mech-wet",
+      "resolution": "Implemented: Water Dragon and Abyssal Current soak their targets for 2 turns; standing in the map's water also makes a unit wet. Wet units walk at 0.8 speed and take x1.5 lightning; ice freezes them for sure or gives a 1d2 chance; fire dries them and lightning or ice spends the soaking; Ice Coffin hits a wet target for 2d10 more; Fire Tornado removes wet from allies; Black Turtle and Kaelgrym are immune. Left: Runik Sea Bound's advantage on a wet field (see its own item).",
+      "cat": "mechanics",
+      "sev": "med",
+      "title": "Wet status",
+      "who": "Eragon, Black Turtle, Admiral Jaina",
       "detail": "There is no wet status. Water Dragon (Eragon) and Abyssal Current (Black Turtle) carry the wet tag but only deal damage. Nothing reads it: Ice Coffin's +2d10 against a wet target, Fire Tornado removing wet, Runik Sea Bound's advantage on a wet field, and the wet immunity of Black Turtle. The combat AI spec lists the wet combos as supported; they are not.",
       "evidence": "combat-logic.js never mentions wet. Found by the 2026-10-29 audit: every move was cast in the headless engine and the passives were checked against what combat-logic.js reads.",
       "where": "combat-logic.js · applyStatus, resolveAttack"
     },
     {
-      "id": "mech-ifrit-state", "resolution": "Implemented: the relic starts asleep and absorbs fire. The first strike with the Awake form wakes it for the rest of the fight: no more absorption, the Sleeping form can no longer be used, and a badge shows that Ifrit is awake.", "cat": "mechanics", "sev": "low",
-      "title": "Ifrit's Bane Sleeping / Awake", "who": "Kaelgrym",
+      "id": "mech-ifrit-state",
+      "resolution": "Implemented: the relic starts asleep and absorbs fire. The first strike with the Awake form wakes it for the rest of the fight: no more absorption, the Sleeping form can no longer be used, and a badge shows that Ifrit is awake.",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "Ifrit's Bane Sleeping / Awake",
+      "who": "Kaelgrym",
       "detail": "Kaelgrym has both relic attacks but no state tells which form he wields, so the fire absorption of the Sleeping form is always on, even when he uses the Awake form. Awake should presumably end the absorption."
     },
     {
-      "id": "mech-sea-bound-wet", "cat": "mechanics", "sev": "low",
-      "title": "Runik Sea Bound: advantage on a wet field", "who": "Admiral Jaina",
+      "id": "mech-sea-bound-wet",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "Runik Sea Bound: advantage on a wet field",
+      "who": "Admiral Jaina",
       "detail": "Runik Sea Bound should roll with advantage when the field is wet, and its stun and root should each be a 1d2 chance. The spell has no attack roll in the engine (it deals no damage), so there is nothing to give advantage to, and both statuses always land."
     },
     {
-      "id": "bug-crit-rules", "resolution": "Implemented as specified for single-target blows (basic attacks, single-target moves, bounces, the primary target of a splash). Nat 1 vs nat 1: the blow is rolled and both take half. Nat 1 vs anything else, or a nat 20 defense against an ordinary roll: the attack fails and the defender earns a free action. Nat 20 vs nat 20: a plain hit. Nat 20 vs nat 1: dice x4, and a nat 20 vs an ordinary roll or an ordinary roll vs a nat 1: dice x2; the flat part is not multiplied and 1d2 riders are certain on these hits. A sure-hit still lands on a nat 20 defense. The free action is dash in and strike, do nothing, or cast a spell at the attacker (a single-target spell is one attack roll against them; an area spell is centred on them with the caster rolling the attack and everyone in the blast rolling defense). A person is asked; the bot and headless fights strike when the dash reaches, else pass. A stunned or frozen unit gets nothing.", "cat": "bugs", "sev": "high",
+      "id": "bug-crit-rules",
+      "resolution": "Implemented as specified for single-target blows (basic attacks, single-target moves, bounces, the primary target of a splash). Nat 1 vs nat 1: the blow is rolled and both take half. Nat 1 vs anything else, or a nat 20 defense against an ordinary roll: the attack fails and the defender earns a free action. Nat 20 vs nat 20: a plain hit. Nat 20 vs nat 1: dice x4, and a nat 20 vs an ordinary roll or an ordinary roll vs a nat 1: dice x2; the flat part is not multiplied and 1d2 riders are certain on these hits. A sure-hit still lands on a nat 20 defense. The free action is dash in and strike, do nothing, or cast a spell at the attacker (a single-target spell is one attack roll against them; an area spell is centred on them with the caster rolling the attack and everyone in the blast rolling defense). A person is asked; the bot and headless fights strike when the dash reaches, else pass. A stunned or frozen unit gets nothing.",
+      "cat": "bugs",
+      "sev": "high",
       "title": "Crits (nat 20 / nat 1) are frustrating: a nat 20 does nothing when the foe is out of range",
       "detail": "Redesign the attack outcome around the attacker's AND the defender's d20. Attacker A hits defender C. (1) nat 1 vs nat 1: damage is rolled and both take half of it. (2) nat 1 vs nat 20: A's attack fails and C gets a free turn to use as they want. (3) nat 20 vs nat 20: a plain hit, no bonus damage. (4) nat 20 vs nat 1: a hit with bonus: 1d2 effects are guaranteed and every damage die is quadrupled (1d6 becomes 4d6). (5) nat 1 vs an ordinary roll: A misses and C may dash to A and make a normal attack, do nothing, or cast a spell. (6) ordinary roll vs nat 1: a hit with bonus: 1d2 effects guaranteed and damage dice doubled (1d6 becomes 2d6). (7) nat 20 vs an ordinary roll: same bonus as (6). (8) ordinary roll vs nat 20: A misses and C gets the same free action as (5). If C answers with a spell, C must make an attack roll, always against A; if the spell is an area, C rolls the attack and A's allies caught in it roll the defence.",
       "evidence": "Today resolveAttack (combat-logic.js:1896) lets a nat 20 hit and a nat 1 miss whatever the defender rolled, and a crit only pays off when the target is in reach. Open points to settle before building: how the free action fits the turn order, whether it consumes C's own turn, and whether the 'ordinary roll' cases need a threshold.",
       "where": "combat-logic.js · resolveAttack, rollAttackD20, areaDefense, reaction flow; js/ai/* must learn the free action"
     },
     {
-      "id": "mech-crit-areas", "resolution": "Implemented: area, cone and splash-bystander moves use the same d20 matrix per victim. The caster's one roll against each victim's own: nat 20 doubles the dice (x4 against a victim's nat 1, plain against a nat 20), an ordinary roll against a victim's nat 1 doubles them, 1d2 riders become certain on those hits; a caster nat 1 turns the blow away from every victim (each earns a free action) unless the victim fumbles too (the victim takes half and the caster takes the same half, once per such victim); a victim's nat 20 against an ordinary roll takes nothing and earns a free action. Ordinary rolls keep the old full / half / none rule, and a sure-hit still lands. Splash bystanders defend against the primary roll the same way.", "cat": "mechanics", "sev": "med",
+      "id": "mech-crit-areas",
+      "resolution": "Implemented: area, cone and splash-bystander moves use the same d20 matrix per victim. The caster's one roll against each victim's own: nat 20 doubles the dice (x4 against a victim's nat 1, plain against a nat 20), an ordinary roll against a victim's nat 1 doubles them, 1d2 riders become certain on those hits; a caster nat 1 turns the blow away from every victim (each earns a free action) unless the victim fumbles too (the victim takes half and the caster takes the same half, once per such victim); a victim's nat 20 against an ordinary roll takes nothing and earns a free action. Ordinary rolls keep the old full / half / none rule, and a sure-hit still lands. Splash bystanders defend against the primary roll the same way.",
+      "cat": "mechanics",
+      "sev": "med",
       "title": "Crits do not reach area moves",
       "detail": "The new nat 20 / nat 1 matrix only governs single-target blows. Area, cone and splash-bystander moves still use the old rule: the caster's nat 20 is a full-damage hit, defenders roll against it, and a caster's nat 1 does nothing special. No bonus dice, no free action for a nat 20 defender, no mutual fumble."
     },
     {
-      "id": "mech-free-spell-react", "resolution": "Fixed: a free-action spell is now an ordinary pending action, so its target is offered its reacts before it resolves (for an area spell, each unit in the blast). A pre-armed shield blocks it. It is marked free: it never earns anyone another free action, and when it finishes it concludes the action it answered, so the turn moves on exactly once.", "cat": "mechanics", "sev": "low",
+      "id": "mech-free-spell-react",
+      "resolution": "Fixed: a free-action spell is now an ordinary pending action, so its target is offered its reacts before it resolves (for an area spell, each unit in the blast). A pre-armed shield blocks it. It is marked free: it never earns anyone another free action, and when it finishes it concludes the action it answered, so the turn moves on exactly once.",
+      "cat": "mechanics",
+      "sev": "low",
       "title": "Free-action spells give the target no react",
       "detail": "A spell cast as a free action resolves at once: the attacked unit is not offered a react (Phoenix Shroud, shields, reflects), and a pre-armed shield does not stop it. It also never chains into another free action."
     },
     {
-      "id": "mech-free-bot-spell", "cat": "mechanics", "sev": "low",
+      "id": "mech-free-bot-spell",
+      "cat": "mechanics",
+      "sev": "low",
       "title": "The bot never casts a spell on a free action",
       "detail": "The bot (and headless fights) strike when the dash reaches and otherwise pass; they never choose a spell, and do not weigh striking against a spell or against doing nothing."
     },
     {
-      "id": "mech-disv-riders", "resolution": "Implemented as a data field (inflicts) on each move, with three kinds of hindrance. Earthquake, Quake Wave, Wind Tornado, Vicious Mockery and Azure Dragon Roar leave each target they reach rolling every d20 with disadvantage for one of its turns (hindered). Ice Coffin (Eragon) makes the next defense roll of each target a disadvantage, and only that one (hindered_def, up to 2 turns if never rolled). Field of Corruption gives each target a 1d2 chance of disadvantage on attack rolls for 2 turns (hindered_atk); a bonus hit makes the chance certain. A warded target is spared, a target that evades the area is not touched, a fresh hit refreshes instead of stacking, and Fire Tornado lifts all three from allies.", "cat": "mechanics", "sev": "med",
-      "title": "Disadvantage riders (disv tag)", "who": "Eragon, Meï, Vorrakan Duskbane, Morrow, Cole Climber, Jay",
+      "id": "mech-disv-riders",
+      "resolution": "Implemented as a data field (inflicts) on each move, with three kinds of hindrance. Earthquake, Quake Wave, Wind Tornado, Vicious Mockery and Azure Dragon Roar leave each target they reach rolling every d20 with disadvantage for one of its turns (hindered). Ice Coffin (Eragon) makes the next defense roll of each target a disadvantage, and only that one (hindered_def, up to 2 turns if never rolled). Field of Corruption gives each target a 1d2 chance of disadvantage on attack rolls for 2 turns (hindered_atk); a bonus hit makes the chance certain. A warded target is spared, a target that evades the area is not touched, a fresh hit refreshes instead of stacking, and Fire Tornado lifts all three from allies.",
+      "cat": "mechanics",
+      "sev": "med",
+      "title": "Disadvantage riders (disv tag)",
+      "who": "Eragon, Meï, Vorrakan Duskbane, Morrow, Cole Climber, Jay",
       "detail": "Moves tagged disv should leave their targets rolling with disadvantage: Ice Coffin (next saving throw), Field of Corruption (1d2 turns on attacks), Earthquake, Wind Tornado, Quake Wave, and Azure Dragon Roar (\"disadvantage on foe rolls for 1 turn\"). They only deal their damage. Smoke Screen and Gravity Up are the only moves that apply disadvantage today.",
       "evidence": "Casting Azure Dragon Roar and Ice Coffin leaves no disadvantage status on any target. Found by the 2026-10-29 audit: every move was cast in the headless engine and the passives were checked against what combat-logic.js reads."
     },
     {
-      "id": "mech-field-corruption-chances", "resolution": "Implemented: Field of Corruption is now a lingering field (S.fields) centred on the chosen cell, radius 4, lasting 5 rounds counting the one it is cast in. It deals no damage and has no attack roll. Every foe inside meets it at the cast and then once at the start of each of its turns (never twice in a round, and not when it has walked out): para, poison, burn and bleed each on their own 1d2, and a 1d2 chance of disadvantage on attacks. Allies and foes outside are untouched. It is drawn on the map and fades with a log line.", "cat": "mechanics", "sev": "low",
-      "title": "Field of Corruption: its para, poison and burn are certain", "who": "Mei",
+      "id": "mech-field-corruption-chances",
+      "resolution": "Implemented: Field of Corruption is now a lingering field (S.fields) centred on the chosen cell, radius 4, lasting 5 rounds counting the one it is cast in. It deals no damage and has no attack roll. Every foe inside meets it at the cast and then once at the start of each of its turns (never twice in a round, and not when it has walked out): para, poison, burn and bleed each on their own 1d2, and a 1d2 chance of disadvantage on attacks. Allies and foes outside are untouched. It is drawn on the map and fades with a log line.",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "Field of Corruption: its para, poison and burn are certain",
+      "who": "Mei",
       "detail": "The description says 1d2 para + 1d2 poison + 1d2 burn + 1d2 disv atk, but the move has no effect string, so its three statuses come from the tags and every target in the area gets all three every time (20 of 20 casts in the check). Only the disadvantage rider honours the 1d2 now. Give the move an effect of \"1d2 para, 1d2 toxic, 1d2 burn\".",
       "where": "characters.json · Mei, Field of Corruption"
     },
     {
-      "id": "mech-dots-rework", "cat": "mechanics", "sev": "low",
-      "title": "Damage-over-time rework (resolved)", "who": "all",
-      "resolution": "Implemented in the engine, the status table and the data renames (Roses, Kaelgrym, Swamp Tribe, Field of Corruption).", "detail": "Done: Toxic is now Poison and Toxic shock is Toxic; Calcinated (2d4 fire) is added. Burn, Poison and Bleed last 3 turns, Calcinated, Toxic and Hemoragie 5. Burn, Poison, Calcinated and Toxic hurt at the start of each turn; Bleed costs its dice once per move, Hemoragie per cell walked. Every application is its own copy with its own timer. Wet puts out Burn (not Calcinated). Mecha are immune to Bleed and Hemoragie; an immunity to the basic form covers the upgrade."
+      "id": "mech-dots-rework",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "Damage-over-time rework (resolved)",
+      "who": "all",
+      "resolution": "Implemented in the engine, the status table and the data renames (Roses, Kaelgrym, Swamp Tribe, Field of Corruption).",
+      "detail": "Done: Toxic is now Poison and Toxic shock is Toxic; Calcinated (2d4 fire) is added. Burn, Poison and Bleed last 3 turns, Calcinated, Toxic and Hemoragie 5. Burn, Poison, Calcinated and Toxic hurt at the start of each turn; Bleed costs its dice once per move, Hemoragie per cell walked. Every application is its own copy with its own timer. Wet puts out Burn (not Calcinated). Mecha are immune to Bleed and Hemoragie; an immunity to the basic form covers the upgrade."
     },
     {
-      "id": "mech-calcinated-source", "cat": "mechanics", "sev": "low",
-      "title": "No move applies Calcinated yet", "who": "all",
+      "id": "mech-calcinated-source",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "No move applies Calcinated yet",
+      "who": "all",
       "detail": "Calcinated exists as a status but nothing in characters.json inflicts it; the old Burn-upgrade moves still apply plain Burn. Decide which moves should upgrade."
     },
     {
-      "id": "mech-para-reacts", "resolution": "Fixed: getReacts returns nothing for a unit under gel, stun, cocoon or fear, so it gets no react prompt. A unit that is only paralysed (and not stunned this turn) still reacts. Root still only blocks movement.", "cat": "mechanics", "sev": "low",
-      "title": "A paralysed unit can still react", "who": "all",
+      "id": "mech-para-reacts",
+      "resolution": "Fixed: getReacts returns nothing for a unit under gel, stun, cocoon or fear, so it gets no react prompt. A unit that is only paralysed (and not stunned this turn) still reacts. Root still only blocks movement.",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "A paralysed unit can still react",
+      "who": "all",
       "detail": "Gel, stun and fear (and a turn lost to a para stun) make a unit skip its turn, but getReacts still offers it reactions while the status lasts. Root only blocks movement. Decide whether control effects should also forbid reacts."
     },
     {
-      "id": "mech-dots-bot", "resolution": "Implemented: the evaluation counts the HP a unit still has to lose to burn, poison and bleed (a weight, dot, the tuner can move). A bleed or haemorrhage already costs HP when a plan walks, as the search plays it on the real engine.", "cat": "mechanics", "sev": "low",
-      "title": "The bot does not value damage over time", "who": "all",
+      "id": "mech-dots-bot",
+      "resolution": "Implemented: the evaluation counts the HP a unit still has to lose to burn, poison and bleed (a weight, dot, the tuner can move). A bleed or haemorrhage already costs HP when a plan walks, as the search plays it on the real engine.",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "The bot does not value damage over time",
+      "who": "all",
       "detail": "evaluate.js does not count the damage a Burn, Poison, Bleed or Hemoragie will deal, so it neither prefers nor avoids stacking them, and it walks freely while bleeding."
     },
     {
-      "id": "mech-fields-both", "cat": "mechanics", "sev": "low",
-      "title": "Meï keeps both fields up (resolved)", "who": "Mei",
+      "id": "mech-fields-both",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "Meï keeps both fields up (resolved)",
+      "who": "Mei",
       "resolution": "Field of Flower is now a five-round field of allies: those inside are cleansed and heal 10 HP at the cast and at the start of each of their turns (once per round). Fields have a side (foes or allies) and coexist freely; recasting the same field moves it instead of stacking. The map draws them in two colours and a strip above the action panel lists each with its rounds left.",
       "detail": "Field of Flower was an instant area heal and regen; only Field of Corruption lingered. Assumed: Flower lasts 5 rounds like Corruption, and its old regen status is replaced by the field."
     },
     {
-      "id": "mech-para-rework", "cat": "mechanics", "sev": "low",
-      "title": "Para lasts 3 turns with a 1d2 stun chance each turn (resolved)", "who": "all",
+      "id": "mech-para-rework",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "Para lasts 3 turns with a 1d2 stun chance each turn (resolved)",
+      "who": "all",
       "resolution": "Para no longer skips turns by itself. It lasts three of its owner's turns, and at the start of each one a 1d2 roll (a 2) stuns the unit for that turn only. A stun immunity resists the roll. Re-applying refreshes the duration, it does not add a copy.",
       "detail": "Para used to be a plain one-turn skip, the same as gel."
     },
     {
-      "id": "mech-field-bot", "resolution": "Implemented: area, cone and field casts carry their aimed cell, so a field rises where the plan puts it; the evaluation values every unit a field works on per round left (a weight, field); a unit in a field against it is offered a move out, a hurt one a move into a field of its side.", "cat": "mechanics", "sev": "low",
-      "title": "The bot does not understand lingering fields", "who": "Mei",
+      "id": "mech-field-bot",
+      "resolution": "Implemented: area, cone and field casts carry their aimed cell, so a field rises where the plan puts it; the evaluation values every unit a field works on per round left (a weight, field); a unit in a field against it is offered a move out, a hurt one a move into a field of its side.",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "The bot does not understand lingering fields",
+      "who": "Mei",
       "detail": "The bot casts Field of Corruption as if it were an area spell aimed at a foe, and Field of Flower as a one-shot heal: it does not value the four turns of exposure, and no unit ever walks out of a field it stands in or avoids walking into one."
     },
     {
-      "id": "mech-passive-advantage", "resolution": "Implemented: a passive tagged adv rolls advantage on its attack, defense or spell rolls (Jhin only with sword moves). White also has no range limit and ignores walls within 10 cells; Wind Step no longer promises dodging through walls. Death Presence: every foe of a living Hela makes its first attack of the fight at disadvantage.", "cat": "mechanics", "sev": "med",
-      "title": "Passive advantage is never rolled", "who": "White, Hela, Sylvanas Nightmare, Jeagen, Jhin, Eragon, Kadgar",
+      "id": "mech-passive-advantage",
+      "resolution": "Implemented: a passive tagged adv rolls advantage on its attack, defense or spell rolls (Jhin only with sword moves). White also has no range limit and ignores walls within 10 cells; Wind Step no longer promises dodging through walls. Death Presence: every foe of a living Hela makes its first attack of the fight at disadvantage.",
+      "cat": "mechanics",
+      "sev": "med",
+      "title": "Passive advantage is never rolled",
+      "who": "White, Hela, Sylvanas Nightmare, Jeagen, Jhin, Eragon, Kadgar",
       "detail": "Advantage written on a passive does nothing: White (Sword of Space: always advantage, attacks from anywhere), Hela (True Weapon Goddess: advantage on all attacks), Sylvanas Nightmare (Banshee: advantage on defense), Jeagen (Wind Step: advantage on defense, dodges through walls), Jhin (Sword Master: advantage on sword rolls), Eragon (Know Advantage) and Kadgar (Knowledge): advantage on spell rolls. The engine reads advantage only from domains, a move's own adv tag and one-shot statuses.",
       "evidence": "Hela attacked 20 times in a test and no advantage roll was logged. Found by the 2026-10-29 audit: every move was cast in the headless engine and the passives were checked against what combat-logic.js reads.",
       "where": "combat-logic.js · rollAttackD20, rollD20For"
     },
     {
-      "id": "mech-magic-roll", "resolution": "Implemented: Archmage (+3), Great Staff (+2) and Runik Mage (+1d12) add to the damage of Kadgar's single-target, area and cone spells (dice multiplied on a bonus hit, flat part not). Great Staff also turns a natural 1 on a spell roll into a 2, three times per fight. Splash bystanders get no bonus.", "cat": "mechanics", "sev": "med",
-      "title": "Spell roll bonuses (magicRoll)", "who": "Kadgar",
+      "id": "mech-magic-roll",
+      "resolution": "Implemented: Archmage (+3), Great Staff (+2) and Runik Mage (+1d12) add to the damage of Kadgar's single-target, area and cone spells (dice multiplied on a bonus hit, flat part not). Great Staff also turns a natural 1 on a spell roll into a 2, three times per fight. Splash bystanders get no bonus.",
+      "cat": "mechanics",
+      "sev": "med",
+      "title": "Spell roll bonuses (magicRoll)",
+      "who": "Kadgar",
       "detail": "Archmage (+3), Great Staff (+2 and no critical fails) and Runik Mage (+1d12) are applied on magicRoll, which the engine never reads. Kadgar's spells get none of them.",
       "where": "combat-logic.js · resolveAttack, the atkRoll passive loop"
     },
     {
-      "id": "mech-divine-sync", "resolution": "Implemented: with another living Divine Beast on the team, each Beast gains its own attack/defense dice, Western Gale (+3 speed, allies), Northern Depths (-1d8 damage taken, allies) and the Dragon Blessing / Phoenix Grace healing at the Beast's turn start (Phoenix Grace also lifts one debuff).", "cat": "mechanics", "sev": "med",
-      "title": "Divine Beast synergy (divineSync)", "who": "Jeagen, Jay, Zhuqiao, Black Turtle",
+      "id": "mech-divine-sync",
+      "resolution": "Implemented: with another living Divine Beast on the team, each Beast gains its own attack/defense dice, Western Gale (+3 speed, allies), Northern Depths (-1d8 damage taken, allies) and the Dragon Blessing / Phoenix Grace healing at the Beast's turn start (Phoenix Grace also lifts one debuff).",
+      "cat": "mechanics",
+      "sev": "med",
+      "title": "Divine Beast synergy (divineSync)",
+      "who": "Jeagen, Jay, Zhuqiao, Black Turtle",
       "detail": "The divineSync block is never read. With another Divine Beast present each should gain: Jeagen +1d12 attack and +3 speed for allies; Jay +1d8 attack and 1d6 regen for allies; Zhuqiao +1d10 attack and 1d8 healing plus one debuff removed per ally each turn; Black Turtle -1d8 damage taken for allies and +2 defense.",
       "evidence": "divineSync appears nowhere in the engine. Found by the 2026-10-29 audit: every move was cast in the headless engine and the passives were checked against what combat-logic.js reads."
     },
     {
-      "id": "mech-context-conditions", "resolution": "Implemented for attack rolls: Close Quarters Expert (Zed) applies to blows struck from an adjacent cell (not ranged moves) and Sunken Colossus (Black Turtle) applies while it stands in a water cell. Professional Diver (Kay Climber, Glysain) is still dead: it adds to a constitution roll the simulator never makes.", "cat": "mechanics", "sev": "low",
-      "title": "Passives gated on a context tag never apply", "who": "Zed, Black Turtle",
+      "id": "mech-context-conditions",
+      "resolution": "Implemented for attack rolls: Close Quarters Expert (Zed) applies to blows struck from an adjacent cell (not ranged moves) and Sunken Colossus (Black Turtle) applies while it stands in a water cell. Professional Diver (Kay Climber, Glysain) is still dead: it adds to a constitution roll the simulator never makes.",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "Passives gated on a context tag never apply",
+      "who": "Zed, Black Turtle",
       "detail": "Close Quarters Expert (Zed, +1d4+2 on melee attacks) and Sunken Colossus (Black Turtle, +1d10 in water) use contextHasTag. passiveConditionMet returns false for any condition it does not know, so they never apply. Kay Climber and Glysain's Professional Diver use the same condition on a roll the simulator never makes.",
       "where": "combat-logic.js · passiveConditionMet"
     },
     {
-      "id": "mech-relentless-stacks", "resolution": "Implemented: one stack per ally that falls, kept for the whole fight, capped at 10; the bonus dice are rolled once per stack.", "cat": "mechanics", "sev": "low",
-      "title": "Relentless Warrior stacks", "who": "Kay Climber",
+      "id": "mech-relentless-stacks",
+      "resolution": "Implemented: one stack per ally that falls, kept for the whole fight, capped at 10; the bonus dice are rolled once per stack.",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "Relentless Warrior stacks",
+      "who": "Kay Climber",
       "detail": "The passive has maxStacks 10 and the allyKO condition, so it presumably grows with each fallen ally. The engine gives the bonus once whenever any ally is down and ignores maxStacks.",
       "where": "combat-logic.js · passiveConditionMet (allyKO)"
     },
     {
-      "id": "mech-opportunity-attack", "resolution": "Implemented for dash moves: Fire Rush and Shadow Dash end with one free basic attack on the target. Astrid's reaction version of Shadow Dash is still not implemented.", "cat": "mechanics", "sev": "low",
-      "title": "Opportunity attacks", "who": "Kaelgrym, Astrid Nightmare",
+      "id": "mech-opportunity-attack",
+      "resolution": "Implemented for dash moves: Fire Rush and Shadow Dash end with one free basic attack on the target. Astrid's reaction version of Shadow Dash is still not implemented.",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "Opportunity attacks",
+      "who": "Kaelgrym, Astrid Nightmare",
       "detail": "Fire Rush and Shadow Dash dash to the target but never trigger the opportunity attack their description promises. The engine has no opportunity attacks."
     },
     {
-      "id": "mech-knockback", "resolution": "Implemented: Bone Shatter pushes each enemy it hits back 2 cells (stopped by walls, units and domain walls) and Bone Armor is gone for 2 turns. Black Turtle cannot be knocked back, pulled or grounded. Only the area branch knocks back.", "cat": "mechanics", "sev": "low",
-      "title": "Knockback and immovable", "who": "Oslo, Black Turtle",
+      "id": "mech-knockback",
+      "resolution": "Implemented: Bone Shatter pushes each enemy it hits back 2 cells (stopped by walls, units and domain walls) and Bone Armor is gone for 2 turns. Black Turtle cannot be knocked back, pulled or grounded. Only the area branch knocks back.",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "Knockback and immovable",
+      "who": "Oslo, Black Turtle",
       "detail": "Bone Shatter should knock enemies back and strip Oslo's Bone Armor until it regrows; only the damage happens. Black Turtle's Northern Bastion (cannot be moved, knocked back or grounded) does nothing, and pull moves still drag it."
     },
     {
-      "id": "mech-guardbreak", "resolution": "Implemented: guardbreak ignores block reactions and pre-armed shields; dodge, dash and teleport reactions still work. Tiger's Leap range is now 6.", "cat": "mechanics", "sev": "low",
-      "title": "Guardbreak", "who": "Jeagen",
+      "id": "mech-guardbreak",
+      "resolution": "Implemented: guardbreak ignores block reactions and pre-armed shields; dodge, dash and teleport reactions still work. Tiger's Leap range is now 6.",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "Guardbreak",
+      "who": "Jeagen",
       "detail": "Tiger's Leap is described as guardbreak. It dashes and hits but can still be blocked; only moves tagged unblockabled ignore blocks."
     },
     {
-      "id": "mech-dodge-reacts", "resolution": "Fixed: against an area or cone move a dodge react (Hat Form, Lightning Flicker, Zed's Shadow Dash, Bunshin) halves the damage its owner takes; against one target it still dodges completely. These reactions are now reaction-only: they no longer appear as moves to cast on your own turn, where they did nothing.", "cat": "mechanics", "sev": "med",
-      "title": "Dodge reacts do not halve area damage", "who": "Sun, Dream Hunter, Vayl-Soran, Zed",
+      "id": "mech-dodge-reacts",
+      "resolution": "Fixed: against an area or cone move a dodge react (Hat Form, Lightning Flicker, Zed's Shadow Dash, Bunshin) halves the damage its owner takes; against one target it still dodges completely. These reactions are now reaction-only: they no longer appear as moves to cast on your own turn, where they did nothing.",
+      "cat": "mechanics",
+      "sev": "med",
+      "title": "Dodge reacts do not halve area damage",
+      "who": "Sun, Dream Hunter, Vayl-Soran, Zed",
       "detail": "Bunshin, Hat Form, Lightning Flicker and Shadow Dash are written as \"instant dodge against one target, half damage against an area\". Against an area move Hat Form and Lightning Flicker change nothing (19 damage with and without the react in a test), and Bunshin shields the whole hit instead of halving it. Cast on its owner's own turn, none of them does anything.",
       "evidence": "Eragon's Fire Tornado against each reactor, same seed, with and without the react. Found by the 2026-10-29 audit: every move was cast in the headless engine and the passives were checked against what combat-logic.js reads.",
       "where": "combat-logic.js · resumePendingAction (generic react branch)"
     },
     {
-      "id": "mech-react-buffs", "resolution": "Fixed: Stone Skin and Wind's Whim are timed buffs (a new grants field on the move). Stone Skin puts 10 flat reduction on its user for 3 of their turns, Wind's Whim +4 on defense rolls against ranged attacks (anything from more than an adjacent cell, or tagged ranged) for 2 turns; a fresh cast refreshes the old one. Cast on the owner's own turn they work and end the turn; used as a react they no longer stop the blow: they are in place before it lands, and Wind's Whim re-judges an ordinary hit already rolled against the raised total.", "cat": "mechanics", "sev": "med",
-      "title": "Timed react buffs behave as a single block", "who": "Cole Climber, Napoléon",
+      "id": "mech-react-buffs",
+      "resolution": "Fixed: Stone Skin and Wind's Whim are timed buffs (a new grants field on the move). Stone Skin puts 10 flat reduction on its user for 3 of their turns, Wind's Whim +4 on defense rolls against ranged attacks (anything from more than an adjacent cell, or tagged ranged) for 2 turns; a fresh cast refreshes the old one. Cast on the owner's own turn they work and end the turn; used as a react they no longer stop the blow: they are in place before it lands, and Wind's Whim re-judges an ordinary hit already rolled against the raised total.",
+      "cat": "mechanics",
+      "sev": "med",
+      "title": "Timed react buffs behave as a single block",
+      "who": "Cole Climber, Napoléon",
       "detail": "Stone Skin should take 10 flat damage off every hit for 3 turns; Wind's Whim should give +4 on defense rolls against ranged attacks for 2 turns. Both fall into the generic react branch: they block one attack and last no turns. Cast on the owner's own turn they do nothing, and attacks are not tagged ranged.",
       "where": "combat-logic.js · resumePendingAction (generic react branch)"
     },
     {
-      "id": "mech-destiny-gamble", "resolution": "Implemented: casting it rolls a d6 and ends the turn. 1: 10 damage to Napoleon (ignores reduction). 2-5: +2d8 on the next attack (basic, single-target or area), spent by it. 6: the next attack counts as a sure natural 20 (always hits, dice doubled under the crit rules, or x4 against a natural 1 defense, plain against a natural 20). The bonus or the fate lasts through Napoleon's next turn.", "cat": "mechanics", "sev": "med",
-      "title": "Destiny Gamble", "who": "Napoléon",
+      "id": "mech-destiny-gamble",
+      "resolution": "Implemented: casting it rolls a d6 and ends the turn. 1: 10 damage to Napoleon (ignores reduction). 2-5: +2d8 on the next attack (basic, single-target or area), spent by it. 6: the next attack counts as a sure natural 20 (always hits, dice doubled under the crit rules, or x4 against a natural 1 defense, plain against a natural 20). The bonus or the fate lasts through Napoleon's next turn.",
+      "cat": "mechanics",
+      "sev": "med",
+      "title": "Destiny Gamble",
+      "who": "Napoléon",
       "detail": "Roll a d6: 1 deals 10 damage to himself, 2-5 gives +2d8 on the next attack, 6 is a sure hit and a crit (x2). Casting it only logs \"uses Destiny Gamble\".",
       "evidence": "Found by the 2026-10-29 audit: every move was cast in the headless engine and the passives were checked against what combat-logic.js reads."
     },
     {
-      "id": "mech-dual-wielder", "resolution": "Implemented for basic attacks: when Napoleon's first blow lands he swings a second time at the same target (no second react, never a third). A miss, a fumble or a mutual fumble gives no second blow. Moves and spells are not doubled.", "cat": "mechanics", "sev": "low",
-      "title": "Dual Wielder", "who": "Napoléon",
+      "id": "mech-dual-wielder",
+      "resolution": "Implemented for basic attacks: when Napoleon's first blow lands he swings a second time at the same target (no second react, never a third). A miss, a fumble or a mutual fumble gives no second blow. Moves and spells are not doubled.",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "Dual Wielder",
+      "who": "Napoléon",
       "detail": "Attacks twice when the first attack lands. Napoléon gets one attack per action."
     },
     {
-      "id": "mech-djinn-luck", "resolution": "Implemented for d20 rolls: a 1 on Napoleon's attack or defense roll is rolled again, once per turn (it comes back at the start of his turn). The d6 of Destiny Gamble and damage dice are not rerolled.", "cat": "mechanics", "sev": "low",
-      "title": "Djinn's Luck", "who": "Napoléon",
+      "id": "mech-djinn-luck",
+      "resolution": "Implemented for d20 rolls: a 1 on Napoleon's attack or defense roll is rolled again, once per turn (it comes back at the start of his turn). The d6 of Destiny Gamble and damage dice are not rerolled.",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "Djinn's Luck",
+      "who": "Napoléon",
       "detail": "Rerolls a 1 once per turn (not Destiny Gamble). No reroll exists."
     },
     {
-      "id": "mech-authority", "resolution": "Implemented: a blow carries the higher of its wielder's Authority and its relic's (Mace of Vulkan 5, Tambours 7, Chains of Apophis 8, Balmung 8), less any domain debuff. Hela's Anti-Magic now works: spells deal her nothing and statuses do not land, unless the blow carries Authority 8 or more. Mixed hits (physical + magic) lose only the magic share.", "cat": "mechanics", "sev": "med",
-      "title": "Authority only pierces Perfect Reflection", "who": "Hela, Alicia, Vorrakan Duskbane, Vayl-Soran",
+      "id": "mech-authority",
+      "resolution": "Implemented: a blow carries the higher of its wielder's Authority and its relic's (Mace of Vulkan 5, Tambours 7, Chains of Apophis 8, Balmung 8), less any domain debuff. Hela's Anti-Magic now works: spells deal her nothing and statuses do not land, unless the blow carries Authority 8 or more. Mixed hits (physical + magic) lose only the magic share.",
+      "cat": "mechanics",
+      "sev": "med",
+      "title": "Authority only pierces Perfect Reflection",
+      "who": "Hela, Alicia, Vorrakan Duskbane, Vayl-Soran",
       "detail": "\"Authority 5/7/8\" on Mace of Vulkan Strike, Tambours de Kamowakeikazuchi, Chains of Apophis and Balmung is ignored, and Hela's Anti-Magic (immune to magic and status below Authority 8) is a flat immunity that no authority ever pierces. Authority is read for Perfect Reflection and one domain effect, nothing else.",
       "where": "combat-logic.js · reflectSpell, applyDamage, applyStatus"
     },
     {
-      "id": "mech-hela-passives", "resolution": "Implemented: Death Presence makes each foe's first attack of the fight roll at disadvantage, and Anti-magic Slash switches the passives of everyone it hits off for 1 turn (damage reduction, roll bonuses, regeneration and shields included).", "cat": "mechanics", "sev": "low",
-      "title": "Death Presence and Anti-magic Slash rider", "who": "Hela",
+      "id": "mech-hela-passives",
+      "resolution": "Implemented: Death Presence makes each foe's first attack of the fight roll at disadvantage, and Anti-magic Slash switches the passives of everyone it hits off for 1 turn (damage reduction, roll bonuses, regeneration and shields included).",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "Death Presence and Anti-magic Slash rider",
+      "who": "Hela",
       "detail": "Death Presence (every foe has disadvantage on its first attack each fight) is not applied. Anti-magic Slash does not disable the target's passives for 1 turn.",
       "evidence": "Anti-magic Slash cast on two foes: damage only, no status. Found by the 2026-10-29 audit: every move was cast in the headless engine and the passives were checked against what combat-logic.js reads."
     },
     {
-      "id": "mech-nine-lives", "resolution": "Implemented: Heracles returns to life with 1 HP each time he is killed, up to 9 times per fight. Alicia's Loki's Blessing is modelled too: once per fight she rolls two d20s when she would fall, and 10 or more on either keeps her up at 1 HP. Nobody else gets a death save.", "cat": "mechanics", "sev": "med",
-      "title": "Nine Lives", "who": "Heracles",
+      "id": "mech-nine-lives",
+      "resolution": "Implemented: Heracles returns to life with 1 HP each time he is killed, up to 9 times per fight. Alicia's Loki's Blessing is modelled too: once per fight she rolls two d20s when she would fall, and 10 or more on either keeps her up at 1 HP. Nobody else gets a death save.",
+      "cat": "mechanics",
+      "sev": "med",
+      "title": "Nine Lives",
+      "who": "Heracles",
       "detail": "Nine times per fight, return to life with 1 HP when killed. The passive uses deathRoll with maxStacks 9, neither of which the engine reads, so Heracles dies like anyone else. Alicia's Loki's Blessing (two death saves) has no counterpart either: the simulator has no death saves.",
       "where": "combat-logic.js · applyDamage (the Resurrection check is the model)"
     },
     {
-      "id": "mech-battle-tactician", "resolution": "Implemented: Battle Tactician is a title that unlocks the Give Orders action. It targets an ally, ends the turn, and gives the ally +2 on its attack rolls until its next turn is over. The +2 follows the engine's usual atkRoll convention (added to the damage of a landed blow). The bot can plan it but the greedy policy does not value it yet.", "cat": "mechanics", "sev": "low",
-      "title": "Battle Tactician", "who": "Future Zane",
+      "id": "mech-battle-tactician",
+      "resolution": "Implemented: Battle Tactician is a title that unlocks the Give Orders action. It targets an ally, ends the turn, and gives the ally +2 on its attack rolls until its next turn is over. The +2 follows the engine's usual atkRoll convention (added to the damage of a landed blow). The bot can plan it but the greedy policy does not value it yet.",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "Battle Tactician",
+      "who": "Future Zane",
       "detail": "+2 to allies' attack rolls when giving orders. Future Zane has no move that gives orders and the passive has no applyOn, so it does nothing. The combat AI spec lists it as supported; it is not."
     },
     {
-      "id": "mech-poison-passives", "cat": "mechanics", "sev": "low",
-      "title": "Poison and corruption passives", "who": "Spheras Nightmare, Astrid Nightmare, Dream Hunter",
+      "id": "mech-poison-passives",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "Poison and corruption passives",
+      "who": "Spheras Nightmare, Astrid Nightmare, Dream Hunter",
       "detail": "Poison Breath (Spheras Nightmare: 1d2 poison or 1d12+8 toxic on nearby enemies each turn) and Toxic Daggers (Astrid Nightmare: 1d2 poison or 1d12 extra on each attack) do nothing. Corruption Bolt (Dream Hunter) adds its +1d10 but never builds up corruption on the target."
     },
     {
-      "id": "mech-slot-restore", "resolution": "Implemented: Vorpal Slash (Vorrakan) restores 5 spell slots with its lifesteal. Kaelgrym absorbs incoming fire: the hit does nothing and restores 1 slot. The absorption only works while Ifrit's Bane sleeps (see the Sleeping / Awake item).", "cat": "mechanics", "sev": "low",
-      "title": "Spell slot restoration", "who": "Vorrakan Duskbane, Kaelgrym",
+      "id": "mech-slot-restore",
+      "resolution": "Implemented: Vorpal Slash (Vorrakan) restores 5 spell slots with its lifesteal. Kaelgrym absorbs incoming fire: the hit does nothing and restores 1 slot. The absorption only works while Ifrit's Bane sleeps (see the Sleeping / Awake item).",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "Spell slot restoration",
+      "who": "Vorrakan Duskbane, Kaelgrym",
       "detail": "Vorrakan's Vorpal Slash should restore 5 spell slots after its lifesteal; Kaelgrym's Ifrit's Bane should absorb fire damage to restore spell slots. The lifesteal works, the slots never come back."
     },
     {
-      "id": "mech-cleanse-riders", "resolution": "Implemented: Benediction of the Moon also wards the ally against new debuffs for 2 of its turns (granted even when nothing was cleansed). Fire Tornado removes wet and disadvantage (disadvantage, Smoke Screen) from the allies within its blast.", "cat": "mechanics", "sev": "low",
-      "title": "Cleanse riders", "who": "Nya Léviathan, Eragon",
+      "id": "mech-cleanse-riders",
+      "resolution": "Implemented: Benediction of the Moon also wards the ally against new debuffs for 2 of its turns (granted even when nothing was cleansed). Fire Tornado removes wet and disadvantage (disadvantage, Smoke Screen) from the allies within its blast.",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "Cleanse riders",
+      "who": "Nya Léviathan, Eragon",
       "detail": "Bénédiction of the Moon should also grant 2 turns of immunity after removing a debuff. Fire Tornado should remove wet and disadvantage from allies in the area. Neither rider exists."
     },
     {
-      "id": "mech-gunrang-bonus", "cat": "mechanics", "sev": "low",
-      "title": "GunRang delayed bonus", "who": "Rig",
+      "id": "mech-gunrang-bonus",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "GunRang delayed bonus",
+      "who": "Rig",
       "detail": "The boomerang should add 1d4 damage on the next turn. The bounce works, the follow-up does not."
     },
     {
-      "id": "mech-mecha-bonus", "resolution": "Implemented: Zane Climber, Pixal and Future Zane carry the mecha tag (Zane loses it in Dragon Form) and Force Lightning adds 2d12 against a mecha.", "cat": "mechanics", "sev": "low",
-      "title": "Force Lightning vs mecha", "who": "Vorrakan Duskbane",
+      "id": "mech-mecha-bonus",
+      "resolution": "Implemented: Zane Climber, Pixal and Future Zane carry the mecha tag (Zane loses it in Dragon Form) and Force Lightning adds 2d12 against a mecha.",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "Force Lightning vs mecha",
+      "who": "Vorrakan Duskbane",
       "detail": "+2d12 against mecha targets. No unit carries a mecha tag and the engine does not look for one."
     },
     {
-      "id": "mech-element-choice", "cat": "mechanics", "sev": "low",
-      "title": "Dragon Breath element", "who": "Kadgar",
+      "id": "mech-element-choice",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "Dragon Breath element",
+      "who": "Kadgar",
       "detail": "The cone should be of a chosen element. It is always untyped magic, so element immunities and the fire/ice interactions never apply to it."
     },
     {
-      "id": "mech-pillars-doors", "resolution": "Implemented: the pillars of a map (columns) are walls for movement, sight and blasts. Locked, secret and portcullis doors start shut, each with hit points (portcullis 15, locked 10, secret 20). A shut door blocks movement and blasts; a portcullis still lets sight through. A unit beside a door can open it with its action, or break it with a basic attack, and a damaging area or cone move wears down every door in its blast. Spawn cells now stay in the largest region reachable with every shut door closed, and off the pillars. The AI snapshot carries the door state. New maps: Sunken Hold of the Serpent Knight, Wayrock Maze.", "cat": "mechanics", "sev": "med",
-      "title": "Pillars and closed doors", "who": "all",
+      "id": "mech-pillars-doors",
+      "resolution": "Implemented: the pillars of a map (columns) are walls for movement, sight and blasts. Locked, secret and portcullis doors start shut, each with hit points (portcullis 15, locked 10, secret 20). A shut door blocks movement and blasts; a portcullis still lets sight through. A unit beside a door can open it with its action, or break it with a basic attack, and a damaging area or cone move wears down every door in its blast. Spawn cells now stay in the largest region reachable with every shut door closed, and off the pillars. The AI snapshot carries the door state. New maps: Sunken Hold of the Serpent Knight, Wayrock Maze.",
+      "cat": "mechanics",
+      "sev": "med",
+      "title": "Pillars and closed doors",
+      "who": "all",
       "detail": "Pillars were walkable floor, and locked, secret and portcullis doors were open gaps. On Wayrock Maze one team started walled in with only 22 reachable cells.",
       "where": "dungeon-loader.js · buildWalkableGrid, buildMap; combat-logic.js · hasLos, handleOpenDoor, handleAttackDoor"
     },
     {
-      "id": "mech-doors-bot", "resolution": "Implemented: a closed door beside the bot can be opened with its action; when every foe is walled off it walks to the nearest door; area casts carry a centre, so they wear doors down; walking distances are cached per set of open doors. The bot never breaks a door (opening is always at least as good). A secret door is still drawn grey and a locked door has no key.", "cat": "mechanics", "sev": "low",
+      "id": "mech-doors-bot",
+      "resolution": "Implemented: a closed door beside the bot can be opened with its action; when every foe is walled off it walks to the nearest door; area casts carry a centre, so they wear doors down; walking distances are cached per set of open doors. The bot never breaks a door (opening is always at least as good). A secret door is still drawn grey and a locked door has no key.",
+      "cat": "mechanics",
+      "sev": "low",
       "title": "The bot ignores closed doors",
       "detail": "The bot never opens or breaks a door, and its area casts carry no centre, so they do not wear doors down. Single-target spells cannot be aimed at a door either. A secret door is drawn grey on the map instead of looking like wall, and a locked door has no key to find."
     },
     {
-      "id": "mech-bot-tuner", "resolution": "Implemented: tools/tune.mjs plays two sets of evaluation weights against each other (SPSA, head-to-head, both seatings) on random matchups and the three maps, with no model and no tokens. See docs/ai-runner.md. First measured run (2026-10-31): 540 iterations found no gain; the best set scored 50.6% (interval 45.7-55.5%) against the start weights over 400 held-out fights, so evaluate.js was left unchanged. An 8-hour run with 300 sims per decision followed.", "cat": "mechanics", "sev": "low",
-      "title": "The bot's weights had to be tuned by hand", "who": "all",
+      "id": "mech-bot-tuner",
+      "resolution": "Implemented: tools/tune.mjs plays two sets of evaluation weights against each other (SPSA, head-to-head, both seatings) on random matchups and the three maps, with no model and no tokens. See docs/ai-runner.md. First measured run (2026-10-31): 540 iterations found no gain; the best set scored 50.6% (interval 45.7-55.5%) against the start weights over 400 held-out fights, so evaluate.js was left unchanged. An 8-hour run with 300 sims per decision followed.",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "The bot's weights had to be tuned by hand",
+      "who": "all",
       "detail": "Tuning the eight evaluation weights meant running fights and editing numbers by hand in a long session."
     },
     {
-      "id": "char-chronos", "resolution": "Implemented: Chronos, Monarch of Time, in characters.json and main.js (sheet, domain, Guild and Duranmoran entries; 520 HP, Authority 9, Complet domain Chronostasis whose owner regains HP, slots or a Thread at random each turn). He beats Hela in about 70% of 100 greedy-brain duels (tools/sim.mjs). New engine pieces: Rewind (onDeath, once per fight, back to his HP and place of two rounds ago), Decay (necrotic damage over time, one more die each turn), Withering Hour (a hostile move that also arms its caster, each landed basic attack then cuts max HP and the cuts stack), Borrowed Time (extraAction: the action comes back). The search bot cannot plan a second action, so it plays Borrowed Time poorly.",
-      "cat": "mechanics", "sev": "low",
-      "title": "Chronos, the god of time, is not on the roster", "who": "Chronos",
+      "id": "char-chronos",
+      "resolution": "Implemented: Chronos, Monarch of Time, in characters.json and main.js (sheet, domain, Guild and Duranmoran entries; 520 HP, Authority 9, Complet domain Chronostasis whose owner regains HP, slots or a Thread at random each turn). He beats Hela in about 70% of 100 greedy-brain duels (tools/sim.mjs). New engine pieces: Rewind (onDeath, once per fight, back to his HP and place of two rounds ago), Decay (necrotic damage over time, one more die each turn), Withering Hour (a hostile move that also arms its caster, each landed basic attack then cuts max HP and the cuts stack), Borrowed Time (extraAction: the action comes back). The search bot cannot plan a second action, so it plays Borrowed Time poorly.",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "Chronos, the god of time, is not on the roster",
+      "who": "Chronos",
       "detail": "A primordial god from before the Aurora, first met as the Guild master. Stasis, Withering Hour, Three Threads, Two-Faced Door, Borrowed Time and Rewind hint, without naming them, at the Norns, Thoth, Kala and Janus he absorbed. Also: a natural 20 that lands can no longer be reacted to (block, dodge or teleport), for every unit; Stasis really stuns for 2 full turns; all his spells cost 1 slot. Not done: a retune of the bot with him in the roster. The 70% figure is measured with the greedy brain, which does not open domains."
     },
     {
-      "id": "odd-zhuqiao-sustain", "resolution": "Fixed: Embers of Life heals only allies within 8 cells and never Zhuqiao; Undying Flame is 1d10 instead of 2d10; Phoenix Shroud costs 9 ki instead of 6. Every Divine Beast synergy aimed at allies (Western Gale, Dragon Blessing, Phoenix Grace, Northern Depths) now spares its owner; the owner's own bonuses (attack dice, Tidal Anchor) are unchanged. Not measured: no duels were run after the change.", "cat": "oddities", "sev": "med",
-      "title": "Zhuqiao heals and cleanses herself far too much", "who": "Zhuqiao, Jeagen, Jay, Black Turtle",
+      "id": "odd-zhuqiao-sustain",
+      "resolution": "Fixed: Embers of Life heals only allies within 8 cells and never Zhuqiao; Undying Flame is 1d10 instead of 2d10; Phoenix Shroud costs 9 ki instead of 6. Every Divine Beast synergy aimed at allies (Western Gale, Dragon Blessing, Phoenix Grace, Northern Depths) now spares its owner; the owner's own bonuses (attack dice, Tidal Anchor) are unchanged. Not measured: no duels were run after the change.",
+      "cat": "oddities",
+      "sev": "med",
+      "title": "Zhuqiao heals and cleanses herself far too much",
+      "who": "Zhuqiao, Jeagen, Jay, Black Turtle",
       "detail": "Embers of Life healed every living ally on the map, herself included, whatever the distance; Phoenix Grace healed and cleansed her each round; Undying Flame added about 11 HP a turn under half health. With 85 HP, speed 18, flight and a block, she was close to unkillable in a pair of Divine Beasts.",
       "where": "characters.json · Zhuqiao; combat-logic.js · divineEffects, the hpPerTurn passives and the Divine Beast healing"
     },
     {
-      "id": "mech-play-vs-bot", "resolution": "Implemented: an opponent picker on the combat selection screen (S.aiTeam, kept in localStorage); a driver asks the bot on its turns and reacts through applyPlan and settleReacts; the action panel and react overlay are hidden for bot units. Tested headless.", "cat": "mechanics", "sev": "low",
-      "title": "No way to play one team against the bot", "who": "all",
+      "id": "mech-play-vs-bot",
+      "resolution": "Implemented: an opponent picker on the combat selection screen (S.aiTeam, kept in localStorage); a driver asks the bot on its turns and reacts through applyPlan and settleReacts; the action panel and react overlay are hidden for bot units. Tested headless.",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "No way to play one team against the bot",
+      "who": "all",
       "detail": "Every fight on the combat page was hot-seat: a person had to play both teams.",
       "where": "combat.html, main.js · opponent picker; combat-ai-driver.js"
     },
     {
-      "id": "odd-acceptance-strength", "cat": "oddities", "sev": "low",
+      "id": "odd-acceptance-strength",
+      "cat": "oddities",
+      "sev": "low",
       "title": "acceptance --quick fails its strength stage",
       "detail": "The strength stage needs 80% wins against the greedy brain over 8 fights (seeds 1..1, 500 sims). It scored 62.5% before the Chronos merge and 75% after it, so the failure is not new. With 8 fights the stage is mostly noise, and it makes tests/acceptance.test.mjs fail. The Zhuqiao 5v5 matchup (Zhuqiao +4 vs Jaina +4) is one of the two matchups used. Also not measured: the bot with Chronos on the roster, and Zhuqiao after her nerf.",
       "where": "tools/acceptance.mjs · strength stage; tests/acceptance.test.mjs"
+    },
+    {
+      "id": "mech-summons",
+      "cat": "mechanics",
+      "sev": "med",
+      "title": "Summoning",
+      "who": "Krux & Acronix, Annastasia (Irina, Leonidas and the Sorcerer Master are done)",
+      "detail": "The engine now creates units mid-fight (spawnSummon in combat-logic.js): a move with a summon field {unit, count} calls units beside the caster, which join its team and act right after it; a sheet with a companion field (Sorcerer Master: Floating Head) has it from round 1. Done: Flaming Bird (1 ki, one Fire Spirit), Living Bomb (bursts every Fire Spirit on its own spot, radius 3), Golem Creation (1d4 Golems), Floating Head. Rules: a summon never counts toward victory, falls with its caster, and is not a roster pick. Still descriptions only: the time remnant of Summoning Portal (Krux & Acronix) and the demons of Sacrifice Mark (Annastasia). The AI casts a summon while fewer than 3 of that kind stand, and bursts the spirits once a foe is within reach of one. Vorrakan's chains are a separate unique case (see decide-chains-units). Open: Irina's Child of the Phoenix (shares the vision of her spirits) is not modelled; Flaming Bird is a normal action, not the instant the Google Doc names, so that the greedy policy can cast it.",
+      "where": "characters.json · Google Doc import"
+    },
+    {
+      "id": "mech-hunter-mark",
+      "cat": "mechanics",
+      "sev": "med",
+      "title": "Hunter mark: x2 damage, advantage on defense",
+      "who": "Vampire Sienna, Sienna",
+      "detail": "Apex Predator / Huntress: at the start of the battle a random enemy is marked. The marked target takes x2 damage, the owner has advantage on every defense throw against it. Vampire Sienna also restores 100% HP and spell slots when the target dies. Descriptions only.",
+      "where": "characters.json · Google Doc import"
+    },
+    {
+      "id": "mech-blood-magic",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "Blood Magic and SteamGun",
+      "who": "Vampire Sienna, Sienna",
+      "detail": "Vampire Sienna: every hit drains 50%, overheal becomes a blood shield, regenerates 10 HP a turn, Bite drains HP, spell slots and ki. Sienna: a normal attack after a technique applies burn; two techniques in a row halve the damage. Descriptions only. Hypnosis (control) is tagged but unchecked.",
+      "where": "characters.json · Google Doc import"
+    },
+    {
+      "id": "mech-geminy",
+      "cat": "mechanics",
+      "sev": "med",
+      "title": "Geminy, Vision of Time, time moves",
+      "who": "Krux & Acronix",
+      "detail": "Two actions a turn (Geminy), immunity to natural 1 and to disadvantage, and Pause / Play / Forward (drain 1d4 slots from an area) / Backward (heal all damage since last turn). The engine now has two actions a turn (the divinity tag, see mech-divinity), but it forces the two to differ: decide whether Geminy's do. The rest is descriptions only.",
+      "where": "characters.json · Google Doc import"
+    },
+    {
+      "id": "mech-holy-duel",
+      "cat": "mechanics",
+      "sev": "med",
+      "title": "Holy Duel",
+      "who": "Arthur",
+      "detail": "Targets one adversary: Arthur gains 2x the target max HP, advantage on every roll against it and 4d20 damage against it. Only the 4d20 hit is modelled (once per fight); the HP gain and the advantage are not.",
+      "where": "characters.json · Google Doc import"
+    },
+    {
+      "id": "mech-ouroboros-stances",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "Stance Switch, Hypnosis, Guard",
+      "who": "Ouroboros, Argo",
+      "detail": "Ouroboros: defense stance +4 to defense rolls / attack stance +2 to attack rolls. Hypnosis stuns with a 1d2 chance of control. Argo: Guard prepares a block for an ally for 1 turn, and Iron Sentinel gives +3 defense when guarding. Lan Na Zha (block, then dash) is tagged react + dash and may not chain both. Descriptions only.",
+      "where": "characters.json · Google Doc import"
+    },
+    {
+      "id": "mech-static-charge",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "Static Charge and Thunder Step",
+      "who": "Libber",
+      "detail": "Static Charge: the next attack gains +2 per step walked. Thunder Step: damage is bounce count x 1d8 (modelled as a plain bounce). Descriptions only.",
+      "where": "characters.json · Google Doc import"
+    },
+    {
+      "id": "mech-high-pressure",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "High-Pressure Mastery and Fluid Parry",
+      "who": "Maya",
+      "detail": "All attacks should have armor penetration (only the base attack and Crushing Weight carry arPen). Fluid Parry is an instant counter-attack react; there is no counter react in the engine. Crushing Weight's prone is an effect string only.",
+      "where": "characters.json · Google Doc import"
+    },
+    {
+      "id": "mech-blacksmith-heat-haze",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "Master Blacksmith and Heat Haze",
+      "who": "Ray",
+      "detail": "Master Blacksmith reinforces an ally's weapon (+1d4). Heat Haze is an instant aoe react giving allies +4 to defense rolls. Solid Flames adds 1d4 and a 1d2 burn on every attack. Descriptions only, except the +1d4.",
+      "where": "characters.json · Google Doc import"
+    },
+    {
+      "id": "mech-star-link",
+      "cat": "mechanics",
+      "sev": "med",
+      "title": "Star Link table",
+      "who": "Starburst",
+      "detail": "Star Link rolls 1d100 to link to a star \"see stars table\". The table is not in the Google Doc: it is needed. Nothing is rolled yet.",
+      "where": "characters.json · Google Doc import"
+    },
+    {
+      "id": "mech-graviton",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "Gravity Master and Black Hole",
+      "who": "Graviton",
+      "detail": "Flying adversaries must save every turn or lose flight for a turn. Black Hole is a react that absorbs a ranged attack (Vorrakan's Black Hole is a different move). Descriptions only.",
+      "where": "characters.json · Google Doc import"
+    },
+    {
+      "id": "mech-acid-lightning-rod",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "Acid Armor, Lightning Rod, Energise",
+      "who": "Ivy, Electro",
+      "detail": "Ivy: melee attackers take 1d4 and a 1d2 toxic chance. Electro: absorbs every electric attack (Storm Body of Jay Azure Dragon is the closest existing behaviour). Energise: an ally rolls with advantage on everything next turn (adv_next exists for one roll, not for all rolls). Descriptions only.",
+      "where": "characters.json · Google Doc import"
+    },
+    {
+      "id": "mech-gems-stacks",
+      "cat": "mechanics",
+      "sev": "med",
+      "title": "Gem knights: hit count, petrification, psy save",
+      "who": "Rubis Ignir, Emeraud Brannoc, Amethyst Ysmar, Saphir Thalor, Diamant Dunmara",
+      "detail": "Rubis: counts the hits taken, Retribution Shard deals hitCount x 0.8 then resets. Emeraud: every hit adds a petrification stack; Petrify rolls 1d20 + stacks to petrify. Amethyst: Crystal Resonance makes targets save (psy) or attack their allies. Saphir: Prismatic Guard reflects magic damage. All five: Retribution Shard (1d2 chance of 1d6 to everyone around when hit) and Prismatic Guard -20 flat magic damage. Descriptions only; Diamant's +8 armor and the shared kit work.",
+      "where": "characters.json · Google Doc import"
+    },
+    {
+      "id": "mech-nexo-knights",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "Nexo knights: Dead Eye, Faster, Sturdy, Leader",
+      "who": "Aron, Lance, Axel, Clay",
+      "detail": "Aron: ranged attacks cannot be dodged. Lance: takes half damage from anything with a lower initiative than his. Axel: 1d4 chance to ignore damage. Clay: the first time an ally would die he takes the damage instead. Descriptions only.",
+      "where": "characters.json · Google Doc import"
+    },
+    {
+      "id": "mech-kyros-thresholds",
+      "cat": "mechanics",
+      "sev": "med",
+      "title": "Destiny's Fire and The End Slash thresholds",
+      "who": "Kyros",
+      "detail": "Destiny's Fire starts at 30 HP (mono 2d20, aoe 1d20+1d12, then +1d10 on all attacks to the end of the battle). The End Slash needs less than 25 HP (mono 4d20, aoe 2d20 + burn + para + 1d8 heal). Both are plain relics with no HP threshold. Motion Channel (unblockable, burn) and Motion Guard (ultimate block) are tags only.",
+      "where": "characters.json · Google Doc import"
+    },
+    {
+      "id": "mech-annastasia",
+      "cat": "mechanics",
+      "sev": "med",
+      "title": "Demon Pact, Sacrifice Mark, Taboo",
+      "who": "Annastasia",
+      "detail": "Demon Pact: -10 HP buys 1 spell slot, and she heals 1d10 when dealing damage. Sacrifice Mark picks a random enemy and summons one or two demons when it dies. Taboo halves her current HP and triggers the mark at once. Descriptions only.",
+      "where": "characters.json · Google Doc import"
+    },
+    {
+      "id": "mech-rox-aura",
+      "cat": "mechanics",
+      "sev": "med",
+      "title": "Aura of Terror, Psychic Link, Theroxian Mastery",
+      "who": "Rox",
+      "detail": "Aura of Terror: -3 to the attack rolls of enemies around her. Psychic Link: +2 to all friendly rolls (the allRolls passive exists but is untested as an ally aura). Theroxian Mastery: her debuffs cannot be removed. Containment Spell: a 40 HP energy cage that only breaks from outside; Immobilization Seal stops a dash or blink as a react.",
+      "where": "characters.json · Google Doc import"
+    },
+    {
+      "id": "mech-zarkt",
+      "cat": "mechanics",
+      "sev": "med",
+      "title": "Tides of Misfortune, Curse Reflect, Entropy Field",
+      "who": "Zarkt",
+      "detail": "Once a turn an enemy must reroll a die that succeeded. Any debuff aimed at him is sent back to its source. Entropy Field: a field where 2 and 3 count as critical fails for enemies. Descriptions only.",
+      "where": "characters.json · Google Doc import"
+    },
+    {
+      "id": "mech-drix",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "Hive Mind and Chitin Armor",
+      "who": "Drix",
+      "detail": "Hive Mind: +x to each roll for each ally, Drix counts as one, poison stacks. Chitin Armor: -20 physical, +10 area damage, +10 fire and lightning damage taken (only the physical part is modelled). Nesting Strike's 10x1d2 poison is reduced to a 1d2 poison effect.",
+      "where": "characters.json · Google Doc import"
+    },
+    {
+      "id": "mech-kur",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "Life Siphon and Decay Wave",
+      "who": "Kur",
+      "detail": "Life Siphon drains 1d6+4 HP on touch. Decay Wave deals an extra 1d10+5 against energy, life and plant targets. Bandage Coil roots the target to him while draining. Siphon is modelled as hpPerHit; the rest is descriptions only.",
+      "where": "characters.json · Google Doc import"
+    },
+    {
+      "id": "mech-banner-tracker",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "War Banner, Blood Tracker, Asia style",
+      "who": "Atila",
+      "detail": "War Banner: +2 to all ally rolls within 10 m. Blood Tracker: +3 perception, +1d6 vs wounded targets (the wounded condition does not exist). Asia style: bleed 1d4 on hit, convertible to hemorrhage 2d4. Atila has no move yet.",
+      "where": "characters.json · Google Doc import"
+    },
+    {
+      "id": "mech-battle-medic",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "Healing, utility and stealth rolls",
+      "who": "Simo, Libra, Sienna, Kyros",
+      "detail": "Battle Medic (+3 healing roll, heal as a bonus action), Ranger (+3 lockpicking/perception/defuse/set trap), Shadow Master (+2 stealth), Cook (+1) use roll kinds the engine has no applyOn for (healRoll, stealthRoll; utilityRoll is only partly used). Libra's Reequip (change weapons) and Arrow Dancer (+3 defense vs ranged) are descriptions only.",
+      "where": "characters.json · Google Doc import"
+    },
+    {
+      "id": "mech-phoenix-feathers",
+      "cat": "mechanics",
+      "sev": "med",
+      "title": "Phoenix Feathers and Grow Spurt",
+      "who": "Phoenix King, Phoenix Prince",
+      "detail": "Phoenix King: Phoenix Feathers resurrect a target (4 charges) and regenerate all spell slots; modelled as a relic with 4 charges, the slot regeneration was not checked. Phoenix Prince: Grow Spurt turns him into the Adult form for 4 turns (modelled as a once-per-fight technique, not a timed form switch); Phoenix Hug heals both, then again next turn.",
+      "where": "characters.json · Google Doc import"
+    },
+    {
+      "id": "mech-escanor-sunshine",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "Sunshine aura and calcinated stacks",
+      "who": "Escanor",
+      "detail": "Deals 1d4 damage around him and gains +5 attack and +5 defense for each calcinated stack on the target. Cruel Sun applies calcinated through the effect string; the aura and the per-stack bonus are descriptions only.",
+      "where": "characters.json · Google Doc import"
+    },
+    {
+      "id": "mech-sorcerer-undying",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "Undying Army and Anti-Magic seals",
+      "who": "Sword Master, Sorcerer Master, Anti-magic ghouls, Amalgame",
+      "detail": "Regeneration of 10/20 HP a turn and -10/-20 flat magic damage are modelled. Amalgame's Slime (-10 physical), Thousand Cuts (8d4) and the anti-magic seal (magic sealed for 1 turn) rely on existing tags that were not checked in a fight.",
+      "where": "characters.json · Google Doc import"
+    },
+    {
+      "id": "mech-arya-oberon",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "Blessing of Oberon and Toxic Pollen",
+      "who": "Arya",
+      "detail": "Self aoe heal of 1d6 each turn (modelled like Embers of Life, radius 4, untested) and a cone with 1d2 para and 1d2 poison (only the para is an effect).",
+      "where": "characters.json · Google Doc import"
+    },
+    {
+      "id": "mech-stormer-storm-end",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "Storm End",
+      "who": "Stormer",
+      "detail": "A self aoe taunt for 2 turns that also deals 1d12+4 damage. The taunt tag exists (Baal), the combined damage is untested.",
+      "where": "characters.json · Google Doc import"
+    },
+    {
+      "id": "mech-leonidas-weapon",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "Weapon Creation",
+      "who": "Leonidas",
+      "detail": "Creates a weapon. No rule on what it gives; needs a decision.",
+      "where": "characters.json · Google Doc import"
+    },
+    {
+      "id": "mech-ivo-cryostase",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "Cryostase",
+      "who": "Ivo",
+      "detail": "Removes bleed and burn, then heals 1d8+8. The cleans tag removes statuses but whether it covers damage over time was not checked.",
+      "where": "characters.json · Google Doc import"
+    },
+    {
+      "id": "mech-bentei-immovable",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "Mountain's Weight and prone",
+      "who": "Bentei, Nokt, Maya",
+      "detail": "Cannot be knocked prone or pushed back (immovable tag). Prone is not an engine status, so Earthquake Slam and Crushing Weight only have a text effect.",
+      "where": "characters.json · Google Doc import"
+    },
+    {
+      "id": "mech-aquiel-overdrive",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "Chi Overdrive and Finest Sword of Chima",
+      "who": "Aquiel",
+      "detail": "+/-1d8 damage (modelled as +1d8 on attack rolls), immune to stun, fear and para (not set in immunities), advantage on all weapon-related rolls.",
+      "where": "characters.json · Google Doc import"
+    },
+    {
+      "id": "mech-sienna-modes",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "Range / Rodent / Blade modes",
+      "who": "Vampire Sienna, Sienna",
+      "detail": "The doc writes them as three modes of one weapon. Modelled as Range Mode (mono hit only, the 1d10 aoe part is a description), Rodent Mode (cone) and the Blade Mode base attack.",
+      "where": "characters.json · Google Doc import"
+    },
+    {
+      "id": "decide-chains-units",
+      "resolution": "Done as a unique case, not a companion: Vorrakan holds two chains of 150 HP (not units). The Chain Guard react sends a blow to them; the two-charge Chains of Apophis relic (Authority 5) grabs a foe and cannot be cleansed. See tests/chains.test.mjs.",
+      "cat": "mechanics",
+      "sev": "med",
+      "title": "Left and Right Chain as units",
+      "who": "Vorrakan Duskbane",
+      "detail": "The Google Doc gives two 150 HP chains with \"End of all life\" (wrap around the target, drain HP and spell slots; if not broken in time, steal and store the power). They are not on the site (Chains of Apophis is only a relic). To decide: separate sheets, summons, or one move. The summon engine now exists (see mech-summons), so the chains could be units called by a Vorrakan move.",
+      "where": "characters.json · Vorrakan Duskbane; Google Doc, DANGER tab"
+    },
+    {
+      "id": "decide-forms-differ",
+      "cat": "oddities",
+      "sev": "low",
+      "title": "Forms differ between the doc and the site",
+      "who": "Susano, Sensei Lloyd, Kay/Zane/Jay/Cole Climber, Blood General, Blood Cinder",
+      "detail": "Oni Lloyd, the four Dragon forms and the Blood forms already exist as transformations. Doc differences: Dragon forms have 1 or 2 dragon spells (site: 0 slots); Jay's Dragon form regains all spell slots and gives advantage on saves for 5 turns; Susano's Nirvana is settled (the doc won, see decide-susano-doc). To decide, form by form, which side is right.",
+      "where": "characters.json · transformation blocks"
+    },
+    {
+      "id": "decide-summon-sheets",
+      "resolution": "Done: Fire Spirit, Golem and Floating Head keep their sheets (tag summon) but are no longer offered on the team selection grid or picked by the tuner; they only exist when called.",
+      "cat": "oddities",
+      "sev": "low",
+      "title": "Summons as roster sheets",
+      "who": "Fire Spirit, Golem, Floating Head",
+      "detail": "They were added as normal sheets (tag summon) so they can be picked in a fight. If they should only exist as summons, remove them from the roster once the summon mechanic is in.",
+      "where": "characters.json"
+    },
+    {
+      "id": "decide-yangshi",
+      "cat": "oddities",
+      "sev": "low",
+      "title": "Yangshi has no sheet",
+      "who": "Yangshi",
+      "detail": "The Murim tab only says \"Yangshi 60hp :\" with nothing else. Not added.",
+      "where": "Google Doc, Murim tab"
+    },
+    {
+      "id": "mech-divinity",
+      "resolution": "Done: the sheet tag divinity (Hela, Chronos, Susano in Nirvana) gives two actions a turn that must differ (basic attack, each ability, transform, domain and door count as one action each; instants cost none). Borrowed Time adds a third. A tag also lets passives target divinities: Jeagen's Divine Hunter deals +1d20 to them (condition targetHasTag). See tests/divinity.test.mjs.",
+      "cat": "mechanics",
+      "sev": "med",
+      "title": "Divinity: two different actions a turn, and damage against divinities",
+      "who": "Hela, Chronos, Susano (Nirvana), Jeagen",
+      "detail": "Final Reckoning (Hela, from Resurrection or cast) adds a third action a turn on top of Divinity's two. Borrowed Time used to need an action already spent, which the engine never left open; it now grants its extra action whenever it is cast.",
+      "where": "combat-logic.js · hasDivinity, spendAction; characters.json · tags"
+    },
+    {
+      "id": "decide-susano-doc",
+      "resolution": "Settled with the doc: 15 spell slots, Fire Ball 1d12+10, Golden Beam 2d20+25, Nirvana cleaver 2d10+10, 1d8 per stone (main.js), Divinity in Nirvana and permanent flight in Nirvana. Kept as on the site: the base form's four spells. True Power's fly action is the permanent flight of Nirvana.",
+      "cat": "oddities",
+      "sev": "low",
+      "title": "Susano differs from the doc",
+      "who": "Susano",
+      "detail": "Settled case by case with the user.",
+      "where": "characters.json · Susano; main.js · personnageSheet"
+    },
+    {
+      "id": "decide-kadgar-doc",
+      "resolution": "Settled with the doc: Recursing Shield is an instant; added Greater Invisibility (allies within 8 hidden 3 turns, foes attack at disadvantage), Greater Levitation (allies within 8 fly 5 turns), Mana Wall (instant react, 20 HP shield for allies within 5), Binding (1d2 stun), Meteor Shower (4d10, aoe), Dispel Magic (instant react that unravels a spell, or strips a target's boons); the Great Staff allows two spells a turn (tag twoSpells: the second action must be a spell, and may repeat). Kept as on the site: Ice Tomb and the 1d6+2 staff attack. Costs (1 slot), ranges, radii and the 20 HP shield are my choices: the doc gives none. See tests/kadgar.test.mjs.",
+      "cat": "oddities",
+      "sev": "low",
+      "title": "Kadgar differs from the doc",
+      "who": "Kadgar",
+      "detail": "Settled case by case with the user.",
+      "where": "characters.json · Kadgar; main.js · personnageSheet"
+    },
+    {
+      "id": "decide-sora-doc",
+      "resolution": "Settled: no number differed. Remake (tag repair) mends only allied machines (tag mecha); no other heal, regen or domain heal works on a machine (Zane's Dragon Form sheds the tag, so he can be healed the classic way again). A Remake aimed at the living is refused and costs nothing. Kept: Remake costs 1 slot (my import choice), Spinzutsu stays a bounce. See tests/mecha.test.mjs.",
+      "cat": "oddities",
+      "sev": "low",
+      "title": "Sora and the mecha rule",
+      "who": "Sora, Pixal, Zane Climber, Future Zane",
+      "detail": "Settled case by case with the user. Open point: heals a machine could receive from its own side (none exists today: no mecha has a heal).",
+      "where": "characters.json · Sora; combat-logic.js · applyHeal, healsTarget"
+    },
+    {
+      "id": "decide-pixal-arin-wyldfire-doc",
+      "resolution": "Settled with the user. Pixal: Gun 2d6+4, physical with ice (one damage packet typed physical: the ice part is a tag, not a second packet), Scanner kept as a description. Arin: nothing differed; Débrouillard kept as a description. Wyldfire: immune to poison, and toxic still takes hold but hurts for only 1d4 a turn (sheet field dotDamage), Heat Projectile split into (Fire) and (Ice) so the element is chosen when casting. See tests/wyldfire.test.mjs.",
+      "cat": "oddities",
+      "sev": "low",
+      "title": "Pixal, Arin and Wyldfire differ from the doc",
+      "who": "Pixal, Arin, Wyldfire",
+      "detail": "Settled case by case with the user. Open: the AI always picks Heat Projectile (Fire), the two spells being equal for it; give it a reason to pick the element the target is weak to.",
+      "where": "characters.json · Pixal, Arin, Wyldfire; main.js · personnageSheet"
+    },
+    {
+      "id": "mech-map-traps",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "Traps on the map: detect, pick locks, disarm",
+      "who": "Pixal, Arin",
+      "detail": "Needs trapped cells and trapped doors on the map first. Then: Pixal's Scanner detects them (it does nothing for now), Arin's Débrouillard gives +3 to pick lock and disarm trap rolls (utilityRoll), and locked doors could ask for a roll instead of opening for free. Wyldfire's +2 breath (constRoll) needs a breath roll of its own.",
+      "where": "maps · dungeon-loader.js; characters.json · Pixal, Arin, Wyldfire"
+    },
+    {
+      "id": "mech-arcane-copy",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "Arcane Copy: cast any spell seen in the fight, with a malus",
+      "who": "Kadgar",
+      "detail": "Needs a memory of the spells seen in the fight and a malus rule (the doc gives none). Description only on the personnageSheet; not in the moveSet, so the AI never wastes slots on it.",
+      "where": "characters.json · Kadgar; Google Doc"
+    },
+    {
+      "id": "decide-hela-doc",
+      "resolution": "Settled with the user. Doc applied: 20 spell slots, Anti-Magic up to Authority 9, Undying Queen heals 30, Perfect Reflection sends the spell back as cast (tag reflect_plain; other reflectors still double), Death Gaze = 2 turns of disadvantage plus a 1 in 2 stun, Anti-magic Slash 2d12+4 with cooldown 4 that silences instead of switching passives off. Final Reckoning: third action, +2d12 and now +1d10 HP at the start of each turn (the doc's +2 actions was kept to +1). Weapon Wall, Living Blade Armor and Balmung stay. See tests/hela.test.mjs.",
+      "cat": "oddities",
+      "sev": "low",
+      "title": "Hela differs from the doc",
+      "who": "Hela",
+      "detail": "Open: with Anti-Magic at Authority 9, Hela's own Balmung (Authority 8) no longer pierces another Hela's immunity; give the relic Authority 9 if that matters. The Sword Master and Sorcerer Master 'seal magic' still use passives_off, not silence.",
+      "where": "characters.json · Hela; main.js · personnageSheet; combat-logic.js · reflectSpell, tickTurn"
+    },
+    {
+      "id": "decide-climbers-doc",
+      "resolution": "Settled with the user. Doc applied: Cole's Heavy Power Hammer 2d8+2 with a 1 in 2 stun (basic attacks now apply a baseAtk.effect; the old 'stun' tag was decorative), Cole's dragon no longer adds a spell slot. Relentless Warrior now works on damage: +1d10+2 dealt and 1d10+2 off each hit taken, per fallen ally. Forms with a duration now end by themselves (form_timer: the form HP, slots, flight and form abilities go, the normal kit returns): 5 turns for the four Climbers' dragons; Phoenix Prince's Grow Spurt (4) now ends too; duration -1 stays permanent. Dragon forms lose Armored while they last (transformation.losePassives) and fly (transformation passif tagged fly). Jay's form regains all spell slots (transformation.regainSlots) and gives advantage on defense rolls. Zane keeps the mecha tag, Jay keeps Lightning Chain as a bounce. See tests/climbers.test.mjs.",
+      "cat": "oddities",
+      "sev": "low",
+      "title": "Climbers differ from the doc",
+      "who": "Kay, Zane, Jay, Cole Climber",
+      "detail": "Open: the AI does not weigh a form's remaining duration when choosing to transform. A form's passives with dice (not tags) are still not applied while transformed; only adv and fly are.",
+      "where": "characters.json · Climbers; main.js · personnageSheet; combat-logic.js · handleTransform, revertForm, passiveLost, applyDamage"
+    },
+    {
+      "id": "decide-lloyd-nya-demon-doc",
+      "resolution": "Settled with the user. Sensei Lloyd: 70 HP. Nya Léviathan: already identical to the doc. Kay Demon: 'immun weak magic' is a flat -15 on every magic hit (no longer a full magic immunity); Volcana has no 1d2 miss chance. See tests/kay-demon.test.mjs.",
+      "cat": "oddities",
+      "sev": "low",
+      "title": "Sensei Lloyd, Nya and Kay Demon differ from the doc",
+      "who": "Sensei Lloyd, Nya Léviathan, Kay Demon",
+      "detail": "Settled case by case with the user.",
+      "where": "characters.json · Sensei Lloyd, Kay Demon; main.js · personnageSheet"
+    },
+    {
+      "id": "decide-ki-sun-oslo-eragon-doc",
+      "resolution": "Settled with the user. Ki: Meï 12, Krilin 5 (start and cap: ki doubles as the maximum, so 0 meant he could never regenerate), Baal 10. Sun: Divine Staff 2d8+1d6+6. Oslo: Marrow Spear 1d8 plus 1d6 on those around the target, Bone Prison 1d2 root (a 1 in 2 chance), Swamp Serpent Blade 1d2 poison, Warden of the Wilds (+3 perception, +1d6 against the tag beast) and Ranger (description). Eragon: 55 HP, Archmage and Runik Mage passives (the +3 slots are inside the 20, as for Kadgar's 33), Runique Precast removed, Fire Tornado 3d12, Water Dragon 3d12 with 1d8 on those around, Ice Coffin 2d12, Shield 30, Arcane Missile, Mana Wall, Meteor Shower, Dragon Breath split into Fire, Ice and Lightning (Kadgar's too), Arcane Canal no longer refills the caster (excludeSelf). New global rule: a fire attack on a frozen (gel) target thaws it and adds 2d12 thermal shock. New move field splashDice. See tests/eragon-oslo.test.mjs.",
+      "cat": "oddities",
+      "sev": "low",
+      "title": "Ki, Sun, Oslo and Eragon differ from the doc",
+      "who": "Meï, Krilin, Baal, Sun, Oslo, Eragon",
+      "detail": "Thormak, Jeagen and Ras already carry beast, so Oslo's +1d6 works against them. Oslo's Bone Prison 'root for 1d2' is read as a 50% chance, like other 1d2 riders, not as a 1-2 turn duration. Bone Shatter keeps its cooldown of 2 although the doc gives none.",
+      "where": "characters.json · Meï, Krilin, Baal, Sun, Oslo, Eragon, Kadgar; main.js · personnageSheet; combat-logic.js · applyDamage, splash"
+    },
+    {
+      "id": "decide-heracles-rig-glysain-zed-doc",
+      "resolution": "Settled with the user. Heracles: identical to the doc. Rig: GunRang now comes back at the start of Rig's next turn for a sure 1d4 on each target it hit (move field followUp). Glysain: Ice Flame is now a free cone technique (fire and ice, not magical, no cooldown, 1d2 freeze); the single-target basic attack stays as 'Ice Flame (single target)' with the same freeze rider because the engine needs a basic attack, which makes it a strictly weaker copy. Zed: Smoke Screen lasts 4 turns; Opportunist stays stun-only (no prone state). See tests/rig-glysain.test.mjs.",
+      "cat": "oddities",
+      "sev": "low",
+      "title": "Heracles, Rig, Glysain and Zed differ from the doc",
+      "who": "Heracles, Rig, Glysain, Zed",
+      "detail": "Open: Ice Flame carries the fire tag, so a second hit on a frozen target triggers thermal shock (+2d12) and thaws it. The AI does not plan around GunRang's returning blow. No prone state exists for Zed's Opportunist.",
+      "where": "characters.json · Rig, Glysain, Zed; main.js · personnageSheet; combat-logic.js · beginTurn, bounce"
+    },
+    {
+      "id": "decide-hui-morrow-astrid-sylvanas-doc",
+      "resolution": "Settled with the user. Astrid: identical to the doc. Sylvanas: identical except Arrow Volley keeps its cooldown of 2 (the doc gives none). Morrow: keeps its full physical immunity and its cones; Wind Tornado now hinders one time in two (the doc's 'd2 disadvantage'). Huītzilōpōchtli: Sacrifice executes under 10% of the target's HP with a floor of 10 HP (executeThreshold); Grand Destruct grounds a flier one time in two (move field groundChance); Explode Catapult bleeds one time in two. Existing disv tests moved from Wind Tornado to Quake Wave, which hinders for sure. See tests/huitzilopochtli-morrow.test.mjs.",
+      "cat": "oddities",
+      "sev": "low",
+      "title": "Huītzilōpōchtli, Morrow, Astrid and Sylvanas differ from the doc",
+      "who": "Huītzilōpōchtli, Morrow, Astrid, Sylvanas",
+      "detail": "Morrow's -20 physical reduction never matters while the immunity stays. Settled case by case with the user.",
+      "where": "characters.json · Huītzilōpōchtli, Morrow; combat-logic.js · executeStrike, grounds"
+    },
+    {
+      "id": "decide-dave-nightmares-doc",
+      "resolution": "Settled with the user. Dave: identical. Sylvanas Nightmare: Scream of the Banshee stuns one time in two (was a sure stun). Spheras Nightmare: Poison Breath is a cone technique (range 5, cooldown 2): 1d2 chance to poison, and a target that is already poisoned takes 1d12+8 poison damage instead (move field ifPoisoned). Astrid Nightmare: her daggers poison every hit and deal 1d12 poison damage instead once the target is poisoned (same field, on the basic attack; an extrapolation of the same reading). Dream Hunter: Corruption adds 1d10 to the target on each landed basic attack, never drains, and at 100 the target is dead for its team and becomes the Dream Hunter's summon (acts right after it, falls with it, does not count for victory). The old +1d10 damage bonus is gone. See tests/nightmares.test.mjs. Later the same day: Corruption now comes from every landed blow of the Dream Hunter (attack, spell, technique), through the unit whose action is being settled; Hat Form is an instant dodge react.",
+      "cat": "oddities",
+      "sev": "low",
+      "title": "Dave and the Nightmares differ from the doc",
+      "who": "Dave, Spheras Nightmare, Dream Hunter, Astrid Nightmare, Sylvanas Nightmare",
+      "detail": "Open: the AI may not use Poison Breath (it has no damage dice to rate). A summoned ex-ally keeps its sheet and HP but loses its other statuses.",
+      "where": "characters.json · Spheras, Dream Hunter, Astrid Nightmare, Sylvanas Nightmare; combat-logic.js · poisonCombo, corruptTarget, turnCorrupted"
+    },
+    {
+      "id": "decide-thormak-ras-wolf-cinder-doc",
+      "resolution": "Settled with the user. Thormak: Fire Spear is 1d20 on the target and 1d12 around it (splashDice), Blink is instant. Ras: Hunter Instinct is instant, so the sure hit can be followed by an attack the same turn. General of the Wolf Clan: identical to the doc. Cinder: Smoke Body (advantage on defense rolls) added to Blood Cinder, and Shatterspin now exists only in Blood Cinder. New tag noReact: an instant move that uses no action but is not offered as a reaction (the engine offers every instant move as a react otherwise). Tests of Blink and Hunter Instinct updated for the open turn. See tests/thormak-ras-cinder.test.mjs.",
+      "cat": "oddities",
+      "sev": "low",
+      "title": "Thormak, Ras, the Wolf General and Cinder differ from the doc",
+      "who": "Thormak, Ras, General of the Wolf Clan, Cinder",
+      "detail": "Settled case by case with the user. The AI may not chain Hunter Instinct and an attack in one turn yet.",
+      "where": "characters.json · Thormak, Ras, Cinder; combat-logic.js · getReacts"
     }
   ]
 }

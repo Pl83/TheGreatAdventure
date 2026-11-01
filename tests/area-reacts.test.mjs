@@ -43,7 +43,7 @@ test('Black Hole costs one slot, however many allies it shields', () => {
   assert.equal(L.S.awaitingReact, false);
 });
 
-test('Blink uses the action: no second spell after it, moving still allowed', () => {
+test('Blink is instant: the turn stays open, so a spell can follow it', () => {
   const thormak = L.buildCombatant(char('Thormak'), 0, 0);
   const foe     = L.buildCombatant(char('Maraca'), 1, 1);
   thormak.x = 1; thormak.y = 1; foe.x = 3; foe.y = 1;
@@ -56,10 +56,9 @@ test('Blink uses the action: no second spell after it, moving still allowed', ()
   assert.equal(L.getReacts(thormak).some(a => a.name === 'Blink'), false);
   L.handleCastAbility(thormak.id, 'Blink', [thormak.id]);
   assert.equal(L.S.teleportMode, true);
-  assert.equal(L.S.hasActed, true);
+  assert.equal(L.S.hasActed, false, 'an instant move does not use the action');
   L.exitTeleportMode();
   const slots = thormak.spellSlots;
   L.handleCastAbility(thormak.id, 'Fire Spear', [foe.id]);
-  assert.equal(thormak.spellSlots, slots); // refused
-  assert.equal(L.S.hasMoved, false);
+  assert.ok(thormak.spellSlots < slots, 'the Fire Spear can follow the Blink');
 });

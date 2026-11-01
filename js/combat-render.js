@@ -8,7 +8,7 @@ import {
   enemies, targetPool, abilityAvailable, hasSilence, hasValidTarget, hasControlEffect,
   chebyshev, targetInRange, moveSpeed, isWet, freeActionOptions, doorsInReach, doorLabel,
   drawMap, setupCanvasClickHandler,
-  clearAimState, startCombat, goToMapChoice, confirmMap, activeAllyDomain,
+  clearAimState, startCombat, goToMapChoice, confirmMap, activeAllyDomain, domainChargesOf, hasDivinity, repeatsAction, actionBudget, healsTarget,
 } from './combat-logic.js';
 
 import { loadManifest, loadMapMeta } from './dungeon-loader.js';
@@ -34,7 +34,6 @@ export function statusEmoji(name) {
   if (n === 'fly')                                               return '🦅';
   if (n === 'sure_hit')                                          return '🎯';
   if (n.startsWith('lost:'))                                     return '🦴';
-  if (n === 'chains_of_apophis')                                 return '⛓';
   if (n === 'living_blade_armor')                                return '⚔';
   if (n === 'final_reckoning')                                   return '💀';
   if (n === 'runik_precast')                                     return '✦';
@@ -83,7 +82,7 @@ export function resourceHTML(c) {
 }
 
 const STATUS_NAMES = {
-  damage_shield: 'Shield', living_blade_armor: 'Blade armor', chains_of_apophis: 'Chains of Apophis',
+  damage_shield: 'Shield', living_blade_armor: 'Blade armor',
   runik_precast: 'Runic precast', final_reckoning: 'Final reckoning', smoke_screen: 'Smoke screen',
   para: 'Paralysed', gel: 'Frozen', adv: 'Advantage', sure_hit: 'Sure hit', orders: 'Orders', ward: 'Moon ward', relic_awake: 'Ifrit awake', passives_off: 'Passives off',
   damage_reduction: 'Damage reduction', ranged_guard: 'Ranged guard', destiny_crit: 'Destiny strikes', gamble_bonus: 'Fortune +2d8',
@@ -104,6 +103,16 @@ export function statusBadgesHTML(c) {
     return `<li class="status-badge ${cls}"${notes}>${e.label ?? statusName(e.name)} <span class="status-dur">${dur}</span></li>`;
   }).join('');
   return `<ul class="status-badge-row" aria-label="Effects">${badges}</ul>`;
+}
+
+// Vorrakan's chains: HP of each, and whom it holds
+function chainsHTML(c) {
+  if (!c.chains) return '';
+  const chips = c.chains.map(ch => {
+    const held = ch.holdingId != null && ch.hp > 0 ? ` · holds ${getCombatant(ch.holdingId)?.name ?? '?'}` : '';
+    return `<span class="res-chip">⛓ ${ch.name} ${Math.max(0, ch.hp)}/${ch.maxHp}${ch.hp <= 0 ? ' (broken)' : held}</span>`;
+  }).join('');
+  return `<div class="res-row">${chips}</div>`;
 }
 
 export function combatantCardHTML(c, isActive) {
@@ -131,6 +140,7 @@ export function combatantCardHTML(c, isActive) {
       </div>
       ${hpBarHTML(c)}
       ${resourceHTML(c)}
+      ${chainsHTML(c)}
       ${statusBadgesHTML(c)}
       ${tfBadge || domainBadge ? `<div class="card-badges">${tfBadge}${domainBadge}</div>` : ''}
       ${passivesHTML}
@@ -221,7 +231,7 @@ export function actionPanelHTML(c) {
   const targetOptsForAbility = (ability) => {
     if (ability?.targetKind === 'self') return `<option value="${c.id}">Self</option>`;
     if (ability?.targetKind === 'ally') {
-      const allyPool = ability.isRevive ? koAllies(c.teamIndex) : allyAlive;
+      const allyPool = (ability.isRevive ? koAllies(c.teamIndex) : allyAlive).filter(t => healsTarget(ability, t));
       return allyPool.map(t =>
         `<option value="${t.id}">${t.name} · ${t.currentHp}/${t.maxHp} HP${t.isKO ? ' · fallen' : ''}</option>`
       ).join('');
@@ -243,7 +253,7 @@ export function actionPanelHTML(c) {
   const moveState = S.hasMoved ? 'Moved' : isRooted ? 'Rooted' : 'Move ready';
   const budget = `
     <ul class="turn-budget" aria-label="This turn">
-      <li class="budget-chip${acted ? ' is-spent' : ''}">${acted ? 'Action used' : 'Action ready'}</li>
+      <li class="budget-chip${acted ? ' is-spent' : ''}">${hasDivinity(c) ? `Actions ${S.actionsDone.length}/${actionBudget(c)} · must differ` : acted ? 'Action used' : 'Action ready'}</li>
       <li class="budget-chip${S.hasMoved || isRooted ? ' is-spent' : ''}">${moveState}</li>
     </ul>`;
   const moveSection = S.hasMoved || isRooted ? '' : `
@@ -297,7 +307,7 @@ export function actionPanelHTML(c) {
       <div id="ability-preview" class="ability-preview-wrap"></div>
       ${!hasMap && nomapTargetOpts() ? `<label class="sr-only" for="ability-target-nomap">Ability target</label><select id="ability-target-nomap" class="target-select nomap-target">${nomapTargetOpts()}</select>` : ''}
       <div class="aim-row">
-        <button class="action-btn aim-btn" id="btn-ability-fire" ${abNoTarget || (acted && !firstAbility?.isInstant) ? 'disabled' : ''}>
+        <button class="action-btn aim-btn" id="btn-ability-fire" ${abNoTarget || (acted && !firstAbility?.isInstant) || (firstAbility && !firstAbility.isInstant && repeatsAction(c, firstAbility.name)) ? 'disabled' : ''}>
           ${abilityFireLabel(firstAbility)}
         </button>
         <span id="aim-hint-ability" class="aim-hint" style="display:none">Click a target on the map — Esc or right-click cancels</span>
@@ -310,7 +320,7 @@ export function actionPanelHTML(c) {
     <div class="action-section">
       <span class="action-label">Transformation</span>
       <button class="action-btn transform-btn" id="btn-transform" data-caster="${c.id}"
-              ${(acted || c.usedThisFight.includes(tf.base.nom) || !abilityAvailable(c, tfAbility)) ? 'disabled' : ''}>
+              ${(acted || repeatsAction(c, 'transform') || c.usedThisFight.includes(tf.base.nom) || !abilityAvailable(c, tfAbility)) ? 'disabled' : ''}>
         ${tf.base.nom} <span class="btn-aside">${costText(tfAbility.cost)}</span>
       </button>
     </div>` : '';
@@ -318,7 +328,7 @@ export function actionPanelHTML(c) {
   const domain = c.sourceChar.domain;
   const chargesLeft = c.domainCharges ?? 0;
   const allyDomain  = domain && !c.domainActive ? activeAllyDomain(c) : null;
-  const maxCharges  = Math.max(1, Math.floor((domain?.rafinement ?? 0) / 3));
+  const maxCharges  = domainChargesOf(domain);
   const domainSection = domain ? (c.domainActive
     ? `<div class="action-section"><span class="domain-active-badge">${domain.name} — active · ${chargesLeft} charge${chargesLeft !== 1 ? 's' : ''} left</span></div>`
     : chargesLeft > 0
@@ -326,8 +336,8 @@ export function actionPanelHTML(c) {
           <span class="action-label">Domain expansion</span>
           <span class="domain-cost-label">${domain.name} · ${domain.type} · refinement ${domain.rafinement ?? '—'}</span>
           <button class="action-btn domain-btn" id="btn-domain" data-caster="${c.id}"
-                  ${(c.spellSlots < domain.spellCost || acted || allyDomain) ? 'disabled' : ''}>
-            Activate domain <span class="btn-aside">${domain.spellCost} slots · ${chargesLeft}/${maxCharges} charges</span>
+                  ${(acted || allyDomain || repeatsAction(c, 'domain')) ? 'disabled' : ''}>
+            Activate domain <span class="btn-aside">${chargesLeft}/${maxCharges} charge${maxCharges !== 1 ? 's' : ''}</span>
           </button>
           ${allyDomain ? `<span class="range-warn">Blocked — ${getCombatant(allyDomain.casterId).name}'s domain is active (one per team)</span>` : ''}
         </div>`
@@ -384,7 +394,7 @@ export function actionPanelHTML(c) {
         </select>
         ${atkNote}
         <button class="action-btn confirm-action-btn" id="btn-attack" data-attacker="${c.id}"
-                ${atkNoTarget || noEnemies || acted ? 'disabled' : ''}>
+                ${atkNoTarget || noEnemies || acted || repeatsAction(c, 'attack') ? 'disabled' : ''}>
           Attack <span class="btn-aside atk-dice">${c.transformedBaseAtk?.dices ?? c.sourceChar.baseAtk?.dices ?? '1d6'}</span>
         </button>
       </div>
@@ -577,7 +587,8 @@ const TEAM_NUM = ['I', 'II'];
  * opts.announce : short sentence for screen readers ("Susano added to Team I.")
  */
 export function renderSelectionScreen(opts = {}) {
-  const charGrid = (teamIdx) => allChars.map(c => {
+  // Summons only exist when called in a fight: they are not offered for a team
+  const charGrid = (teamIdx) => allChars.filter(c => !c.tags?.includes('summon')).map(c => {
       const inThis  = S.teamNames[teamIdx].includes(c.nom);
       const inOther = S.teamNames[1 - teamIdx].includes(c.nom);
       const full    = S.teamNames[teamIdx].length >= 5;
@@ -917,7 +928,7 @@ export function renderVictoryScreen() {
     S.combatants = []; S.initiativeOrder = []; S.log = []; S.winnerTeam = null;
     S.awaitingReact = false; S.pendingAction = null; S.reactOptions = []; S.awaitingFree = null;
     S.currentMap = null; S.mapViewFilter = 'both';
-    S.hasMoved = false; S.hasActed = false; S.moveMode = false; S.reachableCells = new Map();
+    S.hasMoved = false; S.hasActed = false; S.actionsDone = []; S.bonusActions = 0; S.moveMode = false; S.reachableCells = new Map();
     clearAimState();
     const btn = document.getElementById('btn-rematch');
     if (btn) btn.disabled = true;
@@ -930,7 +941,7 @@ export function renderVictoryScreen() {
       initiativeOrder: [], log: [], winnerTeam: null,
       awaitingReact: false, pendingAction: null, reactOptions: [], awaitingFree: null,
       currentMap: null, mapChoice: null, mapLoading: false, mapViewFilter: 'both',
-      hasMoved: false, hasActed: false, moveMode: false, reachableCells: new Map(),
+      hasMoved: false, hasActed: false, actionsDone: [], bonusActions: 0, moveMode: false, reachableCells: new Map(),
     });
     render();
   });

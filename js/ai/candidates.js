@@ -5,7 +5,7 @@ import {
   S, activeCombatant, getCombatant, bfsReachable, isOccupied, trappingDomainOwner, abilityAvailable,
   targetInRange, aoeCenterValid, aoeCombatantHits, blastReaches, coneCellTargets, tauntSource, targetPool,
   enemies, livingCombatants, koAllies, hasControlEffect, hasSilence, hasLos, chebyshev, activeAllyDomain,
-  MELEE_RANGE, SPELL_RANGE, moveSpeed, closedDoors, fieldTouches, inField,
+  MELEE_RANGE, SPELL_RANGE, moveSpeed, closedDoors, fieldTouches, inField, repeatsAction, healsTarget,
 } from '../combat-logic.js';
 import { isWalkableG } from '../dungeon-loader.js';
 import { walkDistance } from './paths.js';
@@ -205,7 +205,7 @@ function targetSets(c, at, ab, ctx) {
   }
   if (ab.targetKind === 'self') return !ab.isHeal || isHurt(c) ? [{ ids: [c.id] }] : [];
   if (ab.targetKind === 'ally') {
-    return livingCombatants(c.teamIndex).filter(t => (!ab.isHeal || isHurt(t)) && reach(t)).map(solo);
+    return livingCombatants(c.teamIndex).filter(t => (!ab.isHeal || isHurt(t)) && healsTarget(ab, t) && reach(t)).map(solo);
   }
   const foes = targetPool(c).filter(reach).map(solo);
   if (ab.targetKind !== 'any') return foes;
@@ -256,10 +256,10 @@ function nearestFoe(c, pool = targetPool(c)) {
 }
 
 // Domain expansion is offered only when handleActivateDomain would carry it out (a stronger rival
-// closed domain would crush it and burn half the slots, so that is left out too)
+// closed domain would crush it and burn its charge, so that is left out too)
 function domainLegal(c) {
   const domain = c.sourceChar.domain;
-  if (!domain || c.domainActive || c.domainCharges <= 0 || c.spellSlots < domain.spellCost || activeAllyDomain(c)) return false;
+  if (!domain || c.domainActive || c.domainCharges <= 0 || activeAllyDomain(c)) return false;
   if (domain.type === 'Ouvert') return true;
   const rival = S.activeDomains.find(d => {
     const owner = getCombatant(d.casterId);
@@ -290,11 +290,14 @@ export function enumeratePlans(c, { maxMoves = MAX_MOVES } = {}) {
   // Once the action is spent (an instant left the turn open) only instants remain
   const acted = c === activeCombatant() && S.hasActed;
   const ctx = { taunter: tauntSource(c), blasts: new Map() };
-  const abilities = c.abilities.filter(ab => castable(c, ab, silenced) && (!acted || ab.isInstant));
+  const live = c === activeCombatant();
+  // A divinity's second action must differ from its first
+  const fresh = label => !(live && repeatsAction(c, label));
+  const abilities = c.abilities.filter(ab => castable(c, ab, silenced) && (!acted || ab.isInstant) && (ab.isInstant || fresh(ab.name)));
 
   for (const move of moveChoices(c, maxMoves, silenced)) {
     const at = standingAt(c, move);
-    if (!acted) {
+    if (!acted && fresh('attack')) {
       for (const t of targetPool(c)) if (targetInRange(at, t, null).inRange) add(move, { type: 'attack', targetId: t.id });
     }
     for (const ab of abilities) {
@@ -304,11 +307,11 @@ export function enumeratePlans(c, { maxMoves = MAX_MOVES } = {}) {
       }
     }
     // A closed door beside the unit can be opened with the action
-    if (!acted && S.currentMap) {
+    if (!acted && fresh('door') && S.currentMap) {
       for (const d of closedDoors()) if (chebyshev(at, d) <= MELEE_RANGE) add(move, { type: 'openDoor', x: d.x, y: d.y });
     }
-    if (!acted && domainLegal(c)) add(move, { type: 'domain' });
-    if (!acted && transformLegal(c)) add(move, { type: 'transform' });
+    if (!acted && fresh('domain') && domainLegal(c)) add(move, { type: 'domain' });
+    if (!acted && fresh('transform') && transformLegal(c)) add(move, { type: 'transform' });
     add(move, { type: 'pass' });
   }
 

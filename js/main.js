@@ -190,7 +190,7 @@ export const capacitis = [
     {type: "Sort", name: "Mono Energie Beam", element: ["Energy"], weapon: "—", target: ["mono"], desc: "A beam of pure energy", cat: ["offence"], resource: "1S", style: "—", dice: "1d12+1d8+4"},
     {type: "Sort", name: "Ice Coffin", element: ["Ice"], weapon: "—", target: ["mono"], desc: "Trap the target in ice, can freeze", cat: ["offence", "cc"], resource: "1S", style: "—", dice: "1d10+8"},
     {type: "Sort", name: "Earth Spike", element: ["Earth"], weapon: "—", target: ["cone"], desc: "Spikes emerge from the ground", cat: ["offence"], resource: "1S", style: "—", dice: "1d20+1d6+6"},
-    {type: "Sort", name: "Golden Beam", element: ["Energy"], weapon: "—", target: ["mono"], desc: "The ultimate power of the First Spinjitzu Master", cat: ["offence", "ultimate"], resource: "1S", style: "Susano Style", dice: "2d20+20"},
+    {type: "Sort", name: "Golden Beam", element: ["Energy"], weapon: "—", target: ["mono"], desc: "The ultimate power of the First Spinjitzu Master", cat: ["offence", "ultimate"], resource: "1S", style: "Susano Style", dice: "2d20+25"},
     {type: "Technique", name: "Spinzutsu", element: ["—"], weapon: "—", target: ["aoe"], desc: "Classic martial art technique of Ninjago", cat: ["offence"], resource: "1T", style: "Susano Style", dice: "1d8+2"},
     {type: "Technique", name: "Object Spinzutsu", element: ["—"], weapon: "—", target: ["mono"], desc: "Arin's unique spinjitzu using objects", cat: ["offence"], resource: "1T", style: "Arin Style", dice: "1d12"},
     {type: "Sort", name: "Gravity Up", element: ["Gravity"], weapon: "—", target: ["mono"], desc: "Increases gravity to give disadvantage to the target", cat: ["cc"], resource: "1S", style: "—", dice: "—"},
@@ -362,16 +362,16 @@ export const personnageSheet = [
             {
                 name: "Nirvana",
                 hpBonus: 60,
-                effects: ["Each stone grants 1d6 bonus to element"],
+                effects: ["Each stone grants 1d8 bonus to element", "Divinity (two different actions a turn)", "Flight (permanent while in Nirvana)"],
                 spells: [
-                    { name: "Fire Ball", type: "aoe", dice: "1d10+10" },
+                    { name: "Fire Ball", type: "aoe", dice: "1d12+10" },
                     { name: "Lightning Shield", type: "react block", desc: "Self/Other, purify" },
                     { name: "Mono Energie Beam", type: "mono", dice: "1d12+1d8+6" },
                     { name: "Ice Coffin", type: "mono", dice: "1d12+3", effect: "1d2 freeze" },
                     { name: "Earth Spike", type: "cone", dice: "1d20+1d6+6" },
-                    { name: "Golden Beam", type: "mono", dice: "2d20+20", cooldown: "5t" }
+                    { name: "Golden Beam", type: "mono", dice: "2d20+25", cooldown: "5t" }
                 ],
-                attack: "Cleaver 2d8+8"
+                attack: "Cleaver 2d10+10"
             }
         ],
         abilities: [
@@ -379,7 +379,7 @@ export const personnageSheet = [
             { name: "Spinzutsu", type: "technique", dice: "1d8+6", cooldown: "1t" }
         ],
         attack: "Cleaver 1d8+8",
-        spellSlots: 9
+        spellSlots: 15
     },
     {
         name: "Thormak, The Titan Slayer",
@@ -387,7 +387,7 @@ export const personnageSheet = [
         passives: ["Unkillable (50% to survive a lethal hit at 1 HP)", "Titan Slayer (+1d12 if foe has more HP)"],
         spells: [
             { name: "Fire Spear", type: "mono + aoe", dice: "1d20 mono + 1d12 aoe" },
-            { name: "Blink", type: "instant", desc: "Teleportation" }
+            { name: "Blink", type: "instant", desc: "Teleportation (does not use the action)" }
         ],
         relics: [
             { name: "Apolo's Bow", charges: "3/3", effects: ["Advantage"], dice: "2d20+10 mono" }
@@ -397,7 +397,7 @@ export const personnageSheet = [
     },
     {
         name: "Sensei Lloyd",
-        hp: 65,
+        hp: 70,
         forms: [
             { name: "Oni Lloyd", hpBonus: 5, spellSlotsBonus: 3, atkBonus: "1d10" }
         ],
@@ -415,12 +415,12 @@ export const personnageSheet = [
     {
         name: "Kay Climber",
         hp: 65,
-        passives: ["Armored (+2 saving throw)", "Professional Diver (+2 const air)", "Relentless Warrior (reduce +/-1d10+2 dam per ally KO)"],
+        passives: ["Armored (+2 saving throw)", "Professional Diver (+2 const air)", "Relentless Warrior (per ally KO: +1d10+2 damage dealt and 1d10+2 off each hit taken)"],
         forms: [
             {
                 name: "Dragon Form",
                 hpBonus: 15,
-                effects: ["Fly", "Lose Armored"],
+                effects: ["Fly (while in the form)", "Loses Armored until the form ends"],
                 spells: [
                     { name: "Fire Breath", dice: "2d12+6" }
                 ],
@@ -432,7 +432,7 @@ export const personnageSheet = [
             { name: "Fire Shield", type: "instant", desc: "One block" }
         ],
         abilities: [
-            { name: "Dragon Form", type: "transformation", limit: "1 per fight", duration: "4t" },
+            { name: "Dragon Form", type: "transformation", limit: "1 per fight", duration: "5t" },
             { name: "Spinzutsu", type: "technique", dice: "1d8 aoe", cooldown: "1t" }
         ],
         attack: "Power Sword 1d10+4",
@@ -446,7 +446,7 @@ export const personnageSheet = [
             {
                 name: "Dragon Form",
                 hpBonus: 15,
-                effects: ["Fly", "Lose Armored"],
+                effects: ["Fly (while in the form)", "Loses Armored until the form ends"],
                 spells: [
                     { name: "Ice Breath", dice: "2d12+6" }
                 ],
@@ -458,7 +458,7 @@ export const personnageSheet = [
             { name: "Ice Cone", type: "aoe", dice: "1d12+4" }
         ],
         abilities: [
-            { name: "Dragon Form", type: "transformation", limit: "1 per fight", duration: "4t" },
+            { name: "Dragon Form", type: "transformation", limit: "1 per fight", duration: "5t" },
             { name: "Spinzutsu", type: "technique", dice: "1d8 aoe", cooldown: "1t" }
         ],
         attack: "Power Pickaxe 2d6+4",
@@ -471,7 +471,7 @@ export const personnageSheet = [
         forms: [
             {
                 name: "Dragon Form",
-                effects: ["Fly", "Lose Armored", "Regain all spell slots", "Adv save"],
+                effects: ["Fly (while in the form)", "Loses Armored until the form ends", "Regains all spell slots on transforming", "Advantage on saving (defense) rolls"],
                 spells: [
                     { name: "Thunder Breath", dice: "1d12+1d6+2" }
                 ],
@@ -507,12 +507,12 @@ export const personnageSheet = [
     {
         name: "Kay Demon",
         hp: 65,
-        passives: ["Immun weak magic"],
+        passives: ["Immun weak magic (-15 on every magic hit)"],
         spells: [
             { name: "Fire Ball", type: "aoe", dice: "1d12+1d8+2" }
         ],
         abilities: [
-            { name: "Volcana", type: "technique", dice: "2d20+1d12+1d8+6", effect: "1d2 miss", cooldown: "3t" },
+            { name: "Volcana", type: "technique", dice: "2d20+1d12+1d8+6", cooldown: "3t" },
             { name: "Avida Slash", type: "technique", dice: "1d20+1d10+10", desc: "Unblockable", cooldown: "1t" }
         ],
         attack: "1d12+1d6+2",
@@ -522,15 +522,15 @@ export const personnageSheet = [
         name: "Pixal",
         hp: 60,
         abilities: [
-            { name: "Scanner", desc: "Scan the area" }
+            { name: "Scanner", desc: "Scan the area: will detect trapped cells and doors (map traps are not implemented yet, so no effect for now)" }
         ],
-        attack: "Sword 1d6+2"
+        attack: "Gun 2d6 physical + 4 ice"
     },
     {
         name: "Sora",
         hp: 60,
         spells: [
-            { name: "Remake", type: "mono/mecha", dice: "1d20+20 heal" }
+            { name: "Remake", type: "mono/mecha", dice: "1d20+20 heal", desc: "Repair: mends only allied machines (mecha). No other heal works on a machine." }
         ],
         abilities: [
             { name: "Spinzutsu", type: "technique", dice: "1d8 aoe", cooldown: "1t" }
@@ -541,7 +541,7 @@ export const personnageSheet = [
     {
         name: "Arin",
         hp: 60,
-        passives: ["Débrouillard (+3 pick lock/disarm traps)"],
+        passives: ["Débrouillard (+3 pick lock/disarm traps; not implemented yet, no effect for now)"],
         abilities: [
             { name: "Object Spinzutsu", type: "technique", dice: "1d12 mono", cooldown: "1t" }
         ],
@@ -550,25 +550,35 @@ export const personnageSheet = [
     {
         name: "Wyldfire",
         hp: 65,
-        passives: ["Savage Child (less toxic damage, +2 breath)"],
+        passives: ["Savage Child (immune to poison, takes only 1d4 from toxic, +2 breath)"],
         spells: [
             { name: "Convert", type: "aoe", desc: "Freeze or evaporate water" },
-            { name: "Heat Projectile", type: "projectile", dice: "2d8+2 fire or ice" }
+            { name: "Heat Projectile (Fire)", type: "projectile", dice: "2d8+2 fire" },
+            { name: "Heat Projectile (Ice)", type: "projectile", dice: "2d8+2 ice" }
         ],
         attack: "Dagger 1d4",
         spellSlots: 3
     },
     {
         name: "Eragon",
-        hp: 50,
-        passives: ["Know adv on spell"],
+        hp: 55,
+        passives: [
+            "Archmage (+3 magic roll, +3 spell slot)",
+            "Know adv on spell",
+            "Runik Mage (+1d12 to all magic)"
+        ],
         spells: [
-            { name: "Fire Tornado", type: "aoe", dice: "2d12 fire/wind", desc: "Removes wet/disadvantage" },
+            { name: "Fire Tornado", type: "aoe", dice: "3d12 fire/wind", desc: "Removes wet/disadvantage from allies. Fire thaws the frozen (thermal shock)" },
             { name: "Fly", limit: "1 fight" },
-            { name: "Runique Precast", desc: "+2d12 next spell" },
-            { name: "Shield", dice: "20thp" },
-            { name: "Water Dragon", type: "mono", dice: "2d12 + 1d8 aoe", effect: "Add wet" },
-            { name: "Ice Coffin", type: "aoe", dice: "1d12 (+2d10 if wet)", effect: "Disadv next saving throw" },
+            { name: "Shield", dice: "30thp" },
+            { name: "Arcane Missile", type: "mono", dice: "1d12+1d10+10", effect: "Advantage" },
+            { name: "Mana Wall", type: "instant react", dice: "20 shield", desc: "A 20 HP absorb shield for the caster and allies within 5 cells" },
+            { name: "Meteor Shower", type: "aoe", dice: "4d10" },
+            { name: "Dragon Breath (Fire)", type: "cone", dice: "1d12+8" },
+            { name: "Dragon Breath (Ice)", type: "cone", dice: "1d12+8" },
+            { name: "Dragon Breath (Lightning)", type: "cone", dice: "1d12+8" },
+            { name: "Water Dragon", type: "mono", dice: "3d12, 1d8 aoe", effect: "Add wet" },
+            { name: "Ice Coffin", type: "aoe", dice: "2d12 (+2d10 if wet)", effect: "Disadv next saving throw" },
             { name: "Arcane Canal", desc: "Regen 4 spell slots to everyone else" }
         ],
         spellSlots: 20
@@ -627,11 +637,10 @@ export const personnageSheet = [
         name: "Cinder",
         hp: 60,
         forms: [
-            { name: "Blood Cinder", effects: ["Smoke Body (adv save)", "+1d6 damage"] }
+            { name: "Blood Cinder", effects: ["Smoke Body (adv save)", "+1d6 damage", "Shatterspin (1d12, cooldown 2t, only in this form)"] }
         ],
         abilities: [
-            { name: "Blood Form", duration: "End of combat" },
-            { name: "Shatterspin", dice: "1d12", cooldown: "2t" }
+            { name: "Blood Form", duration: "End of combat" }
         ],
         attack: "Sword 1d6"
     },
@@ -685,12 +694,12 @@ export const personnageSheet = [
             { name: "Bunshin", type: "react", cost: "3ki", desc: "Insta dodge mono, half aoe" },
             { name: "Eternal Bloom", type: "react", cost: "5ki", desc: "Shield" }
         ],
-        attack: "Divine Staff 2d8+1d12+6"
+        attack: "Divine Staff 2d8+1d6+6"
     },
     {
         name: "Meï",
         hp: 60,
-        ki: 5,
+        ki: 12,
         kiRegen: 3,
         abilities: [
             { name: "Field of Corruption", type: "aoe", cost: "10ki", effect: "1d2 para, 1d2 poison, 1d2 burn, 1d2 dis atk" },
@@ -702,7 +711,7 @@ export const personnageSheet = [
     {
         name: "Krilin",
         hp: 60,
-        ki: 0,
+        ki: 5,
         kiRegen: 1,
         abilities: [
             { name: "Banquet", cost: "5ki", desc: "Rest 5ki, 1d10+10hp, adv next roll" },
@@ -713,7 +722,7 @@ export const personnageSheet = [
     {
         name: "Baal",
         hp: 70,
-        ki: 6,
+        ki: 10,
         kiRegen: 1,
         passives: ["Yokai Blood (+1d6hp/t)"],
         abilities: [
@@ -743,16 +752,25 @@ export const personnageSheet = [
         passives: [
             "Archmage (+3 magic roll, +3 spell slot)", 
             "Knowledge (adv magic roll)", 
-            "Great Staff (+2 magic roll, prevent 3/3 crit fail)", 
+            "Great Staff (+2 magic roll, prevent 3/3 crit fail, two spells a turn)",
             "Runik Mage (+1d12 to all magic)"
         ],
         spells: [
             { name: "Greater Teleportation", type: "react", desc: "Teleport all allies" },
             { name: "Thunder Storm", type: "aoe", dice: "1d20+1d8+4" },
             { name: "Recursing Shield", type: "instant", dice: "1d4*20 shield" },
+            { name: "Greater Invisibility", type: "aoe self", desc: "The caster and allies within 8 cells are hidden for 3 turns: foes attack at disadvantage" },
+            { name: "Greater Levitation", type: "aoe self", desc: "The caster and allies within 8 cells fly for 5 turns" },
+            { name: "Mana Wall", type: "instant react", dice: "20 shield", desc: "A 20 HP absorb shield for the caster and allies within 5 cells" },
             { name: "Arcane Missile", type: "mono", dice: "1d12+1d10+10", effect: "Advantage" },
+            { name: "Binding", type: "mono", effect: "1d2 stun" },
             { name: "Ice Tomb", effect: "1d2 freeze" },
-            { name: "Dragon Breath", type: "cone", dice: "1d12+8", desc: "Chosen element" }
+            { name: "Dragon Breath (Fire)", type: "cone", dice: "1d12+8" },
+            { name: "Dragon Breath (Ice)", type: "cone", dice: "1d12+8" },
+            { name: "Dragon Breath (Lightning)", type: "cone", dice: "1d12+8" },
+            { name: "Meteor Shower", type: "aoe", dice: "4d10" },
+            { name: "Dispel Magic", type: "instant react mono", desc: "Unravels an incoming spell, or strips the boons of its target" },
+            { name: "Arcane Copy", type: "spell", desc: "Cast any spell seen in the fight, with a malus (description only, not in the simulator yet)" }
         ],
         spellSlots: 33
     },
@@ -783,7 +801,8 @@ export const personnageSheet = [
             { name: "Dragon Rebel", dice: "2d8+2", cooldown: "3t" }
         ],
         relics: [
-            { name: "Chains of Apophis", authority: 8, desc: "Absorb damage directed toward master" }
+            { name: "Chains of Apophis", authority: 5, desc: "Two chains of 150 HP (Left, Right). Two charges: a free chain grabs one foe, always with advantage; on a hit it is stunned and rooted and drained of 10+1d10 HP and 1d4 spell slots at once and at each of its turns, until its allies deal 50 damage to the chain by targeting it. Immunities do not stop it, only an Authority gate above 5 (Hela, Chronos); no Cleanse lifts it. The holding chain no longer guards. Unusable with no free chain." },
+            { name: "Chain Guard", desc: "React: the free chains take the blow being answered in his stead, split evenly (10 each for 20). Not offered for damage over time." }
         ],
         attack: "Swords 2d8+6",
         spellSlots: 10
@@ -837,14 +856,16 @@ export const personnageSheet = [
     {
         name: "Spheras Nightmare",
         hp: 105,
-        passives: ["Poison Breath (cone 1d2 poison or 1d12+8 toxic)"],
+        abilities: [
+            { name: "Poison Breath", type: "cone", effect: "1d2 poison; if the target is already poisoned: 1d12+8 poison damage instead", cooldown: "2T" }
+        ],
         attack: "1d8+4",
         spellSlots: 10
     },
     {
         name: "Dream Hunter",
         hp: 110,
-        passives: ["Each bolt adds 1d10 corruption"],
+        passives: ["Corruption (each landed blow adds 1d10 corruption, attack, spell or technique; it never drains; at 100 the target leaves its team and becomes a summon of the Dream Hunter)"],
         spells: [
             { name: "Hat Form", type: "react", desc: "Insta dodge mono, half aoe" },
             { name: "Chains of Damnation Wall", dice: "3d20hp", desc: "Create a wall" }
@@ -855,7 +876,7 @@ export const personnageSheet = [
     {
         name: "Astrid Nightmare",
         hp: 130,
-        passives: ["Toxic Daggers (1d1 poison or 1d12)"],
+        passives: ["Toxic Daggers (every hit poisons; against an already poisoned target: 1d12 poison damage instead)"],
         spells: [
             { name: "Shadow Dragon", type: "mono", dice: "2d12+1d8+1d6+4" },
             { name: "Shadow Dash", type: "react", desc: "Dash to target, opportunity atk" }
@@ -950,7 +971,7 @@ export const personnageSheet = [
             {
                 name: "Earth Dragon",
                 hpBonus: 20,
-                effects: ["Fly", "Lose Armored", "1 Dragon Spell slot"],
+                effects: ["Fly (while in the form)", "Loses Armored until the form ends"],
                 spells: [
                     { name: "Magma Breath", type: "cone", dice: "2d12+8 fire/earth", effect: "1d2 burn (1d4/t)" }
                 ],
@@ -964,9 +985,9 @@ export const personnageSheet = [
         ],
         abilities: [
             { name: "Spinzutsu", type: "technique", cooldown: "1T", dice: "1d8 aoe" },
-            { name: "Dragon Form", type: "transformation", limit: "1/fight", duration: "4T" }
+            { name: "Dragon Form", type: "transformation", limit: "1/fight", duration: "5T" }
         ],
-        attack: "Heavy Power Hammer: 1d12+6 (1d2 stun)"
+        attack: "Heavy Power Hammer: 2d8+2 (1d2 stun)"
     },
     {
         name: "Oslo",
@@ -975,12 +996,14 @@ export const personnageSheet = [
         passives: [
             "Swamp Tribe (Immune to toxic damage)", 
             "Odin's Blessing (+5 Init & Perception)", 
-            "Bone Armor (+4 saving throw, regrow 2T if lost)"
+            "Bone Armor (+4 saving throw, regrow 2T if lost)",
+            "Warden of the Wilds (+3 perception, +1d6 dam vs beasts)",
+            "Ranger (+3 lockpicking/perception/disarming/trap setting, not implemented yet)"
         ],
         spells: [
-            { name: "Bone Prison", type: "mono", dice: "1d10 piercing", effect: "Root 1d2 turns" },
+            { name: "Bone Prison", type: "mono", dice: "1d10 piercing", effect: "1d2 root" },
             { name: "Skeletal Wall", type: "block", dice: "40 HP wall" },
-            { name: "Marrow Spear", type: "projectile", dice: "1d20", desc: "Ignores 50% armor" }
+            { name: "Marrow Spear", type: "projectile", dice: "1d8 mono, 1d6 aoe" }
         ],
         abilities: [
             { name: "Bone Shatter", type: "aoe", cooldown: "2T", dice: "2d8+4", desc: "Knockback, loose Bone Armor" }
@@ -1013,7 +1036,7 @@ export const personnageSheet = [
             { 
                 name: "Sacrifice", 
                 type: "execute", 
-                desc: "Execute target below 10 HP. Restore 1 spell slot and 50 HP. Guardbreak." 
+                desc: "Execute a target below 10% of its HP (never less than 10 HP). Restore 1 spell slot and 50 HP. Guardbreak." 
             }
         ],
         abilities: [
@@ -1043,7 +1066,7 @@ export const personnageSheet = [
                 type: "technique", 
                 dice: "1d6+1d4", 
                 cooldown: "3t", 
-                desc: "Attaque boomerang; chance d'infliger 1d4 supplémentaire au tour suivant." 
+                desc: "Attaque boomerang : au début du tour suivant, elle revient et inflige 1d4 de plus à chaque cible touchée." 
             }
         ],
         attack: "Swift Blade: 2d4+1 physical damage"
@@ -1056,6 +1079,7 @@ export const personnageSheet = [
             "Survivalist (+2 const/percep/decep) [cite: 12]"
         ],
         abilities: [
+            { name: "Ice Flame", type: "cone", dice: "1d8+2", effect: "1d2 freeze", cooldown: "none", desc: "Attaque de base en cône : élémentaire (feu et glace), non magique, gratuite, sans cooldown." },
             { 
                 name: "Ice Pillar", 
                 type: "react block", 
@@ -1064,7 +1088,7 @@ export const personnageSheet = [
                 desc: "Crée un pilier de glace pour bloquer les attaques." 
             }
         ],
-        attack: "Ice Flame: cone 1d8+2 damage, effect 1d2 freeze"
+        attack: "Ice Flame (single target): 1d8+2 fire/ice, 1d2 freeze"
     },
     {
         name: "Zed",
@@ -1134,18 +1158,19 @@ export const personnageSheet = [
     {
         name: "Hela, Goddess of Death",
         hp: 450, 
-        spellSlots: 15,
+        spellSlots: 20,
         passives: [
             "True Weapon Goddess (Advantage on ALL attack rolls)",
-            "Anti-Magic (Immune to all magic/status below Authority 8)",
+            "Anti-Magic (Immune to all magic/status below Authority 9)",
             "Death Presence (All foes have Disadvantage on their first attack)",
-            "Undying Queen (Resurrection active, Heal 20 HP each turn)"
+            "Undying Queen (Resurrection active, Heal 30 HP each turn)",
+            "Divinity (two different actions a turn)"
         ],
         abilities: [
             { 
                 name: "Perfect Reflection", 
                 type: "react", 
-                desc: "Reflects a spell back with 2x damage. Only bypassed by Authority 8." 
+                desc: "Reflects a spell back at its caster, as it was cast. Only bypassed by Authority 8." 
             },
             { 
                 name: "Weapon Wall", 
@@ -1166,14 +1191,14 @@ export const personnageSheet = [
             { 
                 name: "Final Reckoning", 
                 type: "passive", 
-                desc: "Hela enters absolute focus state: she can act twice per turn and gains +2d12 damage." 
+                desc: "Hela enters absolute focus state: a third action each turn (on top of Divinity's two), +2d12 damage and +1d10 HP at the start of each turn."
             }
         ],
         spells: [
             { name: "Soul Obliteration", dice: "4d20", effect: "Heals Hela for 100% of damage dealt" },
-            { name: "Death Gaze", effect: "Stun 2 turns + Inflict Fear (Disadvantage on rolls)" },
+            { name: "Death Gaze", effect: "2 turns of disadvantage on attack and defense rolls, 1 in 2 chance of a stun" },
             { name: "Infinite Blade Storm", type: "aoe", dice: "6d12", desc: "True damage (ignores armor/shields)" },
-            { name: "Anti-magic slash", type: "cone", dice: "2d12", desc: "True damage + Disables target passives for 1 turn" }
+            { name: "Anti-magic slash", type: "cone", dice: "2d12+4", desc: "Anti-magic damage + seals the magic of those it hits for 1 turn. Cooldown 4 turns" }
         ],
         domain: {
             name: "Grave of the Thousand Gods",
@@ -1181,7 +1206,7 @@ export const personnageSheet = [
             rafinement: 5,
             description: "Un cimetière désolé sous un ciel de sang, où des milliers d'armes divines sont plantées dans le sol, vibrant d'anti-magie.",
             effect: "Authority -1 for foes, Infinite Weapon Wall usage, Sure-hit on Anti-magic slash",
-            cost: "5 spell slots"
+            cost: "2 charges per fight, no spell slots"
         },
         relics: [
             { name: "Balmung (Sealed)", authority: 8, dice: "4d12+20", effect: "Can hit through dimensions" }
@@ -1194,7 +1219,8 @@ export const personnageSheet = [
         spellSlots: 14,
         passives: [
             "Archive of Ibis (Advantage on ALL rolls: attacks, spells and defense)",
-            "Time Beyond Time (Immune to status below Authority 9)"
+            "Time Beyond Time (Immune to status below Authority 9)",
+            "Divinity (two different actions a turn)"
         ],
         abilities: [
             {
@@ -1231,9 +1257,1033 @@ export const personnageSheet = [
             rafinement: 7,
             description: "Une salle sans fin au cœur du Tartare, remplie d'horloges arrêtées. Le temps y coule pour Chronos seul : chaque tour, il reprend ce que le temps lui doit.",
             effect: "Each turn Chronos regains, at random, HP, spell slots or a Thread. No cooldown on Withering Hour, Sure-hit on Stasis",
-            cost: "7 spell slots"
+            cost: "2 charges per fight, no spell slots"
         },
         attack: "Hand of the Hour: 4d12+27 (Advantage, ignores shields and damage reduction)"
+    },
+    {
+        name: "Jeagen, White Tiger",
+        hp: 110,
+        ki: 20,
+        kiRegen: 6,
+        passives: [
+            "Divine Predator (+5 init)",
+            "Iron Pelt (-1d6+2 damage taken vs physical damage)",
+            "Apex Hunter (Bonus damage against targets with more HP)",
+            "Wind Step (Advantage on all defense rolls)",
+            "Divine Hunter (+1d20 damage against divinities)",
+            "Immunities (bleed, fear)"
+        ],
+        abilities: [
+            { name: "Rending Gale", type: "mono", dice: "2d12+8", cost: "5ki" },
+            { name: "Steel Fang Barrage", type: "mono", dice: "4d8+6", cost: "6ki", desc: "Rapid claw combo. Hits 4 times." },
+            { name: "White Wind Slash", type: "cone", dice: "1d20+10", cost: "7ki" },
+            { name: "Tiger's Leap", type: "dash mono", dice: "2d10+10", cost: "5ki", desc: "Dash to target at divine speed, guardbreak." },
+            { name: "Iron Tempest", type: "mono", dice: "3d12+12", cost: "10ki", cooldown: "3T" },
+            { name: "Sovereign Roar", type: "aoe", cost: "8ki", cooldown: "4T", desc: "The divine roar of the White Tiger. 1d2 fear + 1d2 stun on all foes." }
+        ],
+        attack: "White Tiger Claws 2d10+1d6+8"
+    },
+    {
+        name: "Jay, Azure Dragon",
+        hp: 90,
+        spellSlots: 6,
+        ki: 8,
+        kiRegen: 3,
+        passives: [
+            "Azure Dragon's Remnant (Jay is fused with the soul of the Azure Dragon. His body is partially draconic — tail and forearms)",
+            "Soul of the Fallen Dragon (Dragon power surges when near death)",
+            "Storm Body (Absorbs part of lightning damage)",
+            "Immunities (lightning)"
+        ],
+        abilities: [
+            { name: "Thunder Fang", type: "mono", dice: "1d12+1d8+4", cost: "4ki" },
+            { name: "Gale Claw", type: "cone", dice: "2d10+4", cost: "5ki" },
+            { name: "Dragon Scale Guard", type: "react block", cost: "3ki", desc: "Harden scales to block incoming attack. Reduces physical damage by half." },
+            { name: "Azure Dragon Roar", type: "aoe", dice: "3d10+8", cost: "4ki", cooldown: "4T", desc: "The cry of the Azure Dragon. Disadvantage on foe rolls for 1 turn." }
+        ],
+        spells: [
+            { name: "Verdant Surge", type: "mono", dice: "1d20+6", desc: "A burst of living wood energy tears through the target." },
+            { name: "Storm Breath", type: "cone", dice: "2d12+1d8+4", cost: "2 slots" }
+        ],
+        attack: "Dragon Claw Strike 1d12+1d6+6"
+    },
+    {
+        name: "Zhuqiao, Vermillion Bird",
+        hp: 85,
+        ki: 16,
+        kiRegen: 5,
+        passives: [
+            "Fly (18 speed)",
+            "Undying Flame (Phoenix flame regenerates the body when near death)",
+            "Solar Feathers (Radiant energy reduces dark damage)",
+            "Embers of Life (Passive warmth of the Vermillion Bird heals the allies within 8 cells each turn, not herself)",
+            "Immunities (fire, burn, radiant)"
+        ],
+        abilities: [
+            { name: "Blazing Wing Slash", type: "mono", dice: "2d8+1d6+6", cost: "4ki" },
+            { name: "Solar Flare", type: "aoe", dice: "2d10+6", cost: "6ki", desc: "1d2 blind on all targets hit." },
+            { name: "Feather Storm", type: "bounce", dice: "1d8+4", cost: "5ki", desc: "Burning feathers bounce between enemies." },
+            { name: "Phoenix Shroud", type: "react block", dice: "1d10+6", cost: "9ki", desc: "Wrap an ally in phoenix fire. Block one attack + regen 1d10+6 HP." },
+            { name: "Resurrection Ember", type: "mono", cost: "12ki", limit: "1/fight", desc: "Revive a KO'd ally with 50% HP. 1 use per fight." },
+            { name: "Vermillion Judgement", type: "mono", dice: "4d10+10", cost: "14ki", cooldown: "5T", desc: "Divine fire of the South. True damage." }
+        ],
+        attack: "Phoenix Talon 1d10+1d8+6"
+    },
+    {
+        name: "Black Turtle",
+        hp: 120,
+        spellSlots: 8,
+        passives: [
+            "Immortal Shell (The divine shell of the Black Turtle reduces all incoming damage)",
+            "Abyss Ward (+4 defense roll/saving throw)",
+            "Sunken Colossus (In water or flooded terrain, the Black Turtle's power is absolute)",
+            "Northern Bastion (Cannot be moved, knocked back, or grounded against its will)",
+            "Immunities (water, wet, freeze, earth)"
+        ],
+        abilities: [
+            { name: "Depths of the North", type: "aoe", dice: "4d12+12", cost: "3 slots", cooldown: "5T", desc: "The ocean itself crashes down. True damage to all in range." }
+        ],
+        spells: [
+            { name: "Abyssal Current", type: "cone", dice: "2d12+8" },
+            { name: "Stone Tide", type: "mono", dice: "1d20+1d8+6" },
+            { name: "Glacial Prison", type: "aoe", dice: "1d12+4", cost: "2 slots", desc: "Encase foes in ice. 1d2 root + 1d2 freeze." },
+            { name: "Tortoise Bastion", type: "block", dice: "60", cost: "2 slots", desc: "Raise a divine barrier of stone and water with 60 HP." }
+        ],
+        attack: "Abyssal Shell Strike 2d10+1d8+8"
+    },
+    {
+        name: "Ronin Lloyd",
+        hp: 80,
+        spellSlots: 6,
+        passives: [
+            "Master of the Ninja's Art (+2 const roll/perception/deception/defense roll)",
+            "Master of the Ninja's Art (+2 attack and +1d6 damage)",
+            "Advanced Aincrad Style (+1d6 attack roll)",
+            "Oni Slayer (+1d8+4 attack roll vs oni)",
+            "Dragon Slayer (+1d8+4 attack roll vs dragon)"
+        ],
+        abilities: [
+            { name: "Spinzutsu", type: "bounce", dice: "1d8", cooldown: "1T" },
+            { name: "Armor Pierce", type: "mono", dice: "1d6+2", cooldown: "1T", effect: "1d2 bleed" },
+            { name: "Rapid Bite", type: "mono", dice: "2d6+4", cooldown: "2T" },
+            { name: "Starlight Splash", type: "mono", dice: "8d6+16", cooldown: "3T" },
+            { name: "Sonic Leap", type: "dash mono", dice: "1d8+2", cooldown: "2T" }
+        ],
+        spells: [
+            { name: "Chain Thunder", type: "bounce", dice: "2d8+4", effect: "1d2 para" },
+            { name: "Energie Shield", type: "react block", desc: "Block an incoming attack." }
+        ],
+        attack: "Katana 1d6+1d4+2"
+    },
+    {
+        name: "Mira",
+        hp: 65,
+        spellSlots: 4,
+        passives: [
+            "Aincrad Student (Trained in the Aincrad sword style)"
+        ],
+        abilities: [
+            { name: "Spinzutsu", type: "bounce", dice: "1d8", cooldown: "1T" },
+            { name: "Sonic Charge", type: "dash mono", dice: "1d6+4", cooldown: "2T" },
+            { name: "Hellical Twice", type: "react block", cooldown: "2T", desc: "Blocks an area attack for the whole team." },
+            { name: "Dimension Stampede", type: "cone", dice: "4d6+8+1d12+4", cooldown: "3T" },
+            { name: "Imperial Southern Cross", type: "dash mono", dice: "5d6+10+1d12+6", cooldown: "5T", desc: "Ultimate." }
+        ],
+        spells: [
+            { name: "Lightning Chain", type: "bounce", dice: "1d12+2" }
+        ],
+        attack: "Sword 1d8+2"
+    },
+    {
+        name: "Nate",
+        hp: 65,
+        spellSlots: 4,
+        passives: [
+            "Armored (+2 defense roll)",
+            "Aincrad Student (Trained in the Aincrad sword style)",
+            "Heavy Striker (+1d4+1 attack roll with heavy weapons)",
+            "Seismic Sense (Advantage on all perception checks)",
+            "Stone Skin (Immune to status effects (in immunities[]))",
+            "Immunities (status)"
+        ],
+        abilities: [
+            { name: "Spinzutsu", type: "bounce", dice: "1d8", cooldown: "1T" },
+            { name: "Megaton Swing", type: "aoe", dice: "1d12+4", cooldown: "2T" },
+            { name: "Colossus Crusher", type: "mono", dice: "3d8+12", cooldown: "5T", effect: "1d2 stun" },
+            { name: "Speedy Hammer", type: "mono", dice: "3d6+3", cooldown: "2T" }
+        ],
+        spells: [
+            { name: "Earth Drill", type: "mono", dice: "2d8" }
+        ],
+        attack: "Hammer 1d8+2"
+    },
+    {
+        name: "Jhin",
+        hp: 65,
+        spellSlots: 4,
+        passives: [
+            "Aincrad Student (Trained in the Aincrad sword style)",
+            "Armor Breaker (+1d4+2 attack roll vs armored)",
+            "Sword Master (Advantage on sword rolls)"
+        ],
+        abilities: [
+            { name: "Spinzutsu", type: "bounce", dice: "1d8", cooldown: "1T" },
+            { name: "Sonic Leap", type: "dash mono", dice: "1d8+2", cooldown: "2T" },
+            { name: "Vorpal Slash", type: "mono", dice: "1d12+12", cooldown: "4T", desc: "100% lifesteal on damage dealt." },
+            { name: "Deadly Sins", type: "dash mono", dice: "7d6+14", cooldown: "4T" }
+        ],
+        attack: "Sword 1d6+2"
+    },
+    {
+        name: "Future Zane",
+        hp: 70,
+        spellSlots: 6,
+        passives: [
+            "Ice Shell (Gain a 10 HP shield each turn (not stackable))",
+            "Battle Tactician (Title. Unlocks Give Orders: an ally gets +2 on its attack rolls)"
+        ],
+        abilities: [
+            { name: "Give Orders", type: "mono", desc: "Battle Tactician. Ends the turn; an ally gets +2 on its attack rolls until its next turn is over." },
+            { name: "Spinzutsu", type: "bounce", dice: "1d8", cooldown: "1T" },
+            { name: "Self Destruct", type: "instant", dice: "1d10", limit: "1/fight", effect: "1d2 gel", desc: "Explodes for remaining HP × 1d10 on everyone around, then falls KO." }
+        ],
+        spells: [
+            { name: "Cryo Beam", type: "aoe", dice: "1d12+6", effect: "1d2 gel" },
+            { name: "Ice Cone", type: "cone", dice: "1d12+4" },
+            { name: "Ice Arrow", type: "mono", dice: "1d10+4" }
+        ],
+        attack: "Shurikens 1d4+3"
+    },
+    {
+        name: "Irina",
+        hp: 60,
+        ki: 9,
+        kiRegen: 2,
+        passives: [
+            "Child of the Phoenix (Immune to burn. Shares the vision of her fire spirits. Immunity handled in immunities[])",
+            "Immunities (burn)"
+        ],
+        abilities: [
+            { name: "Flaming Bird", type: "action", cost: "1ki", desc: "Summons one Fire Spirit per ki spent (one spirit per cast). It acts right after Irina." },
+            { name: "Living Bomb", type: "self", dice: "1d12+6", cost: "5ki", desc: "Detonates every Fire Spirit: each one bursts on its own spot (radius 3) and hits the foes caught in it." },
+            { name: "Fire Ray", type: "mono", dice: "1d12+4", cost: "1ki", desc: "Damage is multiplied by the number of combustion stacks on the target. Applies one combustion debuff." }
+        ],
+        attack: "Staff 1d6"
+    },
+    {
+        name: "Fire Spirit",
+        hp: 15,
+        passives: [
+            "Fly (18 speed)",
+            "Immunities (fire, physical)"
+        ],
+        attack: "Blazing Dash 1d6+2"
+    },
+    {
+        name: "Ray",
+        hp: 90,
+        spellSlots: 6,
+        passives: [
+            "Solid Flames (Every attack deals 1d4 bonus damage and 1d2 burn)",
+            "Master Blacksmith (Can reinforce an ally's weapon: +1d4)"
+        ],
+        spells: [
+            { name: "Heat Haze", type: "react", desc: "Instant react. Allies in the area get +4 to their defense roll." }
+        ],
+        attack: "Hybrid Weapon 2d8+8"
+    },
+    {
+        name: "Maya",
+        hp: 90,
+        spellSlots: 8,
+        passives: [
+            "High-Pressure Mastery (All attacks have armor penetration)"
+        ],
+        abilities: [
+            { name: "Crushing Weight", type: "mono", dice: "1d12+4", cooldown: "1T", effect: "1d2 prone" }
+        ],
+        spells: [
+            { name: "Fluid Parry", type: "react", dice: "1d8+4", desc: "Instant react: counter-attack." }
+        ],
+        attack: "Weapon 1d10+4"
+    },
+    {
+        name: "Libber",
+        hp: 85,
+        ki: 12,
+        kiRegen: 2,
+        passives: [
+            "Static Charge (The next attack gains +2 per step walked)",
+            "Lightning Reflexes (+2 init)"
+        ],
+        abilities: [
+            { name: "Thunder Step", type: "bounce", cost: "3ki", desc: "Bounces between targets; damage is bounce count × 1d8." },
+            { name: "Volt Crash", type: "mono", dice: "4d8+2d6", cooldown: "3T" }
+        ],
+        attack: "Weapon 2d6+2"
+    },
+    {
+        name: "Bentei",
+        hp: 120,
+        spellSlots: 6,
+        passives: [
+            "Mountain's Weight (Cannot be knocked prone or pushed back)",
+            "Tectonic Skin (-8 damage taken vs physical damage)"
+        ],
+        abilities: [
+            { name: "Earthquake Slam", type: "aoe", dice: "1d10", cooldown: "2T", effect: "1d2 prone" }
+        ],
+        spells: [
+            { name: "Obsidian Wall", type: "react block", dice: "60", desc: "Instant react: creates a wall with 60 HP." }
+        ],
+        attack: "Weapon 2d6+8"
+    },
+    {
+        name: "Ivo",
+        hp: 90,
+        spellSlots: 6,
+        abilities: [
+            { name: "Freeze", type: "mono", cooldown: "2T", effect: "1d2 freeze" }
+        ],
+        spells: [
+            { name: "Cryostase", type: "mono", dice: "1d8+8", desc: "Removes bleed and burn, then heals." },
+            { name: "Ice Cannon", type: "mono", dice: "1d10+1d6+4" }
+        ],
+        attack: "Weapon 1d8+4"
+    },
+    {
+        name: "Stormer",
+        hp: 75,
+        spellSlots: 11,
+        passives: [
+            "Thunder Defense (+4 init/defense roll)",
+            "Thor's Blessing (Immune to lightning damage; +1d6 lightning damage)",
+            "Hero of Dawn (Immune to radiant damage; -1d8 dark damage taken; +1d12 damage vs evil foes)",
+            "Hero of Dawn (Evil Slayer) (+1d12 attack roll vs evil)",
+            "Immunities (lightning, radiant)"
+        ],
+        abilities: [
+            { name: "Shield Bash", type: "cone", dice: "1d8+2", cooldown: "1T", effect: "1d2 para" }
+        ],
+        spells: [
+            { name: "Electro Shield", type: "react block" },
+            { name: "Thunder", type: "mono", dice: "1d12+8", effect: "1d2 para" },
+            { name: "Cumulonimbus", type: "aoe", dice: "2d10+4", effect: "1d2 para" }
+        ],
+        relics: [
+            { name: "Storm End", type: "aoe", dice: "1d12+4", duration: "2T", desc: "Self-centred taunt for 2 turns, plus damage." }
+        ],
+        attack: "Weapon 1d8+4"
+    },
+    {
+        name: "Leonidas",
+        hp: 75,
+        spellSlots: 7,
+        passives: [
+            "Odin's Blessing (+5 init/perception)",
+            "Armor Breaker (+1d4+2 attack roll vs armored)",
+            "Heavy Striker (+1d4+1 attack roll with heavy weapons)"
+        ],
+        spells: [
+            { name: "Golem Creation", type: "action", desc: "Creates 1d4 Golems beside him. They act right after Leonidas." },
+            { name: "Weapon Creation", type: "instant", desc: "Creates a weapon." }
+        ],
+        attack: "Weapon 2d8+4"
+    },
+    {
+        name: "Golem",
+        hp: 15,
+        attack: "Punch 1d4+2"
+    },
+    {
+        name: "Ouroboros",
+        hp: 75,
+        spellSlots: 4,
+        passives: [
+            "Shield (+2 defense roll)",
+            "Beast Hunter (Also applies to monsters)"
+        ],
+        abilities: [
+            { name: "Hypnosis", type: "mono", cooldown: "2T", effect: "1d2 control", desc: "Stun, with a 1d2 chance of control." },
+            { name: "Stance Switch", type: "instant", desc: "Defense stance: +4 to defense rolls. Attack stance: +2 to attack rolls." },
+            { name: "Spear Gatling", type: "cone", dice: "1d4*1d8", cooldown: "2T", desc: "1d4 hits of 1d8 each." },
+            { name: "Lan Na Zha", type: "react block dash", dice: "1d8+8", desc: "Instant block, then dash." }
+        ],
+        attack: "Spear 1d8+2"
+    },
+    {
+        name: "Libra",
+        hp: 75,
+        spellSlots: 5,
+        passives: [
+            "Arrow Dancer (+3 defense roll vs ranged attacks)",
+            "Battle Medic (+3 healing roll; can heal as a bonus action)"
+        ],
+        spells: [
+            { name: "Reequip", type: "instant", desc: "Changes weapons." }
+        ],
+        attack: "Variable Weapon 1d8+2"
+    },
+    {
+        name: "Argo",
+        hp: 75,
+        passives: [
+            "Blood of Fire (Cauterises: heals 1d6+2 on every hit taken. Immune to toxic and freeze; -1d4+2 ice damage taken)",
+            "Opportunist (Also applies to prone enemies)",
+            "Iron Sentinel (+3 defense roll when guarding an ally)",
+            "Immunities (poison, freeze)"
+        ],
+        abilities: [
+            { name: "Guard", type: "mono", cooldown: "1T", desc: "Prepares to block for an ally for 1 turn." },
+            { name: "Spear Gatling", type: "cone", dice: "1d4*1d8", cooldown: "2T" },
+            { name: "Lan Na Zha", type: "react block dash", dice: "1d8+8" }
+        ],
+        attack: "Weapon 1d8+2"
+    },
+    {
+        name: "Starburst",
+        hp: 65,
+        spellSlots: 9,
+        passives: [
+            "Star Link (Rolls 1d100 to link to a star (see the star table))",
+            "Fly (18 speed)",
+            "Star Blood (Immune to poison, burn and paralysis. In immunities[])",
+            "Immunities (poison, burn, para)"
+        ],
+        abilities: [
+            { name: "Combo Star", type: "mono", dice: "1d4+1d6+1d8+1d10", cooldown: "3T" }
+        ],
+        spells: [
+            { name: "Star Cannon", type: "mono", dice: "1d20+4", desc: "Mono hit plus 1d10 area splash." },
+            { name: "Star Burst", type: "aoe", dice: "1d12+4" }
+        ],
+        attack: "Punch 1d4"
+    },
+    {
+        name: "Graviton",
+        hp: 65,
+        spellSlots: 9,
+        passives: [
+            "Fly (18 speed)",
+            "Gravity Master (Flying adversaries must save each turn or lose flight for a turn)"
+        ],
+        spells: [
+            { name: "Levitate", type: "mono", desc: "Grants flight to an ally." },
+            { name: "Black Hole", type: "react", desc: "React: absorbs a ranged attack." },
+            { name: "Crush", type: "aoe", dice: "1d10+4" }
+        ],
+        relics: [
+            { name: "Meteor", type: "aoe", dice: "2d20+1d10", cooldown: "6T" }
+        ],
+        attack: "Staff 1d4"
+    },
+    {
+        name: "Ivy",
+        hp: 65,
+        spellSlots: 9,
+        passives: [
+            "Acid Armor (Melee attackers take 1d4 damage and a 1d2 toxic chance)"
+        ],
+        spells: [
+            { name: "Acid Torrent", type: "mono", dice: "4d4+4" },
+            { name: "Acid Rain", type: "aoe", dice: "2d6+6", effect: "1d2 toxic" }
+        ],
+        attack: "Acid Spear 1d8+1d6+4"
+    },
+    {
+        name: "Electro",
+        hp: 65,
+        spellSlots: 9,
+        passives: [
+            "Lightning Rod (Absorbs all electric attacks)"
+        ],
+        spells: [
+            { name: "Thunder", type: "mono", dice: "1d20" },
+            { name: "Thunder Storm", type: "aoe", dice: "1d12+1d8+4" },
+            { name: "Stun Field", type: "aoe", effect: "1d2 para" },
+            { name: "Energise", type: "mono", desc: "An ally rolls with advantage on everything next turn." }
+        ],
+        attack: "Weapon 1d6+1"
+    },
+    {
+        name: "Arthur",
+        hp: 65,
+        passives: [
+            "Hero of Dawn (Immune to radiant damage; -1d8 dark damage taken)",
+            "Hero of Dawn (Evil Slayer) (+1d12 attack roll vs evil)",
+            "Holy Knight (+1d6 radiant damage when using a weapon)",
+            "Sword Master (Advantage on sword rolls)",
+            "Titan Slayer (+1d12 attack roll vs higher HP)",
+            "Dragon Slayer (+1d8+4 attack roll vs dragon)",
+            "Lion Heart (Immune to fear and mental attacks. Fear in immunities[])",
+            "Immunities (radiant, fear)"
+        ],
+        abilities: [
+            { name: "Estoc", type: "dash mono", dice: "1d12+4", cooldown: "2T" },
+            { name: "Horizontal Cut", type: "cone", dice: "1d8+4" },
+            { name: "Vertical Cut", type: "mono", dice: "2d8+4" }
+        ],
+        spells: [
+            { name: "Holy Duel", type: "mono", dice: "4d20", limit: "1/fight", desc: "Targets one adversary: Arthur gains 2× the target's max HP, advantage on all rolls vs it, and 4d20 damage vs it." }
+        ],
+        attack: "Sword 1d8+4"
+    },
+    {
+        name: "Diamant Dunmara",
+        hp: 90,
+        passives: [
+            "Armored (+8 defense roll)",
+            "Avatar of War (+3 to all weapon rolls, +1d6 damage, cannot be disarmed)",
+            "Avatar of War (Damage) (+1d6 attack roll)",
+            "Retribution Shard (1d2 chance of dealing 1d6 to everyone around when hit (aoe self))"
+        ],
+        abilities: [
+            { name: "Quartz Thrust", type: "mono", dice: "1d12+8", cooldown: "2T" },
+            { name: "Crystal Resonance", type: "aoe", dice: "1d8+4", cooldown: "3T" },
+            { name: "Prismatic Guard", type: "react block", dice: "-20", cooldown: "1T", desc: "React: -20 flat magic damage." },
+            { name: "Stained Glass Edge", type: "aoe", dice: "2d8+2", cooldown: "3T", effect: "1d2 bleed" },
+            { name: "Geode Impact", type: "dash mono", dice: "3d10+6", cooldown: "4T" }
+        ],
+        attack: "Sword 1d8+4"
+    },
+    {
+        name: "Rubis Ignir",
+        hp: 90,
+        passives: [
+            "Armored (+2 defense roll)",
+            "Avatar of War (+3 to all weapon rolls, +1d6 damage, cannot be disarmed)",
+            "Avatar of War (Damage) (+1d6 attack roll)",
+            "Hit Count (Counts the hits taken (starts at 0). Feeds Retribution Shard)"
+        ],
+        abilities: [
+            { name: "Retribution Shard", type: "mono", effect: "1d2 burn", desc: "Damage is hitCount × 0.8, then the count resets." },
+            { name: "Quartz Thrust", type: "mono", dice: "1d12+8", cooldown: "2T" },
+            { name: "Crystal Resonance", type: "aoe", dice: "1d8+4", cooldown: "3T" },
+            { name: "Prismatic Guard", type: "react block", dice: "-20", cooldown: "1T", desc: "React: -20 flat magic damage." },
+            { name: "Stained Glass Edge", type: "aoe", dice: "2d8+2", cooldown: "3T", effect: "1d2 bleed" },
+            { name: "Geode Impact", type: "dash mono", dice: "3d10+6", cooldown: "4T" }
+        ],
+        attack: "Sword 1d8+4"
+    },
+    {
+        name: "Emeraud Brannoc",
+        hp: 90,
+        passives: [
+            "Armored (+3 defense roll)",
+            "Avatar of War (+3 to all weapon rolls, +1d6 damage, cannot be disarmed)",
+            "Avatar of War (Damage) (+1d6 attack roll)",
+            "Retribution Shard (1d2 chance of dealing 1d6 to everyone around when hit (aoe self))",
+            "Petrification (Each hit applies a petrification stack)"
+        ],
+        abilities: [
+            { name: "Petrify", type: "mono", desc: "Roll 1d20 + stacks: chance to petrify." },
+            { name: "Quartz Thrust", type: "mono", dice: "1d12+8", cooldown: "2T" },
+            { name: "Crystal Resonance", type: "aoe", dice: "1d8+4", cooldown: "3T" },
+            { name: "Prismatic Guard", type: "react block", dice: "-20", cooldown: "1T", desc: "React: -20 flat magic damage." },
+            { name: "Stained Glass Edge", type: "aoe", dice: "2d8+2", cooldown: "3T", effect: "1d2 bleed" },
+            { name: "Geode Impact", type: "dash mono", dice: "3d10+6", cooldown: "4T" }
+        ],
+        attack: "Sword 1d8+4"
+    },
+    {
+        name: "Saphir Thalor",
+        hp: 90,
+        passives: [
+            "Armored (+2 defense roll)",
+            "Avatar of War (+3 to all weapon rolls, +1d6 damage, cannot be disarmed)",
+            "Avatar of War (Damage) (+1d6 attack roll)",
+            "Retribution Shard (1d2 chance of dealing 1d6 to everyone around when hit (aoe self))"
+        ],
+        abilities: [
+            { name: "Quartz Thrust", type: "mono", dice: "1d12+4", cooldown: "2T" },
+            { name: "Crystal Resonance", type: "aoe", dice: "1d8+4", cooldown: "3T" },
+            { name: "Prismatic Guard", type: "react block", desc: "React self/aoe: reflects magic damage." },
+            { name: "Stained Glass Edge", type: "aoe", dice: "2d6+2", cooldown: "3T", effect: "1d2 bleed" },
+            { name: "Geode Impact", type: "dash mono", dice: "2d10+3", cooldown: "4T" }
+        ],
+        attack: "Sword 1d8+4"
+    },
+    {
+        name: "Amethyst Ysmar",
+        hp: 90,
+        passives: [
+            "Armored (+2 defense roll)",
+            "Avatar of War (+3 to all weapon rolls, +1d6 damage, cannot be disarmed)",
+            "Avatar of War (Damage) (+1d6 attack roll)",
+            "Retribution Shard (1d2 chance of dealing 1d6 to everyone around when hit (aoe self))"
+        ],
+        abilities: [
+            { name: "Quartz Thrust", type: "mono", dice: "1d12+8", cooldown: "2T" },
+            { name: "Crystal Resonance", type: "aoe", dice: "1d8+4", cooldown: "3T", desc: "Targets must make a psy save or attack their allies. (Listed as a passive on the sheet.)" },
+            { name: "Prismatic Guard", type: "react block", dice: "-20", cooldown: "1T", desc: "React: -20 flat magic damage." },
+            { name: "Stained Glass Edge", type: "aoe", dice: "2d8+2", cooldown: "3T", effect: "1d2 bleed" },
+            { name: "Geode Impact", type: "dash mono", dice: "3d10+6", cooldown: "4T" }
+        ],
+        attack: "Sword 1d8+4"
+    },
+    {
+        name: "Aquiel",
+        hp: 90,
+        passives: [
+            "Fly (18 speed)",
+            "Chi Overdrive (Immune to stun, fear and paralysis. +/-1d8 damage)",
+            "Finest Sword of Chima (+1d8 damage, advantage on all weapon-related rolls)",
+            "Dragon Slayer (+1d8+4 attack roll vs dragon)",
+            "Eagle's Eyes (+10 perception)"
+        ],
+        abilities: [
+            { name: "Chi Cut", type: "cone", dice: "1d8+2", cooldown: "1T" },
+            { name: "Falcon Dive", type: "dash mono", dice: "1d20+10", cooldown: "2T" },
+            { name: "Dissect", type: "mono", dice: "2d12+4", cooldown: "2T" }
+        ],
+        attack: "Great Sword 1d10+4"
+    },
+    {
+        name: "Escanor",
+        hp: 120,
+        passives: [
+            "Sunshine (Immune to all status effects and fire damage. Deals 1d4 damage around him. +5 attack/defense for each calcinated stack on the target)",
+            "Immunities (status, fire)"
+        ],
+        spells: [
+            { name: "Cruel Sun", type: "aoe", dice: "1d20+10", effect: "1d2 calcinated" }
+        ],
+        attack: "Sunshine Strike 1d12+6"
+    },
+    {
+        name: "Scorpio",
+        hp: 70,
+        passives: [
+            "Exoskeleton (+5 defense roll)"
+        ],
+        abilities: [
+            { name: "Poison Breath", type: "cone", dice: "1d12+8", cooldown: "2T", effect: "1d2 toxic" },
+            { name: "Darts", type: "mono", dice: "1d8+4", cooldown: "1T", effect: "1d2 toxic" }
+        ],
+        attack: "Pincers 2d4"
+    },
+    {
+        name: "Phoenix King",
+        hp: 75,
+        spellSlots: 8,
+        passives: [
+            "Fly (18 speed)"
+        ],
+        abilities: [
+            { name: "Radiant Sun", type: "mono", dice: "2d12+1d8+4", cooldown: "3T" }
+        ],
+        spells: [
+            { name: "Flaming Dash", type: "dash aoe", dice: "1d8+4", desc: "Dash through the line of enemies." },
+            { name: "Fire Missile", type: "mono", dice: "1d12+1d8+4" },
+            { name: "Ardent Wind", type: "aoe", desc: "Allies roll with advantage vs ranged attacks." }
+        ],
+        relics: [
+            { name: "Phoenix Feathers", type: "mono", charges: "4/4", desc: "Resurrects the target (4/4 feathers) and regains all spell slots." }
+        ],
+        attack: "Halberd 1d12+6"
+    },
+    {
+        name: "Phoenix Prince",
+        hp: 55,
+        passives: [
+            "Fly (18 speed)"
+        ],
+        forms: [
+            {
+                name: "Adult Form", hpBonus: 20,
+                spells: [
+                    { name: "Flaming Dash", type: "dash aoe", dice: "1d8+4" },
+                    { name: "Phoenix Hug", type: "mono", dice: "1d8+4", desc: "Heals the Prince and the target, then again next turn." },
+                    { name: "Phoenix Feather", type: "mono", charges: "1/1", desc: "Resurrects one." }
+                ]
+            }
+        ],
+        abilities: [
+            { name: "Grow Spurt", type: "instant", limit: "1/fight", duration: "4T", desc: "Grows into the Adult form for 4 turns." }
+        ],
+        attack: "Sword 1d8"
+    },
+    {
+        name: "Arya",
+        hp: 70,
+        spellSlots: 9,
+        passives: [
+            "Elf (+3 init)",
+            "Elf (Perception) (+5 perception)",
+            "Blessing of Oberon (Self aoe: heals 1d6 each turn)"
+        ],
+        spells: [
+            { name: "Toxic Pollen", type: "cone", effect: "1d2 para", desc: "1d2 para, 1d2 poison." },
+            { name: "Curative Pollen", type: "aoe", dice: "2d6+2" },
+            { name: "Laying Hand", type: "mono", dice: "2d12+8" },
+            { name: "Energy Beam", type: "mono", dice: "1d8+2" }
+        ],
+        attack: "Punch 1d4+2"
+    },
+    {
+        name: "Aron",
+        hp: 65,
+        spellSlots: 5,
+        passives: [
+            "Heavy Armor & Shield (+5 defense roll)",
+            "Holy Knight (+1d6 radiant damage when using a weapon)",
+            "Dead Eye (Ranged attacks cannot be dodged)",
+            "Ranger (+3 lockpicking/perception/defuse/set trap)"
+        ],
+        abilities: [
+            { name: "Nexo Power: Fire Dragon Breath", type: "cone", dice: "1d12+1d8", cooldown: "3T" }
+        ],
+        attack: "Weapon 1d4+6"
+    },
+    {
+        name: "Lance",
+        hp: 65,
+        spellSlots: 5,
+        passives: [
+            "Heavy Armor & Shield (+5 defense roll)",
+            "Holy Knight (+1d6 radiant damage when using a weapon)",
+            "Faster (Takes half damage from anything with a lower initiative than his)",
+            "Dragon Slayer (+1d8+4 attack roll vs dragon)",
+            "Titan Slayer (+1d12 attack roll vs higher HP)"
+        ],
+        abilities: [
+            { name: "Nexo Power: Fire Dragon Breath", type: "cone", dice: "1d12+1d8", cooldown: "3T" }
+        ],
+        attack: "Weapon 1d8+4"
+    },
+    {
+        name: "Axel",
+        hp: 90,
+        spellSlots: 5,
+        passives: [
+            "Heavy Armor & Shield (+5 defense roll)",
+            "Holy Knight (+1d6 radiant damage when using a weapon)",
+            "Sturdy (1d4 chance to ignore damage)",
+            "Close Quarters Expert (+1d4+2 attack roll in melee)"
+        ],
+        abilities: [
+            { name: "Nexo Power: Fire Dragon Breath", type: "cone", dice: "1d12+1d8", cooldown: "3T" }
+        ],
+        attack: "Weapon 1d8+8"
+    },
+    {
+        name: "Clay",
+        hp: 65,
+        spellSlots: 5,
+        passives: [
+            "Heavy Armor & Shield (+5 defense roll)",
+            "Holy Knight (+1d6 radiant damage when using a weapon)",
+            "Leader (The first time an ally dies, he saves them and takes the damage instead)",
+            "Battle Tactician (Title. Unlocks Give Orders: an ally gets +2 on its attack rolls)"
+        ],
+        abilities: [
+            { name: "Give Orders", type: "mono", desc: "Battle Tactician. Ends the turn; an ally gets +2 on its attack rolls until its next turn is over." },
+            { name: "Nexo Power: Fire Dragon Breath", type: "cone", dice: "1d12+1d8", cooldown: "3T" }
+        ],
+        attack: "Weapon 1d6+4"
+    },
+    {
+        name: "Kyros",
+        hp: 65,
+        spellSlots: 10,
+        passives: [
+            "Survivor (+4 defense roll/perception/init)",
+            "Monster Slayer (+3 and advantage on attack rolls, +1d12 on spells and legendary attacks)",
+            "Shadow Master (+2 stealth; opponents -3 perception if in the same room)",
+            "Destiny's Fire (At 30 HP: +1d10 on all attacks until the end of battle)"
+        ],
+        abilities: [
+            { name: "Motion Channel", type: "mono", dice: "1d6", cooldown: "4T" },
+            { name: "Motion Guard", type: "react block", cooldown: "8T", desc: "Ultimate block, 1d2 disadvantage." }
+        ],
+        spells: [
+            { name: "Fire Slash", type: "mono", dice: "1d12+1d6" },
+            { name: "Fire Vortex", type: "aoe", dice: "2d8" },
+            { name: "Instant Fire Wall", type: "react block", desc: "Halves mono damage and negates aoe." }
+        ],
+        relics: [
+            { name: "Destiny's Fire", type: "mono", dice: "2d20", desc: "When HP is 30: mono 2d20, aoe 1d20+1d12." },
+            { name: "The End Slash", type: "mono", dice: "4d20", desc: "Under 25 HP. Mono 4d20, aoe 2d20 + burn + para + 1d8 heal." }
+        ],
+        attack: "Slash 1d8"
+    },
+    {
+        name: "Krux & Acronix",
+        hp: 180,
+        spellSlots: 25,
+        passives: [
+            "Geminy (Can make two actions per turn)",
+            "Vision of Time (Immune to natural 1; cannot be at disadvantage)"
+        ],
+        spells: [
+            { name: "Summoning Portal", type: "instant", desc: "A rift in time summons a time remnant to fight for them; cost at the DM's discretion." },
+            { name: "Pause", type: "react block", desc: "React: stops an attack." },
+            { name: "Play", type: "mono", desc: "Unpause." },
+            { name: "Forward", type: "aoe", desc: "Drains 1d4 spell slots from the area." },
+            { name: "Backward", type: "mono", desc: "Rewinds time: heals all damage since the last turn." }
+        ],
+        relics: [
+            { name: "Memento Mori Beam", type: "aoe", dice: "1d20+1d12+1d8+1d6+1d4" }
+        ],
+        attack: "Time Blade 1d8+4"
+    },
+    {
+        name: "Annastasia",
+        hp: 60,
+        spellSlots: 8,
+        passives: [
+            "Demon Pact (-10 HP = 1 spell slot. Heals 1d10 when dealing damage)",
+            "Sacrifice Mark (Marks a random enemy. On its death, summons one or two demons depending on its strength)"
+        ],
+        spells: [
+            { name: "Eldritch Blast", type: "mono", dice: "2d8", effect: "1d2 fear" },
+            { name: "Cry of Agony", type: "aoe", dice: "1d6", desc: "1d2 fear, 1d2 stun, 1d2 root." },
+            { name: "Berserk", type: "aoe", dice: "1d4+2", desc: "Gives +1d8 bonus damage for 2 turns." },
+            { name: "Taboo", type: "instant", desc: "Loses half current HP but instantly triggers the Sacrifice Mark." }
+        ],
+        attack: "Butcher Knife 1d4"
+    },
+    {
+        name: "Vampire Sienna",
+        hp: 111,
+        spellSlots: 11,
+        passives: [
+            "Fly (18 speed)",
+            "Apex Predator (At the start of the battle, marks a random enemy: x2 damage against it, advantage on all defense throws against it. When it dies, restore 100% HP and spell slots)",
+            "Magical Race (Advantage on all magic spells)",
+            "Precise Shot (+1d4+2 attack roll with ranged weapons)",
+            "Blood Magic (Every hit drains 50%. Overheal becomes a blood shield. Regenerates 10 HP per turn)",
+            "Basic Training (+1 attack roll)"
+        ],
+        abilities: [
+            { name: "Range Mode", type: "mono", dice: "1d10+8", cooldown: "1T", effect: "1d2 burn", desc: "Mono hit plus 1d10 aoe." },
+            { name: "Rodent Mode", type: "cone", dice: "1d12+4", cooldown: "1T", effect: "1d2 burn" },
+            { name: "Bite", type: "mono", dice: "2d12", desc: "Drains 2d12 HP, 1d4 spell slots and 2d4 ki, healing 100%." }
+        ],
+        spells: [
+            { name: "Hypnosis", type: "mono", desc: "Submits the target to her will." },
+            { name: "Blood Drain", type: "aoe", dice: "2d10+5", desc: "Drains 100%." },
+            { name: "Blood Torpedo", type: "mono", dice: "2d12+10" }
+        ],
+        attack: "Blade Mode 1d6+4"
+    },
+    {
+        name: "Sword Master",
+        hp: 120,
+        passives: [
+            "Anti-Magic (-20 damage taken vs magic damage)",
+            "Undead Army (20 HP/turn)",
+            "Avatar of War (+3 to all weapon rolls, +1d6 damage, cannot be disarmed)",
+            "Avatar of War (Damage) (+1d6 attack roll)",
+            "Immunities (magic)"
+        ],
+        abilities: [
+            { name: "Anti-Magic Slash", type: "cone", dice: "2d8+2", cooldown: "3T", desc: "Seals magic for 1 turn." },
+            { name: "Thousand Cuts", type: "mono", dice: "8d4", cooldown: "2T", effect: "1d2 bleed" },
+            { name: "Sionshu", type: "react block", cooldown: "1T" },
+            { name: "Farant Newmoon", type: "aoe", dice: "4d6+8", cooldown: "2T" }
+        ],
+        attack: "Blade 1d8+4"
+    },
+    {
+        name: "Sorcerer Master",
+        hp: 120,
+        spellSlots: 8,
+        passives: [
+            "Anti-Magic (-20 damage taken vs magic damage)",
+            "Undead Army (15 HP/turn)",
+            "Runik Mage (+1d12 magic roll)",
+            "Floating Head (A flying head is bound to him: it enters the fight beside him, acts right after him, and falls with him (see Floating Head))",
+            "Immunities (magic)"
+        ],
+        abilities: [
+            { name: "Anti-Magic Ray", type: "cone", dice: "2d8+2", cooldown: "4T", desc: "Seals magic for 1 turn." }
+        ],
+        spells: [
+            { name: "Fly", type: "react", desc: "Instant dodge." },
+            { name: "Fireball", type: "aoe", dice: "1d12+6" },
+            { name: "Arcane Missile", type: "mono", dice: "1d12+1d8+5" },
+            { name: "Fire Pit", type: "mono", dice: "1d10", effect: "1d2 burn", desc: "1d2 burn, 1d2 root." }
+        ],
+        attack: "Staff 1d8+4"
+    },
+    {
+        name: "Floating Head",
+        hp: 50,
+        spellSlots: 8,
+        passives: [
+            "Fly (18 speed)"
+        ],
+        spells: [
+            { name: "Laser Eyes", type: "mono", dice: "1d8", effect: "1d2 burn", desc: "1d2 burn, 1d2 para." }
+        ],
+        attack: "Laser Eyes 1d8"
+    },
+    {
+        name: "Anti-magic Goul Egypte",
+        hp: 70,
+        passives: [
+            "Magic Resist (-10 damage taken vs magic damage)",
+            "Undead Army (10 HP/turn)",
+            "Shield (+2 defense roll)"
+        ],
+        abilities: [
+            { name: "Calamity", type: "mono", dice: "1d12+1d4", cooldown: "1T", desc: "Drains HP and spell slots." }
+        ],
+        attack: "Claws 1d6+2"
+    },
+    {
+        name: "Anti-magic Goul Nordic",
+        hp: 70,
+        passives: [
+            "Magic Resist (-10 damage taken vs magic damage)",
+            "Undead Army (10 HP/turn)",
+            "Shield (+2 defense roll)"
+        ],
+        abilities: [
+            { name: "Thunder Storm", type: "aoe", dice: "1d20+1d8+4", cooldown: "1T" }
+        ],
+        attack: "Weapon 1d8+2"
+    },
+    {
+        name: "Amalgame",
+        hp: 70,
+        passives: [
+            "Magic Resist (-10 damage taken vs magic damage)",
+            "Undead Army (10 HP/turn)",
+            "Slime (-10 damage taken vs physical damage)"
+        ],
+        abilities: [
+            { name: "Spike Cone", type: "cone", dice: "8d4+2", cooldown: "2T" },
+            { name: "Whip", type: "mono", dice: "1d12+2", cooldown: "2T", effect: "1d2 bleed" }
+        ],
+        attack: "Weapon 1d8+2"
+    },
+    {
+        name: "Nokt",
+        hp: 90,
+        spellSlots: 4,
+        passives: [
+            "Unstoppable Force (Immune to knockback and immobilisation)"
+        ],
+        abilities: [
+            { name: "Shatter Spin", type: "bounce", dice: "1d12", cooldown: "2T" }
+        ],
+        spells: [
+            { name: "Impact Tremor", type: "aoe", dice: "1d12+6", effect: "1d2 stun" }
+        ],
+        attack: "Anchor Swipe 1d10+10"
+    },
+    {
+        name: "Rox",
+        hp: 80,
+        spellSlots: 10,
+        passives: [
+            "Aura of Terror (-3 to all attack rolls of enemies around her)",
+            "Theroxian Mastery (Her debuffs cannot be removed)",
+            "Psychic Link (+2 to all friendly rolls)"
+        ],
+        abilities: [
+            { name: "Shatter Spin", type: "bounce", dice: "1d12", cooldown: "2T" }
+        ],
+        spells: [
+            { name: "Containment Spell", type: "mono", dice: "40", desc: "Energy cage around a target with 40 HP; only destroyable from the outside." },
+            { name: "Immobilization Seal", type: "react", desc: "React: stops a dash or blink." }
+        ],
+        attack: "Claw 2d4"
+    },
+    {
+        name: "Zarkt",
+        hp: 80,
+        spellSlots: 8,
+        passives: [
+            "Tides of Misfortune (Once per turn, forces an enemy to reroll a die that succeeded)",
+            "Curse Reflect (Sends any debuff that targets him back to its source)"
+        ],
+        abilities: [
+            { name: "Shatter Spin", type: "bounce", dice: "1d12", cooldown: "2T" }
+        ],
+        spells: [
+            { name: "Entropy Field", type: "aoe", desc: "Field: for enemies, 2 and 3 become critical fails like 1." }
+        ],
+        attack: "Curse Sword 1d8+2"
+    },
+    {
+        name: "Drix",
+        hp: 80,
+        ki: 8,
+        kiRegen: 2,
+        passives: [
+            "Chitin Armor (-20 physical damage, +10 area damage, +10 fire/lightning damage)",
+            "Hive Mind (+x to each roll for each ally; Drix counts as one; poison can stack)"
+        ],
+        abilities: [
+            { name: "Swarm Dash", type: "react dash", dice: "5d4", cost: "3ki", effect: "1d2 poison" },
+            { name: "Nesting Strike", type: "mono", dice: "10d2", cost: "3ki", effect: "1d2 poison", desc: "10d2 damage, 10×1d2 poison, 1d2 para." },
+            { name: "Shatter Spin", type: "bounce", dice: "1d12", cooldown: "2T" }
+        ],
+        attack: "Stingers 2d6"
+    },
+    {
+        name: "Kur",
+        hp: 70,
+        spellSlots: 7,
+        passives: [
+            "Life Siphon (On touch, drains 1d6+4 HP)"
+        ],
+        abilities: [
+            { name: "Bandage Coil", type: "mono", dice: "1d10+5", cooldown: "1T", desc: "Roots the target to himself, draining." },
+            { name: "Shatter Spin", type: "bounce", dice: "1d12", cooldown: "2T" }
+        ],
+        spells: [
+            { name: "Decay Wave", type: "cone", dice: "1d10", desc: "1d10 necrotic, +1d10+5 vs energy/life/plant." }
+        ],
+        attack: "Sword 1d8+2"
+    },
+    {
+        name: "Simo",
+        hp: 60,
+        passives: [
+            "Ranger (+3 lockpicking/perception/defuse/set trap)",
+            "Sharp-Eyed (+2 perception)",
+            "Basic Training (+1 attack roll)",
+            "Precise Shot (+1d4+2 attack roll with ranged weapons)",
+            "Battle Medic (+3 healing roll; can heal as a bonus action)"
+        ],
+        abilities: [
+            { name: "First Aid Kit", type: "mono", dice: "1d6+1" }
+        ],
+        attack: "Long Range Plasma Rifle 1d4+8"
+    },
+    {
+        name: "Atila",
+        hp: 65,
+        passives: [
+            "War Banner Carrier (+2 to all ally rolls within 10m)",
+            "Blood Tracker (+3 perception; +1d6 damage vs wounded targets)",
+            "Beast Intimidator (+2 intimidation)",
+            "Asia Style (Inflicts bleed 1d4 on hit; can convert bleed to hemorrhage 2d4)",
+            "Cook (+1 utility rolls)"
+        ],
+        attack: "Weapon 1d8+2"
+    },
+    {
+        name: "Sienna",
+        hp: 60,
+        passives: [
+            "SteamGun (A normal attack after a technique applies burn. Using two techniques in a row halves damage)",
+            "Huntress (At the start of the battle marks a random enemy: x2 damage against it, advantage on all defense throws against it)",
+            "Precise Shot (+1d4+2 attack roll with ranged weapons)",
+            "Battle Medic (+3 healing roll)",
+            "Basic Training (+1 attack roll)"
+        ],
+        abilities: [
+            { name: "Healing Potion", type: "mono", dice: "1d10+2" },
+            { name: "Range Mode", type: "mono", dice: "1d10+8", cooldown: "1T", desc: "Mono hit plus 1d10 aoe." },
+            { name: "Rodent Mode", type: "cone", dice: "1d12+4", cooldown: "1T", effect: "1d2 burn" }
+        ],
+        attack: "Blade Mode 1d6+4"
     }
 ];
 
@@ -1245,7 +2295,7 @@ export const domainData = {
         rafinement: 5,
         description: "L'espace se transforme en un vide doré infini où l'énergie de la création pure sature l'air.",
         effect: "Heal 1d12/t allies, Sure-hit active, Elemental bonus x2",
-        cost: "6 spell slot"
+        cost: "1 charge, no spell slots"
     },
     "Lloyd": {
         name: "Ombre Naissante de l'Oni",
@@ -1253,7 +2303,7 @@ export const domainData = {
         rafinement: "N/A",
         description: "Une brume noire et violette s'échappe du sol, créant des silhouettes monstrueuses sans toutefois fermer l'espace.",
         effect: "Grant Oni form, Permanent Adv on Atk, Shadows grant +1d10 dam on foe miss",
-        cost: "5 spell slot"
+        cost: "1 charge, no spell slots"
     },
     "Kaelgrym": {
         name: "Le Brasero des Ames Perdues",
@@ -1261,7 +2311,7 @@ export const domainData = {
         rafinement: 3,
         description: "Un autel apparaît derrière Kaelgrym, émettant une vague constante de flammes sur un large rayon. Toutes les techniques du style Aincrad par Kaelgrym sont augmentées.",
         effect: "1d10 Burn/turn to foes, No Cooldowns & sure-hit on sword technique, Ignore 100% Damage Reduction",
-        cost: "5 spell slot"
+        cost: "1 charge, no spell slots"
     },
     "Hela": {
         name: "Grave of the Thousand Gods",
@@ -1269,7 +2319,7 @@ export const domainData = {
         rafinement: 7,
         description: "Un cimetière désolé sous un ciel de sang, où des milliers d'armes divines sont plantées dans le sol, vibrant d'anti-magie.",
         effect: "Authority -1 for foes, Infinite Weapon Wall, Sure-hit on Anti-magic slash",
-        cost: "7 spell slot"
+        cost: "2 charges, no spell slots"
     },
     "Chronos": {
         name: "Chronostasis",
@@ -1277,6 +2327,6 @@ export const domainData = {
         rafinement: 7,
         description: "Une salle sans fin au cœur du Tartare, remplie d'horloges arrêtées. Le temps y coule pour Chronos seul : chaque tour, il reprend ce que le temps lui doit.",
         effect: "Each turn Chronos regains HP, spell slots or a Thread (random), No cooldown on Withering Hour, Sure-hit on Stasis",
-        cost: "7 spell slot"
+        cost: "2 charges, no spell slots"
     },
 };

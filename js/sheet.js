@@ -192,7 +192,7 @@ function renderDomain(d) {
             <div class="domain-header">
                 <span class="domain-name">${d.name}</span>
                 <span class="domain-type">${d.type}</span>
-                <span class="domain-ref">Raf. ${d.rafinement} · ${d.spellCost}S</span>
+                <span class="domain-ref">Raf. ${d.rafinement} · ${d.charges ?? 1} charge${(d.charges ?? 1) > 1 ? 's' : ''}</span>
             </div>
             <p class="domain-desc">${d.description}</p>
             <div class="domain-effects">${effects}</div>
