@@ -246,6 +246,8 @@ export function resolveAbilitiesFromList(moveList) {
       allSlots:      move.allSlots ?? false,       // spends every spell slot left: n slots roll nd20+10 (Final Brasero)
       primaryBonus:  move.primaryBonus ?? null,    // a cone's extra dice for the main target only (Raging Chopper)
       ifPoisoned:    move.ifPoisoned ?? null,   // dice dealt instead of the status when the target is already poisoned (Spheras' breath, Astrid Nightmare's daggers)
+      drainSlots:    move.drainSlots ?? null,   // spell slots taken from the target and given to the caster (Vampire Sienna's Bite)
+      drainKi:       move.drainKi ?? null,
       groundChance:  move.groundChance ?? 1,   // the odds that a 'grounded' move brings a flier down
       followUp:      move.followUp ?? null,   // dice of a second blow that lands on each target the move hit, at the start of the caster's next turn (GunRang)
       excludeSelf:   move.excludeSelf ?? false,   // an area boon the caster does not share (Arcane Canal)
@@ -328,6 +330,8 @@ export function buildCombatant(char, teamIndex, id) {
     attacked: false,   // has made its first attack roll of the fight (Death Presence)
     stacks: {},   // stacking passives (Relentless Warrior): passive name -> stacks gained this fight
     chains: chainsFor(char),   // Vorrakan's Left and Right Chain: [{ name, hp, maxHp, holdingId, freed }] (they are not units)
+    lastKind: null,   // what its last action was: 'attack', 'technique', 'spell'... (Sienna's SteamGun reads the one before)
+    prevKind: null,
     huntMarkId: null,   // Sienna's Huntress / Apex Predator: id of the enemy marked at the start of the battle (x2 damage against it, advantage on defense against it)
     ownerId: null,   // a summon or companion: id of the unit that called it (it acts right after, and falls with, that unit)
     x: 0,
@@ -682,7 +686,9 @@ function refuseRepeat(c, label, name = label) {
   return true;
 }
 // An action is spent; the turn has no action left once the budget is used
-function spendAction(c, label) {
+function spendAction(c, label, category = null) {
+  c.prevKind = c.lastKind;
+  c.lastKind = category ?? label;
   S.actionsDone.push(label);
   S.hasActed = S.actionsDone.length >= actionBudget(c);
 }
@@ -1589,6 +1595,7 @@ export function applyHeal(combatant, diceExpr, label = null, repair = false) {
   const amount = Math.max(0, r.total);
   const healed = Math.min(amount, combatant.maxHp - combatant.currentHp);
   combatant.currentHp = Math.min(combatant.maxHp, combatant.currentHp + amount);
+  overhealToShield(combatant, amount - healed);
   if (healed > 0)
     addLog(`💚 ${combatant.name}${label ? ` [${label}]` : ''} recovers ${healed} HP! (${combatant.currentHp}/${combatant.maxHp}) [${r.breakdown}]`, 'heal');
   updateCombatantCardDOM(combatant);
@@ -2126,6 +2133,43 @@ function losePassive(c, nom, turns) {
   c.statusEffects = c.statusEffects.filter(e => e.name !== `lost:${nom}`);
   c.statusEffects.push({ name: `lost:${nom}`, turnsLeft: turns + 1, dice: null, damType: null, notes: `Back after ${turns} turns` });
   addLog(`🦴 ${c.name}'s ${nom} is gone for ${turns} turns.`, 'status');
+}
+
+const hasPassiveTag = (c, tag) => !!c.sourceChar.passif?.some(p => p.tags?.includes(tag) && !passiveLost(c, p));
+
+// Vampire Sienna's Blood Magic: every hit that lands heals her for a share (drainPct) of the damage it dealt
+function drainOnHit(owner, dealt) {
+  if (!(dealt > 0) || owner.isKO) return;
+  for (const p of owner.sourceChar.passif ?? []) {
+    if (!p.drainPct || passiveLost(owner, p)) continue;
+    const amount = Math.floor(dealt * p.drainPct / 100);
+    if (amount > 0) applyHeal(owner, String(amount), `${p.nom} drain`);
+  }
+}
+
+// Healing past full HP turns into an absorb shield for fighters with an overhealShield passive (Blood Magic)
+function overhealToShield(c, overflow) {
+  if (!(overflow > 0) || !hasPassiveTag(c, 'overhealShield')) return;
+  const existing = c.statusEffects.find(e => e.name === 'damage_shield');
+  if (existing) existing.shieldHp += overflow;
+  else c.statusEffects.push({ name: 'damage_shield', turnsLeft: 999, shieldHp: overflow, dice: null, damType: null, notes: '', source: 'Blood Magic' });
+  addLog(`  🩸 ${c.name}'s overheal becomes a ${overflow} HP blood shield.`, 'spell');
+}
+
+// Bite: spell slots and ki are taken from the target; the caster keeps what fits
+function drainResources(caster, target, ability) {
+  const slots = ability.drainSlots ? Math.min(target.spellSlots, parseDice(ability.drainSlots).total) : 0;
+  const ki    = ability.drainKi    ? Math.min(target.ki, parseDice(ability.drainKi).total) : 0;
+  if (slots > 0) {
+    target.spellSlots -= slots;
+    caster.spellSlots = Math.min(caster.maxSpellSlots, caster.spellSlots + slots);
+  }
+  if (ki > 0) {
+    target.ki -= ki;
+    caster.ki = Math.min(caster.maxKi, caster.ki + ki);
+  }
+  if (slots > 0 || ki > 0) addLog(`  🩸 ${caster.name} drains ${slots} spell slot${slots === 1 ? '' : 's'} and ${ki} ki from ${target.name}.`, 'spell');
+  updateCombatantCardDOM(target);
 }
 
 // Vampire Sienna's Apex Predator: when her mark dies she is restored to full HP and spell slots
@@ -2810,10 +2854,12 @@ export function resolveAttack(attacker, defender, diceExpr, ability = null) {
     damage = rolled.total + passiveBonus;
     const marked = attacker.huntMarkId != null && attacker.huntMarkId === defender.id;
     if (marked) damage *= 2;   // the hunter's mark: double damage against its prey
+    const steam = ability?.source === 'technique' && attacker.prevKind === 'technique' && hasPassiveTag(attacker, 'steamGun');
+    if (steam) damage = Math.floor(damage / 2);   // two techniques in a row
     if (mutual) damage = Math.floor(damage / 2);
     recoil = mutual ? damage : 0;
     const passiveStr = passiveParts.length ? ` + ${passiveParts.join(' ')}` : '';
-    breakdown = `${marked ? 'HUNTED ×2: ' : ''}${bonusMult > 1 ? `CRIT dice ×${bonusMult}: ` : mutual ? 'HALVED: ' : ''}${rolled.breakdown}${passiveStr} = ${damage}`;
+    breakdown = `${marked ? 'HUNTED ×2: ' : ''}${steam ? 'STEAMGUN ÷2: ' : ''}${bonusMult > 1 ? `CRIT dice ×${bonusMult}: ` : mutual ? 'HALVED: ' : ''}${rolled.breakdown}${passiveStr} = ${damage}`;
   }
 
   return {
@@ -3002,7 +3048,7 @@ export function handleCastAbility(casterId, abilityName, targetIds, center = nul
     caster.remainingCharges[ability.name]--;
   }
 
-  if (!ability.isInstant) spendAction(caster, ability.name);
+  if (!ability.isInstant) spendAction(caster, ability.name, ability.source);
 
   addLog(`${caster.name} uses ${ability.name}!`, ability.source === 'spell' ? 'spell' : 'tech');
   if (ability.summon || ability.isDetonate) {
@@ -3518,9 +3564,14 @@ function settlePendingAction(reactAbility) {
           const atkTags = atk.transformedBaseAtk?.tags ?? atk.sourceChar.baseAtk?.tags ?? [];
           const damType = damTypeFromTags(atkTags);
           const ignoreDR = getDomainEffects(atk, { applyOn: 'atkRoll' }).some(e => e.tags?.includes('unblockabled'));
-          applyDamage(def, action.result.damage, damType, atkTags, ignoreDR);
+          const dealt = applyDamage(def, action.result.damage, damType, atkTags, ignoreDR);
+          drainOnHit(atk, dealt);
           const basic = atk.transformedBaseAtk ?? atk.sourceChar.baseAtk;
           if (!poisonCombo(basic, def)) applyStatus(def, basic?.effect);   // a basic attack's rider (Cole's 1d2 stun)
+          if (atk.prevKind === 'technique' && hasPassiveTag(atk, 'steamGun') && !def.isKO) {
+            addLog(`  🔥 ${atk.name}'s SteamGun scorches ${def.name}!`, 'status');
+            applyStatus(def, 'burn');
+          }
           witherMax(atk, def);
           strikeBack(atk, action.result, damType, atkTags);
           applyHpPerHitPassives(atk);
@@ -3825,9 +3876,11 @@ function settlePendingAction(reactAbility) {
             const damType = damTypeFromTags(ability.tags);
             if (ability.dice && action.result.damage > 0) {
               const ignoreDR = ignoresDR(caster, ability);
-              applyDamage(target, action.result.damage, damType, ability.tags, ignoreDR);
+              const dealt = applyDamage(target, action.result.damage, damType, ability.tags, ignoreDR);
               strikeBack(caster, action.result, damType, ability.tags);
               if (ability.isHeal) applyHeal(caster, String(action.result.damage));
+              else drainOnHit(caster, dealt);
+              if (ability.drainSlots || ability.drainKi) drainResources(caster, target, ability);
               if (ability.isHeal && ability.slotRegen > 0) restoreSlots(caster, ability.slotRegen, ability.name);
               applyHpPerHitPassives(caster);
               if (grounds(ability)) removeFlying(target);

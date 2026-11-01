@@ -7861,10 +7861,15 @@
       },
       {
         "nom": "Blood Magic",
+        "dices": "10",
         "tags": [
-          "buff"
+          "buff",
+          "overhealShield"
         ],
-        "applyOn": [],
+        "applyOn": [
+          "hpPerTurn"
+        ],
+        "drainPct": 50,
         "description": "Every hit drains 50%. Overheal becomes a blood shield. Regenerates 10 HP per turn."
       },
       {
@@ -7971,6 +7976,8 @@
         },
         "target": "mono",
         "range": 2,
+        "drainSlots": "1d4",
+        "drainKi": "2d4",
         "description": "Drains 2d12 HP, 1d4 spell slots and 2d4 ki, healing 100%.",
         "cooldown": 0
       }
@@ -9135,7 +9142,8 @@
       {
         "nom": "SteamGun",
         "tags": [
-          "buff"
+          "buff",
+          "steamGun"
         ],
         "applyOn": [],
         "description": "A normal attack after a technique applies burn. Using two techniques in a row halves damage."

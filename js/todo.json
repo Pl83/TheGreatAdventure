@@ -678,7 +678,8 @@
       "title": "Blood Magic and SteamGun",
       "who": "Vampire Sienna, Sienna",
       "detail": "Vampire Sienna: every hit drains 50%, overheal becomes a blood shield, regenerates 10 HP a turn, Bite drains HP, spell slots and ki. Sienna: a normal attack after a technique applies burn; two techniques in a row halve the damage. Descriptions only. Hypnosis (control) is tagged but unchecked.",
-      "where": "characters.json · Google Doc import"
+      "where": "characters.json · Google Doc import",
+      "resolution": "Done, except Hypnosis. Vampire Sienna: every hit heals her for 50% of the damage dealt (passive drainPct; Blood Drain and Bite keep their own 100%), healing past full HP becomes a blood shield (overhealShield), Blood Magic regenerates 10 HP at the start of her turn, and Bite takes 1d4 spell slots and 2d4 ki from the target (drainSlots, drainKi; she keeps what fits). Sienna: the SteamGun passive burns the target when a basic attack follows a technique, and halves a technique that follows a technique. Fighters now remember their last two kinds of action (lastKind, prevKind). Hypnosis (control) is still tagged but unchecked. See tests/blood-magic.test.mjs."
     },
     {
       "id": "mech-geminy",
