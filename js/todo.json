@@ -282,7 +282,8 @@
       "cat": "mechanics",
       "sev": "low",
       "title": "The bot never casts a spell on a free action",
-      "detail": "The bot (and headless fights) strike when the dash reaches and otherwise pass; they never choose a spell, and do not weigh striking against a spell or against doing nothing."
+      "detail": "The bot (and headless fights) strike when the dash reaches and otherwise pass; they never choose a spell, and do not weigh striking against a spell or against doing nothing.",
+      "resolution": "Done. The AI (js/ai/) plans casts, domains and transformations as well as strikes; the old note described the first greedy bot. What it still gets wrong is listed in the per-mechanic items."
     },
     {
       "id": "mech-disv-riders",
@@ -319,7 +320,8 @@
       "sev": "low",
       "title": "No move applies Calcinated yet",
       "who": "all",
-      "detail": "Calcinated exists as a status but nothing in characters.json inflicts it; the old Burn-upgrade moves still apply plain Burn. Decide which moves should upgrade."
+      "detail": "Calcinated exists as a status but nothing in characters.json inflicts it; the old Burn-upgrade moves still apply plain Burn. Decide which moves should upgrade.",
+      "resolution": "Done. Decided move by move: Kaelgrym's Final Brasero always calcinates, Escanor's Cruel Sun does it 1 time in 2 (\"1d2 calcinated\"). No other move upgrades its Burn. See tests/kaelgrym.test.mjs and tests/dots.test.mjs."
     },
     {
       "id": "mech-para-reacts",
@@ -538,7 +540,8 @@
       "sev": "low",
       "title": "Poison and corruption passives",
       "who": "Spheras Nightmare, Astrid Nightmare, Dream Hunter",
-      "detail": "Poison Breath (Spheras Nightmare: 1d2 poison or 1d12+8 toxic on nearby enemies each turn) and Toxic Daggers (Astrid Nightmare: 1d2 poison or 1d12 extra on each attack) do nothing. Corruption Bolt (Dream Hunter) adds its +1d10 but never builds up corruption on the target."
+      "detail": "Poison Breath (Spheras Nightmare: 1d2 poison or 1d12+8 toxic on nearby enemies each turn) and Toxic Daggers (Astrid Nightmare: 1d2 poison or 1d12 extra on each attack) do nothing. Corruption Bolt (Dream Hunter) adds its +1d10 but never builds up corruption on the target.",
+      "resolution": "Done. Poison Breath and Toxic Daggers use ifPoisoned (a 1d2 poison, or the bonus dice on an already poisoned target); the Dream Hunter builds corruption on every landed blow, never drains, and turns the target at 100. See tests/nightmares.test.mjs."
     },
     {
       "id": "mech-slot-restore",
@@ -564,7 +567,8 @@
       "sev": "low",
       "title": "GunRang delayed bonus",
       "who": "Rig",
-      "detail": "The boomerang should add 1d4 damage on the next turn. The bounce works, the follow-up does not."
+      "detail": "The boomerang should add 1d4 damage on the next turn. The bounce works, the follow-up does not.",
+      "resolution": "Done. GunRang has followUp 1d4: at the start of Rig's next turn it comes back and hits every target it hit. See tests/rig-glysain.test.mjs."
     },
     {
       "id": "mech-mecha-bonus",
@@ -581,7 +585,8 @@
       "sev": "low",
       "title": "Dragon Breath element",
       "who": "Kadgar",
-      "detail": "The cone should be of a chosen element. It is always untyped magic, so element immunities and the fire/ice interactions never apply to it."
+      "detail": "The cone should be of a chosen element. It is always untyped magic, so element immunities and the fire/ice interactions never apply to it.",
+      "resolution": "Done. Dragon Breath is three spells, one per element (Fire, Ice, Lightning), each with its element tag, for Kadgar and Eragon. The element is picked by picking the spell. See tests/eragon-oslo.test.mjs."
     },
     {
       "id": "mech-pillars-doors",
