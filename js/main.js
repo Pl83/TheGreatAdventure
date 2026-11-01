@@ -356,6 +356,7 @@ export const weights = { 1: 50, 2: 30, 3: 15, 4: 4, 5: 1 };
 export const personnageSheet = [
     {
         name: "Susano",
+        faction: "Sans faction",
         hp: 70,
         passives: ["First SPINJITSU master (+1d8 dam)"],
         forms: [
@@ -383,6 +384,7 @@ export const personnageSheet = [
     },
     {
         name: "Thormak, The Titan Slayer",
+        faction: "Chima",
         hp: 70,
         passives: ["Unkillable (50% to survive a lethal hit at 1 HP)", "Titan Slayer (+1d12 if foe has more HP)"],
         spells: [
@@ -397,6 +399,7 @@ export const personnageSheet = [
     },
     {
         name: "Sensei Lloyd",
+        faction: "Ninjas",
         hp: 70,
         forms: [
             { name: "Oni Lloyd", hpBonus: 5, spellSlotsBonus: 3, atkBonus: "1d10" }
@@ -414,6 +417,7 @@ export const personnageSheet = [
     },
     {
         name: "Kay Climber",
+        faction: "Ninjas",
         hp: 65,
         passives: ["Armored (+2 saving throw)", "Professional Diver (+2 const air)", "Relentless Warrior (per ally KO: +1d10+2 damage dealt and 1d10+2 off each hit taken)"],
         forms: [
@@ -440,6 +444,7 @@ export const personnageSheet = [
     },
     {
         name: "Zane Climber",
+        faction: "Ninjas",
         hp: 65,
         passives: ["Armored (+2 saving throw)"],
         forms: [
@@ -466,6 +471,7 @@ export const personnageSheet = [
     },
     {
         name: "Jay Climber",
+        faction: "Ninjas",
         hp: 65,
         passives: ["Armored (+2 saving throw)"],
         forms: [
@@ -491,6 +497,7 @@ export const personnageSheet = [
     },
     {
         name: "Nya Léviathan",
+        faction: "Ninjas",
         hp: 60,
         spells: [
             { name: "Sea Rebound", type: "chain aoe", dice: "1d12 heal or damage" },
@@ -506,6 +513,7 @@ export const personnageSheet = [
     },
     {
         name: "Kay Demon",
+        faction: "Ninjas",
         hp: 65,
         passives: ["Immun weak magic (-15 on every magic hit)"],
         spells: [
@@ -520,6 +528,7 @@ export const personnageSheet = [
     },
     {
         name: "Pixal",
+        faction: "Ninjas",
         hp: 60,
         abilities: [
             { name: "Scanner", desc: "Scan the area: will detect trapped cells and doors (map traps are not implemented yet, so no effect for now)" }
@@ -528,6 +537,7 @@ export const personnageSheet = [
     },
     {
         name: "Sora",
+        faction: "Ninjas",
         hp: 60,
         spells: [
             { name: "Remake", type: "mono/mecha", dice: "1d20+20 heal", desc: "Repair: mends only allied machines (mecha). No other heal works on a machine." }
@@ -540,6 +550,7 @@ export const personnageSheet = [
     },
     {
         name: "Arin",
+        faction: "Ninjas",
         hp: 60,
         passives: ["Débrouillard (+3 pick lock/disarm traps; not implemented yet, no effect for now)"],
         abilities: [
@@ -549,6 +560,7 @@ export const personnageSheet = [
     },
     {
         name: "Wyldfire",
+        faction: "Ninjas",
         hp: 65,
         passives: ["Savage Child (immune to poison, takes only 1d4 from toxic, +2 breath)"],
         spells: [
@@ -561,6 +573,7 @@ export const personnageSheet = [
     },
     {
         name: "Eragon",
+        faction: "Valarjar",
         hp: 55,
         passives: [
             "Archmage (+3 magic roll, +3 spell slot)",
@@ -585,6 +598,7 @@ export const personnageSheet = [
     },
     {
         name: "Alicia",
+        faction: ["Nexo-Knights Kingdom", "Valarjar"],
         hp: 75,
         passives: [
             "Fly", "Flame of Life (1d6 heal/turn, +10hp, fire immunity)", 
@@ -614,6 +628,7 @@ export const personnageSheet = [
     },
     {
         name: "Ras",
+        faction: "Wolf Clan",
         hp: 80,
         passives: ["Natural Predator (+5 init)", "Hunter Fest (Heal 1d6 each hit)"],
         abilities: [
@@ -623,6 +638,7 @@ export const personnageSheet = [
     },
     {
         name: "General of the Wolf Clan",
+        faction: "Wolf Clan",
         hp: 70,
         forms: [
             { name: "Blood General", hpBonus: 15, effects: ["Blood Arm (+4d4 atk roll)"] }
@@ -635,6 +651,7 @@ export const personnageSheet = [
     },
     {
         name: "Cinder",
+        faction: "Wolf Clan",
         hp: 60,
         forms: [
             { name: "Blood Cinder", effects: ["Smoke Body (adv save)", "+1d6 damage", "Shatterspin (1d12, cooldown 2t, only in this form)"] }
@@ -646,6 +663,7 @@ export const personnageSheet = [
     },
     {
         name: "Kaelgrym",
+        faction: "Sans faction",
         hp: 65,
         passives: [
             "Survivalist (+2 const/percep/decep)", 
@@ -673,6 +691,7 @@ export const personnageSheet = [
     },
     {
         name: "Admiral Jaina",
+        faction: "Sans faction",
         hp: 80,
         passives: ["Chasseuse de tigre (+1d8 vs tigre)"],
         spells: [
@@ -687,6 +706,7 @@ export const personnageSheet = [
     },
     {
         name: "Sun",
+        faction: "Murrim",
         hp: 65,
         ki: 12,
         kiRegen: 4,
@@ -698,6 +718,7 @@ export const personnageSheet = [
     },
     {
         name: "Meï",
+        faction: "Murrim",
         hp: 60,
         ki: 12,
         kiRegen: 3,
@@ -710,6 +731,7 @@ export const personnageSheet = [
     },
     {
         name: "Krilin",
+        faction: "Murrim",
         hp: 60,
         ki: 5,
         kiRegen: 1,
@@ -721,6 +743,7 @@ export const personnageSheet = [
     },
     {
         name: "Baal",
+        faction: "Murrim",
         hp: 70,
         ki: 10,
         kiRegen: 1,
@@ -733,6 +756,7 @@ export const personnageSheet = [
     },
     {
         name: "White",
+        faction: "Sans faction",
         hp: 250,
         souls: 3736,
         passives: ["Fly", "Sword of Space (atk from anywhere, adv)", "Sous Powered (+5 atk, +4 def, +2 const)"],
@@ -748,6 +772,7 @@ export const personnageSheet = [
     },
     {
         name: "Kadgar",
+        faction: "Valarjar",
         hp: 60,
         passives: [
             "Archmage (+3 magic roll, +3 spell slot)", 
@@ -776,6 +801,7 @@ export const personnageSheet = [
     },
     {
         name: "Vorrakan Duskbane",
+        faction: "Sans faction",
         hp: 65,
         passives: [
             "Shadow Veil (+5 deception, travel in shadows)", 
@@ -809,6 +835,7 @@ export const personnageSheet = [
     },
     {
         name: "Morrow",
+        faction: "Ghost",
         hp: 65,
         passives: ["Wind Runner (+5 init)", "Fly", "-20 physical dam"],
         spells: [
@@ -823,12 +850,14 @@ export const personnageSheet = [
     },
     {
         name: "Anti-magic Squelette",
+        faction: "Helarjar",
         hp: 50,
         passives: ["Magic Resist (-10 magic dam)", "Undead Army (2hp regen)"],
         attack: "Sword 1d6"
     },
     {
         name: "Astrid",
+        faction: "Dream",
         hp: 95,
         passives: ["Armored (+2 def roll)", "Knight Honor (+1d12 if 1vs1)"],
         spells: [
@@ -839,6 +868,7 @@ export const personnageSheet = [
     },
     {
         name: "Sylvanas",
+        faction: "Dream",
         hp: 95,
         passives: ["Ranger (+3 percep, decep)"],
         abilities: [
@@ -849,12 +879,14 @@ export const personnageSheet = [
     },
     {
         name: "Dave",
+        faction: "Nightmare",
         hp: 85,
         passives: ["Fly"],
         attack: "Poke 1d8+4"
     },
     {
         name: "Spheras Nightmare",
+        faction: "Nightmare",
         hp: 105,
         abilities: [
             { name: "Poison Breath", type: "cone", effect: "1d2 poison; if the target is already poisoned: 1d12+8 poison damage instead", cooldown: "2T" }
@@ -864,6 +896,7 @@ export const personnageSheet = [
     },
     {
         name: "Dream Hunter",
+        faction: "Nightmare",
         hp: 110,
         passives: ["Corruption (each landed blow adds 1d10 corruption, attack, spell or technique; it never drains; at 100 the target leaves its team and becomes a summon of the Dream Hunter)"],
         spells: [
@@ -875,6 +908,7 @@ export const personnageSheet = [
     },
     {
         name: "Astrid Nightmare",
+        faction: "Nightmare",
         hp: 130,
         passives: ["Toxic Daggers (every hit poisons; against an already poisoned target: 1d12 poison damage instead)"],
         spells: [
@@ -886,6 +920,7 @@ export const personnageSheet = [
     },
     {
         name: "Sylvanas Nightmare",
+        faction: "Nightmare",
         hp: 130,
         passives: ["Banshee (adv def roll)", "Fly"],
         spells: [
@@ -899,6 +934,7 @@ export const personnageSheet = [
     },
     {
         name: "Akir",
+        faction: "Sans faction",
         hp: 55,
         spells: [
             { name: "Gravity Up", desc: "mono dis roll" },
@@ -909,6 +945,7 @@ export const personnageSheet = [
     },
     {
         name: "Babacool",
+        faction: "Sans faction",
         hp: 50,
         spells: [
             { name: "Tree", type: "instant", desc: "Block" },
@@ -920,6 +957,7 @@ export const personnageSheet = [
     },
     {
         name: "MaracachaCoocaracha",
+        faction: "Sans faction",
         hp: 50,
         spells: [
             { name: "Fiesta", type: "aoe", effect: "1d2 dance stun" },
@@ -932,6 +970,7 @@ export const personnageSheet = [
     },
     {
         name: "Vayl-Soran",
+        faction: "Sans faction",
         hp: 65,
         ki: 15,
         kiRegen: 5,
@@ -964,6 +1003,7 @@ export const personnageSheet = [
     },
     {
         name: "Cole Climber",
+        faction: "Ninjas",
         hp: 70,
         spellSlots: 4,
         passives: ["Armored (+2 saving throw)", "Heavy Striker (+1d4+1 dam with heavy weapons)"],
@@ -991,6 +1031,7 @@ export const personnageSheet = [
     },
     {
         name: "Oslo",
+        faction: "Valarjar",
         hp: 75,
         spellSlots: 9,
         passives: [
@@ -1012,6 +1053,7 @@ export const personnageSheet = [
     },
     {
         name: "Heracles",
+        faction: "Mercenaries",
         hp: 130,
         passives: [
             "Pelt of the Nemean Lion (Reduce phys dam by 15, immun bleed)",
@@ -1026,6 +1068,7 @@ export const personnageSheet = [
     },
     {
         name: "Huītzilōpōchtli",
+        faction: "Mercenaries",
         hp: 75,
         spellSlots: 1,
         passives: [
@@ -1048,6 +1091,7 @@ export const personnageSheet = [
     },
     {
         name: "Rig",
+        faction: "Mercenaries",
         hp: 65,
         passives: [
             "Precise Shot (+1d4+2 damage with ranged weapons)",
@@ -1073,6 +1117,7 @@ export const personnageSheet = [
     },
     {
         name: "Glysain",
+        faction: "Mercenaries",
         hp: 65,
         passives: [
             "Professional Diver (+2 const rolls related to water) [cite: 3]",
@@ -1092,6 +1137,7 @@ export const personnageSheet = [
     },
     {
         name: "Zed",
+        faction: "Mercenaries",
         hp: 60,
         ki: 10,
         kiRegen: 2,
@@ -1126,6 +1172,7 @@ export const personnageSheet = [
     },
     {
         name: "Napoléon",
+        faction: "Valarjar",
         hp: 65,
         spellSlots: 4,
         passives: [
@@ -1157,6 +1204,7 @@ export const personnageSheet = [
     },
     {
         name: "Hela, Goddess of Death",
+        faction: "Helarjar",
         hp: 450, 
         spellSlots: 20,
         passives: [
@@ -1215,6 +1263,7 @@ export const personnageSheet = [
     },
     {
         name: "Chronos, Monarch of Time",
+        faction: "Sans faction",
         hp: 520,
         spellSlots: 14,
         passives: [
@@ -1263,6 +1312,7 @@ export const personnageSheet = [
     },
     {
         name: "Jeagen, White Tiger",
+        faction: "Murrim",
         hp: 110,
         ki: 20,
         kiRegen: 6,
@@ -1286,6 +1336,7 @@ export const personnageSheet = [
     },
     {
         name: "Jay, Azure Dragon",
+        faction: "Murrim",
         hp: 90,
         spellSlots: 6,
         ki: 8,
@@ -1310,6 +1361,7 @@ export const personnageSheet = [
     },
     {
         name: "Zhuqiao, Vermillion Bird",
+        faction: "Murrim",
         hp: 85,
         ki: 16,
         kiRegen: 5,
@@ -1332,6 +1384,7 @@ export const personnageSheet = [
     },
     {
         name: "Black Turtle",
+        faction: "Murrim",
         hp: 120,
         spellSlots: 8,
         passives: [
@@ -1354,6 +1407,7 @@ export const personnageSheet = [
     },
     {
         name: "Ronin Lloyd",
+        faction: "Ninjas",
         hp: 80,
         spellSlots: 6,
         passives: [
@@ -1378,6 +1432,7 @@ export const personnageSheet = [
     },
     {
         name: "Mira",
+        faction: "Ninjas",
         hp: 65,
         spellSlots: 4,
         passives: [
@@ -1397,6 +1452,7 @@ export const personnageSheet = [
     },
     {
         name: "Nate",
+        faction: "Ninjas",
         hp: 65,
         spellSlots: 4,
         passives: [
@@ -1420,6 +1476,7 @@ export const personnageSheet = [
     },
     {
         name: "Jhin",
+        faction: "Ninjas",
         hp: 65,
         spellSlots: 4,
         passives: [
@@ -1437,6 +1494,7 @@ export const personnageSheet = [
     },
     {
         name: "Future Zane",
+        faction: "Ninjas",
         hp: 70,
         spellSlots: 6,
         passives: [
@@ -1457,6 +1515,7 @@ export const personnageSheet = [
     },
     {
         name: "Irina",
+        faction: "Murrim",
         hp: 60,
         ki: 9,
         kiRegen: 2,
@@ -1473,6 +1532,7 @@ export const personnageSheet = [
     },
     {
         name: "Fire Spirit",
+        faction: "Murrim",
         hp: 15,
         passives: [
             "Fly (18 speed)",
@@ -1482,6 +1542,7 @@ export const personnageSheet = [
     },
     {
         name: "Ray",
+        faction: "Ninjas",
         hp: 90,
         spellSlots: 6,
         passives: [
@@ -1495,6 +1556,7 @@ export const personnageSheet = [
     },
     {
         name: "Maya",
+        faction: "Ninjas",
         hp: 90,
         spellSlots: 8,
         passives: [
@@ -1510,6 +1572,7 @@ export const personnageSheet = [
     },
     {
         name: "Libber",
+        faction: "Ninjas",
         hp: 85,
         ki: 12,
         kiRegen: 2,
@@ -1525,6 +1588,7 @@ export const personnageSheet = [
     },
     {
         name: "Bentei",
+        faction: "Ninjas",
         hp: 120,
         spellSlots: 6,
         passives: [
@@ -1541,6 +1605,7 @@ export const personnageSheet = [
     },
     {
         name: "Ivo",
+        faction: "Ninjas",
         hp: 90,
         spellSlots: 6,
         abilities: [
@@ -1554,6 +1619,7 @@ export const personnageSheet = [
     },
     {
         name: "Stormer",
+        faction: "Valarjar",
         hp: 75,
         spellSlots: 11,
         passives: [
@@ -1578,6 +1644,7 @@ export const personnageSheet = [
     },
     {
         name: "Leonidas",
+        faction: "Valarjar",
         hp: 75,
         spellSlots: 7,
         passives: [
@@ -1593,11 +1660,13 @@ export const personnageSheet = [
     },
     {
         name: "Golem",
+        faction: "Valarjar",
         hp: 15,
         attack: "Punch 1d4+2"
     },
     {
         name: "Ouroboros",
+        faction: "Valarjar",
         hp: 75,
         spellSlots: 4,
         passives: [
@@ -1614,6 +1683,7 @@ export const personnageSheet = [
     },
     {
         name: "Libra",
+        faction: "Valarjar",
         hp: 75,
         spellSlots: 5,
         passives: [
@@ -1627,6 +1697,7 @@ export const personnageSheet = [
     },
     {
         name: "Argo",
+        faction: "Valarjar",
         hp: 75,
         passives: [
             "Blood of Fire (Cauterises: heals 1d6+2 on every hit taken. Immune to toxic and freeze; -1d4+2 ice damage taken)",
@@ -1643,6 +1714,7 @@ export const personnageSheet = [
     },
     {
         name: "Starburst",
+        faction: "Heroes",
         hp: 65,
         spellSlots: 9,
         passives: [
@@ -1662,6 +1734,7 @@ export const personnageSheet = [
     },
     {
         name: "Graviton",
+        faction: "Heroes",
         hp: 65,
         spellSlots: 9,
         passives: [
@@ -1680,6 +1753,7 @@ export const personnageSheet = [
     },
     {
         name: "Ivy",
+        faction: "Heroes",
         hp: 65,
         spellSlots: 9,
         passives: [
@@ -1693,6 +1767,7 @@ export const personnageSheet = [
     },
     {
         name: "Electro",
+        faction: "Heroes",
         hp: 65,
         spellSlots: 9,
         passives: [
@@ -1708,6 +1783,7 @@ export const personnageSheet = [
     },
     {
         name: "Arthur",
+        faction: "Heroes",
         hp: 65,
         passives: [
             "Hero of Dawn (Immune to radiant damage; -1d8 dark damage taken)",
@@ -1731,6 +1807,7 @@ export const personnageSheet = [
     },
     {
         name: "Diamant Dunmara",
+        faction: "Crystal Knights",
         hp: 90,
         passives: [
             "Armored (+8 defense roll)",
@@ -1749,6 +1826,7 @@ export const personnageSheet = [
     },
     {
         name: "Rubis Ignir",
+        faction: "Crystal Knights",
         hp: 90,
         passives: [
             "Armored (+2 defense roll)",
@@ -1768,6 +1846,7 @@ export const personnageSheet = [
     },
     {
         name: "Emeraud Brannoc",
+        faction: "Crystal Knights",
         hp: 90,
         passives: [
             "Armored (+3 defense roll)",
@@ -1788,6 +1867,7 @@ export const personnageSheet = [
     },
     {
         name: "Saphir Thalor",
+        faction: "Crystal Knights",
         hp: 90,
         passives: [
             "Armored (+2 defense roll)",
@@ -1806,6 +1886,7 @@ export const personnageSheet = [
     },
     {
         name: "Amethyst Ysmar",
+        faction: "Crystal Knights",
         hp: 90,
         passives: [
             "Armored (+2 defense roll)",
@@ -1824,6 +1905,7 @@ export const personnageSheet = [
     },
     {
         name: "Aquiel",
+        faction: "Chima",
         hp: 90,
         passives: [
             "Fly (18 speed)",
@@ -1841,6 +1923,7 @@ export const personnageSheet = [
     },
     {
         name: "Escanor",
+        faction: "Chima",
         hp: 120,
         passives: [
             "Sunshine (Immune to all status effects and fire damage. Deals 1d4 damage around him. +5 attack/defense for each calcinated stack on the target)",
@@ -1853,6 +1936,7 @@ export const personnageSheet = [
     },
     {
         name: "Scorpio",
+        faction: "Chima",
         hp: 70,
         passives: [
             "Exoskeleton (+5 defense roll)"
@@ -1865,6 +1949,7 @@ export const personnageSheet = [
     },
     {
         name: "Phoenix King",
+        faction: "Chima",
         hp: 75,
         spellSlots: 8,
         passives: [
@@ -1885,6 +1970,7 @@ export const personnageSheet = [
     },
     {
         name: "Phoenix Prince",
+        faction: "Chima",
         hp: 55,
         passives: [
             "Fly (18 speed)"
@@ -1906,6 +1992,7 @@ export const personnageSheet = [
     },
     {
         name: "Arya",
+        faction: "Elves Kingdom",
         hp: 70,
         spellSlots: 9,
         passives: [
@@ -1923,6 +2010,7 @@ export const personnageSheet = [
     },
     {
         name: "Aron",
+        faction: "Nexo-Knights Kingdom",
         hp: 65,
         spellSlots: 5,
         passives: [
@@ -1938,6 +2026,7 @@ export const personnageSheet = [
     },
     {
         name: "Lance",
+        faction: "Nexo-Knights Kingdom",
         hp: 65,
         spellSlots: 5,
         passives: [
@@ -1954,6 +2043,7 @@ export const personnageSheet = [
     },
     {
         name: "Axel",
+        faction: "Nexo-Knights Kingdom",
         hp: 90,
         spellSlots: 5,
         passives: [
@@ -1969,6 +2059,7 @@ export const personnageSheet = [
     },
     {
         name: "Clay",
+        faction: "Nexo-Knights Kingdom",
         hp: 65,
         spellSlots: 5,
         passives: [
@@ -1985,6 +2076,7 @@ export const personnageSheet = [
     },
     {
         name: "Kyros",
+        faction: "Sans faction",
         hp: 65,
         spellSlots: 10,
         passives: [
@@ -2010,6 +2102,7 @@ export const personnageSheet = [
     },
     {
         name: "Krux & Acronix",
+        faction: "Sans faction",
         hp: 180,
         spellSlots: 25,
         passives: [
@@ -2030,6 +2123,7 @@ export const personnageSheet = [
     },
     {
         name: "Annastasia",
+        faction: "Covenant",
         hp: 60,
         spellSlots: 8,
         passives: [
@@ -2046,6 +2140,7 @@ export const personnageSheet = [
     },
     {
         name: "Vampire Sienna",
+        faction: "Covenant",
         hp: 111,
         spellSlots: 11,
         passives: [
@@ -2070,6 +2165,7 @@ export const personnageSheet = [
     },
     {
         name: "Sword Master",
+        faction: "Helarjar",
         hp: 120,
         passives: [
             "Anti-Magic (-20 damage taken vs magic damage)",
@@ -2088,6 +2184,7 @@ export const personnageSheet = [
     },
     {
         name: "Sorcerer Master",
+        faction: "Helarjar",
         hp: 120,
         spellSlots: 8,
         passives: [
@@ -2110,6 +2207,7 @@ export const personnageSheet = [
     },
     {
         name: "Floating Head",
+        faction: "Helarjar",
         hp: 50,
         spellSlots: 8,
         passives: [
@@ -2122,6 +2220,7 @@ export const personnageSheet = [
     },
     {
         name: "Anti-magic Goul Egypte",
+        faction: "Helarjar",
         hp: 70,
         passives: [
             "Magic Resist (-10 damage taken vs magic damage)",
@@ -2135,6 +2234,7 @@ export const personnageSheet = [
     },
     {
         name: "Anti-magic Goul Nordic",
+        faction: "Helarjar",
         hp: 70,
         passives: [
             "Magic Resist (-10 damage taken vs magic damage)",
@@ -2148,6 +2248,7 @@ export const personnageSheet = [
     },
     {
         name: "Amalgame",
+        faction: "Helarjar",
         hp: 70,
         passives: [
             "Magic Resist (-10 damage taken vs magic damage)",
@@ -2162,6 +2263,7 @@ export const personnageSheet = [
     },
     {
         name: "Nokt",
+        faction: "Forbidden Five",
         hp: 90,
         spellSlots: 4,
         passives: [
@@ -2177,6 +2279,7 @@ export const personnageSheet = [
     },
     {
         name: "Rox",
+        faction: "Forbidden Five",
         hp: 80,
         spellSlots: 10,
         passives: [
@@ -2195,6 +2298,7 @@ export const personnageSheet = [
     },
     {
         name: "Zarkt",
+        faction: "Forbidden Five",
         hp: 80,
         spellSlots: 8,
         passives: [
@@ -2211,6 +2315,7 @@ export const personnageSheet = [
     },
     {
         name: "Drix",
+        faction: "Forbidden Five",
         hp: 80,
         ki: 8,
         kiRegen: 2,
@@ -2227,6 +2332,7 @@ export const personnageSheet = [
     },
     {
         name: "Kur",
+        faction: "Forbidden Five",
         hp: 70,
         spellSlots: 7,
         passives: [
@@ -2243,6 +2349,7 @@ export const personnageSheet = [
     },
     {
         name: "Simo",
+        faction: "Mercenaries",
         hp: 60,
         passives: [
             "Ranger (+3 lockpicking/perception/defuse/set trap)",
@@ -2258,6 +2365,7 @@ export const personnageSheet = [
     },
     {
         name: "Atila",
+        faction: "Mercenaries",
         hp: 65,
         passives: [
             "War Banner Carrier (+2 to all ally rolls within 10m)",
@@ -2270,6 +2378,7 @@ export const personnageSheet = [
     },
     {
         name: "Sienna",
+        faction: "Mercenaries",
         hp: 60,
         passives: [
             "SteamGun (A normal attack after a technique applies burn. Using two techniques in a row halves damage)",

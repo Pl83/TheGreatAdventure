@@ -42,6 +42,13 @@
             <div class="search-box">
                 <input type="search" id="charSearch" placeholder="Rechercher une fiche…" autocomplete="off">
             </div>
+            <label class="sort-row">Tri
+                <select id="sortSelect">
+                    <option value="name">Nom (A → Z)</option>
+                    <option value="hp">PV (décroissant)</option>
+                    <option value="slots">Spell slots (décroissant)</option>
+                </select>
+            </label>
             <div id="tagFilter" class="tag-filter-row"></div>
             <div id="listCount" class="list-count"></div>
             <ul id="charList" class="char-list" role="listbox" aria-label="Fiches"></ul>

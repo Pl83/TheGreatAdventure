@@ -1,6 +1,7 @@
 [
   {
     "nom": "Susano",
+    "faction": "Sans faction",
     "hp": 70,
     "spellSlot": 15,
     "ki": 0,
@@ -158,6 +159,7 @@
   },
   {
     "nom": "Thormak, The Titan Slayer",
+    "faction": "Chima",
     "tags": ["beast", "tiger"],
     "hp": 70,
     "spellSlot": 9,
@@ -220,6 +222,7 @@
   },
   {
     "nom": "Sensei Lloyd",
+    "faction": "Ninjas",
     "hp": 70,
     "spellSlot": 7,
     "ki": 0,
@@ -299,6 +302,7 @@
   },
   {
     "nom": "Kay Climber",
+    "faction": "Ninjas",
     "hp": 65,
     "spellSlot": 7,
     "ki": 0,
@@ -377,6 +381,7 @@
   },
   {
     "nom": "Zane Climber",
+    "faction": "Ninjas",
     "tags": ["mecha"],
     "hp": 65,
     "spellSlot": 6,
@@ -441,6 +446,7 @@
   },
   {
     "nom": "Jay Climber",
+    "faction": "Ninjas",
     "hp": 65,
     "spellSlot": 6,
     "ki": 0,
@@ -505,6 +511,7 @@
   },
   {
     "nom": "Nya Léviathan",
+    "faction": "Ninjas",
     "hp": 60,
     "spellSlot": 8,
     "ki": 0,
@@ -556,6 +563,7 @@
   },
   {
     "nom": "Kay Demon",
+    "faction": "Ninjas",
     "hp": 65,
     "spellSlot": 4,
     "ki": 0,
@@ -594,6 +602,7 @@
   },
   {
     "nom": "Pixal",
+    "faction": "Ninjas",
     "tags": ["mecha"],
     "hp": 60,
     "spellSlot": 0,
@@ -618,6 +627,7 @@
   },
   {
     "nom": "Sora",
+    "faction": "Ninjas",
     "hp": 60,
     "spellSlot": 3,
     "ki": 0,
@@ -643,6 +653,7 @@
   },
   {
     "nom": "Arin",
+    "faction": "Ninjas",
     "hp": 60,
     "spellSlot": 0,
     "ki": 0,
@@ -670,6 +681,7 @@
   },
   {
     "nom": "Wyldfire",
+    "faction": "Ninjas",
     "hp": 65,
     "spellSlot": 3,
     "ki": 0,
@@ -717,6 +729,7 @@
   },
   {
     "nom": "Eragon",
+    "faction": "Valarjar",
     "hp": 55,
     "spellSlot": 20,
     "ki": 0,
@@ -814,6 +827,7 @@
   },
   {
     "nom": "Alicia",
+    "faction": ["Nexo-Knights Kingdom", "Valarjar"],
     "hp": 75,
     "spellSlot": 14,
     "ki": 0,
@@ -899,6 +913,7 @@
   },
   {
     "nom": "Ras",
+    "faction": "Wolf Clan",
     "tags": ["beast", "tiger"],
     "hp": 80,
     "spellSlot": 0,
@@ -930,6 +945,7 @@
   },
   {
     "nom": "General of the Wolf Clan",
+    "faction": "Wolf Clan",
     "hp": 70,
     "spellSlot": 0,
     "ki": 0,
@@ -965,6 +981,7 @@
   },
   {
     "nom": "Cinder",
+    "faction": "Wolf Clan",
     "hp": 60,
     "spellSlot": 0,
     "ki": 0,
@@ -1004,6 +1021,7 @@
   },
   {
     "nom": "Kaelgrym",
+    "faction": "Sans faction",
     "hp": 65,
     "spellSlot": 8,
     "ki": 0,
@@ -1131,6 +1149,7 @@
   },
   {
     "nom": "Admiral Jaina",
+    "faction": "Sans faction",
     "hp": 80,
     "spellSlot": 12,
     "ki": 0,
@@ -1171,6 +1190,7 @@
   },
   {
     "nom": "Sun",
+    "faction": "Murrim",
     "hp": 65,
     "spellSlot": 0,
     "ki": 12,
@@ -1198,6 +1218,7 @@
   },
   {
     "nom": "Meï",
+    "faction": "Murrim",
     "hp": 60,
     "spellSlot": 0,
     "ki": 12,
@@ -1235,6 +1256,7 @@
   },
   {
     "nom": "Krilin",
+    "faction": "Murrim",
     "hp": 60,
     "spellSlot": 0,
     "ki": 5,
@@ -1263,6 +1285,7 @@
   },
   {
     "nom": "Baal",
+    "faction": "Murrim",
     "tags": ["monster"],
     "hp": 70,
     "spellSlot": 0,
@@ -1298,6 +1321,7 @@
   },
   {
     "nom": "White",
+    "faction": "Sans faction",
     "tags": ["evil"],
     "hp": 250,
     "spellSlot": 0,
@@ -1356,6 +1380,7 @@
   },
   {
     "nom": "Kadgar",
+    "faction": "Valarjar",
     "hp": 60,
     "spellSlot": 33,
     "ki": 0,
@@ -1459,6 +1484,7 @@
   },
   {
     "nom": "Vorrakan Duskbane",
+    "faction": "Sans faction",
     "chains": { "count": 2, "hp": 150, "free": 50, "drainHp": "10+1d10", "drainSlots": "1d4" },
     "tags": ["evil"],
     "hp": 65,
@@ -1574,6 +1600,7 @@
   },
   {
     "nom": "Morrow",
+    "faction": "Ghost",
     "tags": ["evil", "monster"],
     "hp": 65,
     "spellSlot": 5,
@@ -1615,6 +1642,7 @@
   },
   {
     "nom": "Anti-magic Squelette",
+    "faction": "Helarjar",
     "tags": ["monster"],
     "hp": 50,
     "spellSlot": 0,
@@ -1643,6 +1671,7 @@
   },
   {
     "nom": "Astrid",
+    "faction": "Dream",
     "hp": 95,
     "spellSlot": 4,
     "ki": 0,
@@ -1665,6 +1694,7 @@
   },
   {
     "nom": "Sylvanas",
+    "faction": "Dream",
     "hp": 95,
     "spellSlot": 4,
     "ki": 0,
@@ -1686,6 +1716,7 @@
   },
   {
     "nom": "Dave",
+    "faction": "Nightmare",
     "hp": 85,
     "spellSlot": 0,
     "ki": 0,
@@ -1701,6 +1732,7 @@
   },
   {
     "nom": "Spheras Nightmare",
+    "faction": "Nightmare",
     "tags": ["evil", "monster"],
     "hp": 105,
     "spellSlot": 10,
@@ -1725,6 +1757,7 @@
   },
   {
     "nom": "Dream Hunter",
+    "faction": "Nightmare",
     "tags": ["evil"],
     "hp": 110,
     "spellSlot": 6,
@@ -1762,6 +1795,7 @@
   },
   {
     "nom": "Astrid Nightmare",
+    "faction": "Nightmare",
     "tags": ["evil"],
     "hp": 130,
     "spellSlot": 7,
@@ -1796,6 +1830,7 @@
   },
   {
     "nom": "Sylvanas Nightmare",
+    "faction": "Nightmare",
     "tags": ["evil"],
     "hp": 130,
     "spellSlot": 6,
@@ -1826,6 +1861,7 @@
   },
   {
     "nom": "Akir",
+    "faction": "Sans faction",
     "hp": 55,
     "spellSlot": 5,
     "ki": 0,
@@ -1854,6 +1890,7 @@
   },
   {
     "nom": "Babacool",
+    "faction": "Sans faction",
     "hp": 50,
     "spellSlot": 5,
     "ki": 0,
@@ -1885,6 +1922,7 @@
   },
   {
     "nom": "MaracachaCoocaracha",
+    "faction": "Sans faction",
     "hp": 50,
     "spellSlot": 6,
     "ki": 0,
@@ -1926,6 +1964,7 @@
   },
   {
     "nom": "Vayl-Soran",
+    "faction": "Sans faction",
     "hp": 65,
     "spellSlot": 0,
     "ki": 15,
@@ -2004,6 +2043,7 @@
   },
   {
     "nom": "Cole Climber",
+    "faction": "Ninjas",
     "hp": 70,
     "spellSlot": 4,
     "ki": 0,
@@ -2072,6 +2112,7 @@
   },
   {
     "nom": "Oslo",
+    "faction": "Valarjar",
     "hp": 75,
     "spellSlot": 9,
     "ki": 0,
@@ -2131,6 +2172,7 @@
   },
   {
     "nom": "Heracles",
+    "faction": "Mercenaries",
     "hp": 130,
     "spellSlot": 0,
     "ki": 0,
@@ -2168,6 +2210,7 @@
   },
   {
     "nom": "Huītzilōpōchtli",
+    "faction": "Mercenaries",
     "hp": 75,
     "spellSlot": 1,
     "ki": 0,
@@ -2212,6 +2255,7 @@
   },
   {
     "nom": "Rig",
+    "faction": "Mercenaries",
     "hp": 65,
     "spellSlot": 0,
     "ki": 0,
@@ -2245,6 +2289,7 @@
   },
   {
     "nom": "Glysain",
+    "faction": "Mercenaries",
     "hp": 65,
     "spellSlot": 0,
     "ki": 0,
@@ -2277,6 +2322,7 @@
   },
   {
     "nom": "Zed",
+    "faction": "Mercenaries",
     "hp": 60,
     "spellSlot": 0,
     "ki": 10,
@@ -2318,6 +2364,7 @@
   },
   {
     "nom": "Napoléon",
+    "faction": "Valarjar",
     "hp": 65,
     "spellSlot": 4,
     "ki": 0,
@@ -2362,6 +2409,7 @@
   },
   {
     "nom": "Hela, Goddess of Death",
+    "faction": "Helarjar",
     "hp": 450,
     "spellSlot": 20,
     "ki": 0,
@@ -2494,6 +2542,7 @@
   },
   {
     "nom": "Jeagen, White Tiger",
+    "faction": "Murrim",
     "tags": ["beast", "tiger"],
     "hp": 110,
     "spellSlot": 0,
@@ -2703,6 +2752,7 @@
   },
     {
     "nom": "Jay, Azure Dragon",
+    "faction": "Murrim",
     "hp": 90,
     "spellSlot": 6,
     "ki": 8,
@@ -2892,6 +2942,7 @@
   },
   {
     "nom": "Zhuqiao, Vermillion Bird",
+    "faction": "Murrim",
     "hp": 85,
     "spellSlot": 0,
     "ki": 16,
@@ -3105,6 +3156,7 @@
   },
   {
     "nom": "Black Turtle",
+    "faction": "Murrim",
     "deceased": true,
     "hp": 120,
     "spellSlot": 8,
@@ -3294,6 +3346,7 @@
   },
   {
     "nom": "Ronin Lloyd",
+    "faction": "Ninjas",
     "hp": 80,
     "spellSlot": 6,
     "ki": 0,
@@ -3483,6 +3536,7 @@
   },
   {
     "nom": "Mira",
+    "faction": "Ninjas",
     "hp": 65,
     "spellSlot": 4,
     "ki": 0,
@@ -3603,6 +3657,7 @@
   },
   {
     "nom": "Nate",
+    "faction": "Ninjas",
     "hp": 65,
     "spellSlot": 4,
     "ki": 0,
@@ -3749,6 +3804,7 @@
   },
   {
     "nom": "Jhin",
+    "faction": "Ninjas",
     "hp": 65,
     "spellSlot": 4,
     "ki": 0,
@@ -3866,6 +3922,7 @@
   },
   {
     "nom": "Future Zane",
+    "faction": "Ninjas",
     "tags": ["mecha"],
     "hp": 70,
     "spellSlot": 6,
@@ -3993,6 +4050,7 @@
   },
   {
     "nom": "Chronos, Monarch of Time",
+    "faction": "Sans faction",
     "hp": 520,
     "spellSlot": 14,
     "ki": 0,
@@ -4143,6 +4201,7 @@
   },
   {
     "nom": "Irina",
+    "faction": "Murrim",
     "hp": 60,
     "spellSlot": 0,
     "ki": 9,
@@ -4222,6 +4281,7 @@
   },
   {
     "nom": "Fire Spirit",
+    "faction": "Murrim",
     "hp": 15,
     "spellSlot": 0,
     "ki": 0,
@@ -4260,6 +4320,7 @@
   },
   {
     "nom": "Ray",
+    "faction": "Ninjas",
     "hp": 90,
     "spellSlot": 6,
     "ki": 0,
@@ -4319,6 +4380,7 @@
   },
   {
     "nom": "Maya",
+    "faction": "Ninjas",
     "hp": 90,
     "spellSlot": 8,
     "ki": 0,
@@ -4380,6 +4442,7 @@
   },
   {
     "nom": "Libber",
+    "faction": "Ninjas",
     "hp": 85,
     "spellSlot": 0,
     "ki": 12,
@@ -4450,6 +4513,7 @@
   },
   {
     "nom": "Bentei",
+    "faction": "Ninjas",
     "hp": 120,
     "spellSlot": 6,
     "ki": 0,
@@ -4526,6 +4590,7 @@
   },
   {
     "nom": "Ivo",
+    "faction": "Ninjas",
     "hp": 90,
     "spellSlot": 6,
     "ki": 0,
@@ -4592,6 +4657,7 @@
   },
   {
     "nom": "Stormer",
+    "faction": "Valarjar",
     "hp": 75,
     "spellSlot": 11,
     "ki": 0,
@@ -4744,6 +4810,7 @@
   },
   {
     "nom": "Leonidas",
+    "faction": "Valarjar",
     "hp": 75,
     "spellSlot": 7,
     "ki": 0,
@@ -4832,6 +4899,7 @@
   },
   {
     "nom": "Golem",
+    "faction": "Valarjar",
     "hp": 15,
     "spellSlot": 0,
     "ki": 0,
@@ -4855,6 +4923,7 @@
   },
   {
     "nom": "Ouroboros",
+    "faction": "Valarjar",
     "hp": 75,
     "spellSlot": 4,
     "ki": 0,
@@ -4960,6 +5029,7 @@
   },
   {
     "nom": "Libra",
+    "faction": "Valarjar",
     "hp": 75,
     "spellSlot": 5,
     "ki": 0,
@@ -5020,6 +5090,7 @@
   },
   {
     "nom": "Argo",
+    "faction": "Valarjar",
     "hp": 75,
     "spellSlot": 0,
     "ki": 0,
@@ -5125,6 +5196,7 @@
   },
   {
     "nom": "Starburst",
+    "faction": "Heroes",
     "hp": 65,
     "spellSlot": 9,
     "ki": 0,
@@ -5220,6 +5292,7 @@
   },
   {
     "nom": "Graviton",
+    "faction": "Heroes",
     "hp": 65,
     "spellSlot": 9,
     "ki": 0,
@@ -5319,6 +5392,7 @@
   },
   {
     "nom": "Ivy",
+    "faction": "Heroes",
     "hp": 65,
     "spellSlot": 9,
     "ki": 0,
@@ -5382,6 +5456,7 @@
   },
   {
     "nom": "Electro",
+    "faction": "Heroes",
     "hp": 65,
     "spellSlot": 9,
     "ki": 0,
@@ -5471,6 +5546,7 @@
   },
   {
     "nom": "Arthur",
+    "faction": "Heroes",
     "hp": 65,
     "spellSlot": 0,
     "ki": 0,
@@ -5646,6 +5722,7 @@
   },
   {
     "nom": "Diamant Dunmara",
+    "faction": "Crystal Knights",
     "hp": 90,
     "spellSlot": 0,
     "ki": 0,
@@ -5784,6 +5861,7 @@
   },
   {
     "nom": "Rubis Ignir",
+    "faction": "Crystal Knights",
     "hp": 90,
     "spellSlot": 0,
     "ki": 0,
@@ -5935,6 +6013,7 @@
   },
   {
     "nom": "Emeraud Brannoc",
+    "faction": "Crystal Knights",
     "hp": 90,
     "spellSlot": 0,
     "ki": 0,
@@ -6095,6 +6174,7 @@
   },
   {
     "nom": "Saphir Thalor",
+    "faction": "Crystal Knights",
     "hp": 90,
     "spellSlot": 0,
     "ki": 0,
@@ -6234,6 +6314,7 @@
   },
   {
     "nom": "Amethyst Ysmar",
+    "faction": "Crystal Knights",
     "hp": 90,
     "spellSlot": 0,
     "ki": 0,
@@ -6374,6 +6455,7 @@
   },
   {
     "nom": "Aquiel",
+    "faction": "Chima",
     "hp": 90,
     "spellSlot": 0,
     "ki": 0,
@@ -6497,6 +6579,7 @@
   },
   {
     "nom": "Escanor",
+    "faction": "Chima",
     "hp": 120,
     "spellSlot": 0,
     "ki": 0,
@@ -6550,6 +6633,7 @@
   },
   {
     "nom": "Scorpio",
+    "faction": "Chima",
     "hp": 70,
     "spellSlot": 0,
     "ki": 0,
@@ -6612,6 +6696,7 @@
   },
   {
     "nom": "Phoenix King",
+    "faction": "Chima",
     "hp": 75,
     "spellSlot": 8,
     "ki": 0,
@@ -6722,6 +6807,7 @@
   },
   {
     "nom": "Phoenix Prince",
+    "faction": "Chima",
     "hp": 55,
     "spellSlot": 0,
     "ki": 0,
@@ -6838,6 +6924,7 @@
   },
   {
     "nom": "Arya",
+    "faction": "Elves Kingdom",
     "hp": 70,
     "spellSlot": 9,
     "ki": 0,
@@ -6951,6 +7038,7 @@
   },
   {
     "nom": "Aron",
+    "faction": "Nexo-Knights Kingdom",
     "hp": 65,
     "spellSlot": 5,
     "ki": 0,
@@ -7031,6 +7119,7 @@
   },
   {
     "nom": "Lance",
+    "faction": "Nexo-Knights Kingdom",
     "hp": 65,
     "spellSlot": 5,
     "ki": 0,
@@ -7128,6 +7217,7 @@
   },
   {
     "nom": "Axel",
+    "faction": "Nexo-Knights Kingdom",
     "hp": 90,
     "spellSlot": 5,
     "ki": 0,
@@ -7210,6 +7300,7 @@
   },
   {
     "nom": "Clay",
+    "faction": "Nexo-Knights Kingdom",
     "hp": 65,
     "spellSlot": 5,
     "ki": 0,
@@ -7299,6 +7390,7 @@
   },
   {
     "nom": "Kyros",
+    "faction": "Sans faction",
     "hp": 65,
     "spellSlot": 10,
     "ki": 0,
@@ -7475,6 +7567,7 @@
   },
   {
     "nom": "Krux & Acronix",
+    "faction": "Sans faction",
     "hp": 180,
     "spellSlot": 25,
     "ki": 0,
@@ -7602,6 +7695,7 @@
   },
   {
     "nom": "Annastasia",
+    "faction": "Covenant",
     "hp": 60,
     "spellSlot": 8,
     "ki": 0,
@@ -7706,6 +7800,7 @@
   },
   {
     "nom": "Vampire Sienna",
+    "faction": "Covenant",
     "tags": ["monster"],
     "hp": 111,
     "spellSlot": 11,
@@ -7885,6 +7980,7 @@
   },
   {
     "nom": "Sword Master",
+    "faction": "Helarjar",
     "hp": 120,
     "spellSlot": 0,
     "ki": 0,
@@ -8012,6 +8108,7 @@
   },
   {
     "nom": "Sorcerer Master",
+    "faction": "Helarjar",
     "companion": "Floating Head",
     "hp": 120,
     "spellSlot": 8,
@@ -8157,6 +8254,7 @@
   },
   {
     "nom": "Floating Head",
+    "faction": "Helarjar",
     "hp": 50,
     "spellSlot": 8,
     "ki": 0,
@@ -8211,6 +8309,7 @@
   },
   {
     "nom": "Anti-magic Goul Egypte",
+    "faction": "Helarjar",
     "tags": ["monster"],
     "hp": 70,
     "spellSlot": 0,
@@ -8284,6 +8383,7 @@
   },
   {
     "nom": "Anti-magic Goul Nordic",
+    "faction": "Helarjar",
     "tags": ["monster"],
     "hp": 70,
     "spellSlot": 0,
@@ -8355,6 +8455,7 @@
   },
   {
     "nom": "Amalgame",
+    "faction": "Helarjar",
     "tags": ["monster"],
     "hp": 70,
     "spellSlot": 0,
@@ -8442,6 +8543,7 @@
   },
   {
     "nom": "Nokt",
+    "faction": "Forbidden Five",
     "hp": 90,
     "spellSlot": 4,
     "ki": 0,
@@ -8506,6 +8608,7 @@
   },
   {
     "nom": "Rox",
+    "faction": "Forbidden Five",
     "hp": 80,
     "spellSlot": 10,
     "ki": 0,
@@ -8605,6 +8708,7 @@
   },
   {
     "nom": "Zarkt",
+    "faction": "Forbidden Five",
     "hp": 80,
     "spellSlot": 8,
     "ki": 0,
@@ -8674,6 +8778,7 @@
   },
   {
     "nom": "Drix",
+    "faction": "Forbidden Five",
     "hp": 80,
     "spellSlot": 0,
     "ki": 8,
@@ -8766,6 +8871,7 @@
   },
   {
     "nom": "Kur",
+    "faction": "Forbidden Five",
     "hp": 70,
     "spellSlot": 7,
     "ki": 0,
@@ -8845,6 +8951,7 @@
   },
   {
     "nom": "Simo",
+    "faction": "Mercenaries",
     "hp": 60,
     "spellSlot": 0,
     "ki": 0,
@@ -8935,6 +9042,7 @@
   },
   {
     "nom": "Atila",
+    "faction": "Mercenaries",
     "hp": 65,
     "spellSlot": 0,
     "ki": 0,
@@ -9010,6 +9118,7 @@
   },
   {
     "nom": "Sienna",
+    "faction": "Mercenaries",
     "hp": 60,
     "spellSlot": 0,
     "ki": 0,

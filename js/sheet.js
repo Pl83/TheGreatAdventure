@@ -320,6 +320,22 @@ const listEl = document.getElementById('charList');
 const countEl = document.getElementById('listCount');
 let visible = [];
 
+const SORTS = {
+    name:  (a, b) => a.nom.localeCompare(b.nom),
+    hp:    (a, b) => b.hp - a.hp || a.nom.localeCompare(b.nom),
+    slots: (a, b) => (b.spellSlot ?? 0) - (a.spellSlot ?? 0) || a.nom.localeCompare(b.nom),
+};
+const sortSelect = document.getElementById('sortSelect');
+let sortKey = 'name';
+try { sortKey = localStorage.getItem('sheetSort') || 'name'; } catch { /* storage blocked */ }
+if (!SORTS[sortKey]) sortKey = 'name';
+sortSelect.value = sortKey;
+sortSelect.addEventListener('change', () => {
+    sortKey = sortSelect.value;
+    try { localStorage.setItem('sheetSort', sortKey); } catch { /* storage blocked */ }
+    renderSheets(searchInput.value);
+});
+
 async function init() {
     const res = await fetch('js/characters.json');
     allChars = await res.json();
@@ -333,19 +349,46 @@ function inTeam(nom) {
     return teams[0].includes(nom) ? 1 : teams[1].includes(nom) ? 2 : 0;
 }
 
+const NO_FACTION = 'Sans faction';
+const collapsed = new Set();
+
+const factionsOf = c => [].concat(c.faction ?? NO_FACTION);
+
+function groupByFaction(list) {
+    const groups = new Map();
+    list.forEach(c => factionsOf(c).forEach(f => {
+        if (!groups.has(f)) groups.set(f, []);
+        groups.get(f).push(c);
+    }));
+    return [...groups.entries()].sort(([a], [b]) =>
+        (a === NO_FACTION) - (b === NO_FACTION) || a.localeCompare(b));
+}
+
+function itemHtml(c) {
+    const team = inTeam(c.nom);
+    const on = c.nom === selectedNom;
+    return `<li><button class="char-list-item${on ? ' selected' : ''}" role="option"
+                aria-selected="${on}" data-nom="${c.nom.replace(/"/g, '&quot;')}">
+        <span class="cli-name">${c.nom}</span>
+        ${team ? `<span class="cli-team">T${team}</span>` : ''}
+        <span class="cli-hp">${sortKey === 'slots' ? `${c.spellSlot ?? 0} sl` : c.hp}</span>
+    </button></li>`;
+}
+
 function renderSheets(filter = '') {
     const q = filter.trim().toLowerCase();
-    visible = allChars.filter(c => c.nom.toLowerCase().includes(q) && charMatchesTag(c, activeTagFilter));
+    visible = allChars.filter(c => c.nom.toLowerCase().includes(q) && charMatchesTag(c, activeTagFilter)).sort(SORTS[sortKey]);
     if (!visible.some(c => c.nom === selectedNom)) selectedNom = visible[0]?.nom ?? null;
     countEl.textContent = `${visible.length} / ${allChars.length} fiches`;
-    listEl.innerHTML = visible.map(c => {
-        const team = inTeam(c.nom);
-        return `<li><button class="char-list-item${c.nom === selectedNom ? ' selected' : ''}" role="option"
-                    aria-selected="${c.nom === selectedNom}" data-nom="${c.nom.replace(/"/g, '&quot;')}">
-            <span class="cli-name">${c.nom}</span>
-            ${team ? `<span class="cli-team">T${team}</span>` : ''}
-            <span class="cli-hp">${c.hp}</span>
-        </button></li>`;
+    const searching = q !== '' || activeTagFilter !== null;   // a search always shows its hits
+    listEl.innerHTML = groupByFaction(visible).map(([fac, members]) => {
+        const open = searching || !collapsed.has(fac);
+        return `<li class="list-group">
+            <button class="group-toggle" aria-expanded="${open}" data-fac="${fac.replace(/"/g, '&quot;')}">
+                <span class="gt-caret">${open ? '▾' : '▸'}</span><span class="gt-name">${fac}</span><span class="gt-count">${members.length}</span>
+            </button>
+            ${open ? `<ul class="group-items">${members.map(itemHtml).join('')}</ul>` : ''}
+        </li>`;
     }).join('') || '<li class="list-empty">Aucune fiche.</li>';
     renderDetail();
 }
@@ -372,6 +415,16 @@ function select(nom, scroll = true) {
 }
 
 listEl.addEventListener('click', e => {
+    const head = e.target.closest('.group-toggle');
+    if (head) {
+        const fac = head.dataset.fac;
+        collapsed.has(fac) ? collapsed.delete(fac) : collapsed.add(fac);
+        const top = listEl.scrollTop;
+        renderSheets(searchInput.value);
+        listEl.scrollTop = top;
+        listEl.querySelector(`.group-toggle[data-fac="${CSS.escape(fac)}"]`)?.focus();
+        return;
+    }
     const btn = e.target.closest('.char-list-item');
     if (btn) select(btn.dataset.nom);
 });
@@ -379,13 +432,15 @@ listEl.addEventListener('click', e => {
 listEl.addEventListener('keydown', e => {
     if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
     e.preventDefault();
-    const i = visible.findIndex(c => c.nom === selectedNom);
-    const next = visible[Math.min(visible.length - 1, Math.max(0, i + (e.key === 'ArrowDown' ? 1 : -1)))];
-    if (!next) return;
-    select(next.nom, false);
-    const sel = listEl.querySelector('.char-list-item.selected');
-    sel?.focus();
-    sel?.scrollIntoView({ block: 'nearest' });
+    const items = [...listEl.querySelectorAll('.char-list-item')];
+    if (!items.length) return;
+    const here = items.includes(document.activeElement)
+        ? items.indexOf(document.activeElement)
+        : items.findIndex(b => b.dataset.nom === selectedNom);
+    const next = items[Math.min(items.length - 1, Math.max(0, here + (e.key === 'ArrowDown' ? 1 : -1)))];
+    select(next.dataset.nom, false);
+    next.focus();
+    next.scrollIntoView({ block: 'nearest' });
 });
 
 searchInput.addEventListener('input', e => renderSheets(e.target.value));
