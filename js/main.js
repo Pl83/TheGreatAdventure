@@ -356,7 +356,7 @@ export const weights = { 1: 50, 2: 30, 3: 15, 4: 4, 5: 1 };
 export const personnageSheet = [
     {
         name: "Susano",
-        faction: "Sans faction",
+        faction: "Ninjas",
         hp: 70,
         passives: ["First SPINJITSU master (+1d8 dam)"],
         forms: [
