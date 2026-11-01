@@ -5068,10 +5068,22 @@
         "applyOn": [
           "healRoll"
         ],
-        "description": "+3 healing roll; can heal as a bonus action."
+        "description": "+3 to every healing roll. Once a turn, as a bonus action, heals 1d6+3 to self or an adjacent ally."
       }
     ],
     "moveSet": [
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Battle Medic (Heal)",
+          "dices": "1d6",
+          "tags": ["heal", "instant"]
+        },
+        "target": "mono",
+        "range": 1,
+        "oncePerTurn": true,
+        "description": "A bonus action, once a turn: heals 1d6+3 to self or an adjacent ally (the +3 is Battle Medic's healing bonus)."
+      },
       {
         "category": "spell",
         "base": {
@@ -9038,10 +9050,22 @@
         "applyOn": [
           "healRoll"
         ],
-        "description": "+3 healing roll; can heal as a bonus action."
+        "description": "+3 to every healing roll. Once a turn, as a bonus action, heals 1d6+3 to self or an adjacent ally."
       }
     ],
     "moveSet": [
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Battle Medic (Heal)",
+          "dices": "1d6",
+          "tags": ["heal", "instant"]
+        },
+        "target": "mono",
+        "range": 1,
+        "oncePerTurn": true,
+        "description": "A bonus action, once a turn: heals 1d6+3 to self or an adjacent ally (the +3 is Battle Medic's healing bonus)."
+      },
       {
         "category": "technique",
         "base": {
@@ -9187,7 +9211,8 @@
         ],
         "applyOn": [
           "healRoll"
-        ]
+        ],
+        "description": "+3 to every healing roll. Once a turn, as a bonus action, heals 1d6+3 to self or an adjacent ally."
       },
       {
         "nom": "Basic Training",
@@ -9204,6 +9229,18 @@
       }
     ],
     "moveSet": [
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Battle Medic (Heal)",
+          "dices": "1d6",
+          "tags": ["heal", "instant"]
+        },
+        "target": "mono",
+        "range": 1,
+        "oncePerTurn": true,
+        "description": "A bonus action, once a turn: heals 1d6+3 to self or an adjacent ally (the +3 is Battle Medic's healing bonus)."
+      },
       {
         "category": "technique",
         "base": {

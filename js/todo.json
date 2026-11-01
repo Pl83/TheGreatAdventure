@@ -847,9 +847,9 @@
       "id": "mech-battle-medic",
       "cat": "mechanics",
       "sev": "low",
-      "title": "Healing, utility and stealth rolls",
-      "who": "Simo, Libra, Sienna, Kyros",
-      "detail": "Battle Medic (+3 healing roll, heal as a bonus action), Ranger (+3 lockpicking/perception/defuse/set trap), Shadow Master (+2 stealth), Cook (+1) use roll kinds the engine has no applyOn for (healRoll, stealthRoll; utilityRoll is only partly used). Libra's Reequip (change weapons) and Arrow Dancer (+3 defense vs ranged) are descriptions only. Update: healRoll now works for healing moves (+3 on Sienna's Healing Potion); healing as a bonus action, stealthRoll and the rest are still open.",
+      "title": "Ranger, Shadow Master, Cook: utility and stealth rolls",
+      "who": "Simo, Kyros, Aron",
+      "detail": "Battle Medic (+3 healing roll, heal as a bonus action), Ranger (+3 lockpicking/perception/defuse/set trap), Shadow Master (+2 stealth), Cook (+1) use roll kinds the engine has no applyOn for (healRoll, stealthRoll; utilityRoll is only partly used). Libra's Reequip (change weapons) and Arrow Dancer (+3 defense vs ranged) are descriptions only. Update: Battle Medic is done (Sienna, Simo, Libra): +3 to every healing roll, and a once-a-turn bonus-action heal of 1d6+3 on self or an adjacent ally; see tests/battle-medic.test.mjs. Still open: Ranger (lockpicking, defuse, set trap), Shadow Master (+2 stealth) and Cook, which need stealthRoll and utilityRoll.",
       "where": "characters.json · Google Doc import"
     },
     {

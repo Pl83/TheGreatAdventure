@@ -246,6 +246,7 @@ export function resolveAbilitiesFromList(moveList) {
       allSlots:      move.allSlots ?? false,       // spends every spell slot left: n slots roll nd20+10 (Final Brasero)
       primaryBonus:  move.primaryBonus ?? null,    // a cone's extra dice for the main target only (Raging Chopper)
       ifPoisoned:    move.ifPoisoned ?? null,   // dice dealt instead of the status when the target is already poisoned (Spheras' breath, Astrid Nightmare's daggers)
+      oncePerTurn:   move.oncePerTurn ?? false,   // usable once each of its owner's turns, whatever else is done (Battle Medic's bonus action)
       steamMode:     move.steamMode ?? false,   // Sienna's Range Mode and Rodent Mode: the techniques her SteamGun reads
       drainSlots:    move.drainSlots ?? null,   // spell slots taken from the target and given to the caster (Vampire Sienna's Bite)
       drainKi:       move.drainKi ?? null,
@@ -3016,7 +3017,9 @@ export function handleCastAbility(casterId, abilityName, targetIds, center = nul
     return;
   }
 
-  const needsRangeCheck = !ability.isAoe && !ability.isCone && ability.targetKind === 'enemy';
+  // an ally to mend must be within the move's reach too (self is always in reach)
+  const needsRangeCheck = !ability.isAoe && !ability.isCone
+    && (ability.targetKind === 'enemy' || (ability.targetKind === 'ally' && !ability.isRevive && targets[0] && targets[0].id !== caster.id));
   if (S.currentMap && needsRangeCheck && targets.length > 0) {
     const range = targetInRange(caster, targets[0], ability);
     if (!range.inRange) {
@@ -3049,6 +3052,7 @@ export function handleCastAbility(casterId, abilityName, targetIds, center = nul
   spendResource(caster, ability);
   // Cooldowns tick once at the start of the owner's turns, so +1 gives a lockout of exactly N turns
   if (ability.cooldownTurns > 0) caster.cooldowns[ability.name] = ability.cooldownTurns + 1;
+  else if (ability.oncePerTurn) caster.cooldowns[ability.name] = 1;   // lifts when its owner's next turn starts
   if (ability.isOncePerFight) caster.usedThisFight.push(ability.name);
   if (ability.maxCharges > 0) {
     if (caster.remainingCharges[ability.name] == null) caster.remainingCharges[ability.name] = ability.maxCharges;

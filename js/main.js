@@ -326,7 +326,7 @@ export const titles = {
   "Sharp-Eyed": { effect: "+2 percep", rarity: 2 },
   "Close Quarters Expert": { effect: "+1d4+2 damage in melee combat", rarity: 3 },
   "Arrow Dancer": { effect: "+3 defense roll vs ranged attacks", rarity: 3 },
-  "Battle Medic": { effect: "+3 healing roll & can heal as bonus action", rarity: 5 },
+  "Battle Medic": { effect: "+3 healing roll; once a turn, a bonus action heals 1d6+3 to self or an adjacent ally", rarity: 5 },
   "War Banner Carrier": { effect: "+2 to all ally rolls within 10m", rarity: 5 },
   "Opportunist": { effect: "+1d8 damage against stunned or prone enemies", rarity: 4 },
   "Quick Stitcher": { effect: "+1 basic crafting or repair roll", rarity: 1 },
@@ -1688,7 +1688,10 @@ export const personnageSheet = [
         spellSlots: 5,
         passives: [
             "Arrow Dancer (+3 defense roll vs ranged attacks)",
-            "Battle Medic (+3 healing roll; can heal as a bonus action)"
+            "Battle Medic (+3 to every healing roll; once a turn a bonus action heals 1d6+3 to self or an adjacent ally)"
+        ],
+        abilities: [
+            { name: "Battle Medic (Heal)", type: "instant", dice: "1d6+3", cooldown: "1/turn", desc: "Bonus action: heals self or an adjacent ally." }
         ],
         spells: [
             { name: "Reequip", type: "instant", desc: "Changes weapons." }
@@ -2356,10 +2359,11 @@ export const personnageSheet = [
             "Sharp-Eyed (+2 perception)",
             "Basic Training (+1 weapon roll)",
             "Precise Shot (+1d4+2 attack roll with ranged weapons)",
-            "Battle Medic (+3 healing roll; can heal as a bonus action)"
+            "Battle Medic (+3 to every healing roll; once a turn a bonus action heals 1d6+3 to self or an adjacent ally)"
         ],
         abilities: [
-            { name: "First Aid Kit", type: "mono", dice: "1d6+1" }
+            { name: "First Aid Kit", type: "mono", dice: "1d6+1" },
+            { name: "Battle Medic (Heal)", type: "instant", dice: "1d6+3", cooldown: "1/turn", desc: "Bonus action: heals self or an adjacent ally." }
         ],
         attack: "Long Range Plasma Rifle 1d4+8"
     },
@@ -2384,11 +2388,12 @@ export const personnageSheet = [
             "SteamGun (A normal attack after Range Mode or Rodent Mode applies burn. Using those two modes in a row halves the damage)",
             "Huntress (At the start of the battle marks a random enemy: x2 damage against it, advantage on all defense throws against it)",
             "Precise Shot (+1d4+2 attack roll with ranged weapons)",
-            "Battle Medic (+3 healing roll)",
+            "Battle Medic (+3 to every healing roll; once a turn a bonus action heals 1d6+3 to self or an adjacent ally)",
             "Basic Training (+1 weapon roll)"
         ],
         abilities: [
             { name: "Healing Potion", type: "mono", dice: "1d10+2" },
+            { name: "Battle Medic (Heal)", type: "instant", dice: "1d6+3", cooldown: "1/turn", desc: "Bonus action: heals self or an adjacent ally." },
             { name: "Range Mode", type: "splash", dice: "1d10+8", cooldown: "1T", desc: "A long-range shot: 1d10+8 on the target, 1d10 on those around it." },
             { name: "Rodent Mode", type: "cone", dice: "1d12+4", cooldown: "1T", effect: "1d2 burn", desc: "A flamethrower cone." }
         ],
