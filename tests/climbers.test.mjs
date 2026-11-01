@@ -93,3 +93,11 @@ test('Relentless Warrior takes 1d10+2 off every hit per fallen ally', async () =
   kay.stacks['Relentless Warrior'] = 3;
   for (let i = 0; i < 20; i++) { const lost = hit(); assert.ok(lost >= 100 - 36 && lost <= 100 - 9, `lost ${lost}`); }
 });
+
+test('Kay gains two spell slots in the dragon form and loses them with it', async () => {
+  const { me } = await setup('Kay Climber');
+  const slots = me.maxSpellSlots;
+  L.handleTransform(me.id);
+  assert.equal(me.maxSpellSlots, slots + 2);
+  assert.equal(me.spellSlots, slots + 2);
+});

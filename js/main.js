@@ -420,7 +420,7 @@ export const personnageSheet = [
             {
                 name: "Dragon Form",
                 hpBonus: 15,
-                effects: ["Fly (while in the form)", "Loses Armored until the form ends"],
+                effects: ["Fly (while in the form)", "Loses Armored until the form ends", "+2 spell slots (dragon spells) while in the form"],
                 spells: [
                     { name: "Fire Breath", dice: "2d12+6" }
                 ],

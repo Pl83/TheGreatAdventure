@@ -952,7 +952,8 @@
       "title": "Forms differ between the doc and the site",
       "who": "Susano, Sensei Lloyd, Kay/Zane/Jay/Cole Climber, Blood General, Blood Cinder",
       "detail": "Oni Lloyd, the four Dragon forms and the Blood forms already exist as transformations. Doc differences: Dragon forms have 1 or 2 dragon spells (site: 0 slots); Jay's Dragon form regains all spell slots and gives advantage on saves for 5 turns; Susano's Nirvana is settled (the doc won, see decide-susano-doc). To decide, form by form, which side is right.",
-      "where": "characters.json · transformation blocks"
+      "where": "characters.json · transformation blocks",
+      "resolution": "Closed. Every form was settled in its own character decision (Susano, Sensei Lloyd, Climbers, Wolf Clan General, Cinder). Last gap: Kay's dragon form gets the doc's 2 dragon spells as +2 spell slots while it lasts (transformation.spellSlot)."
     },
     {
       "id": "decide-summon-sheets",

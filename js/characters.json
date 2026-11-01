@@ -360,7 +360,7 @@
       ],
       "base": { "nom": "Dragon Form", "tags": ["buff", "fire"] },
       "hp": 15,
-      "spellSlot": 0,
+      "spellSlot": 2,
       "ki": 0,
       "kiRegen": 0,
       "speed": 18,
