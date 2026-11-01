@@ -340,6 +340,9 @@ async function init() {
     const res = await fetch('js/characters.json');
     allChars = await res.json();
     selectedNom = decodeURIComponent(location.hash.slice(1)) || null;
+    const first = selectedNom && allChars.find(c => c.nom === selectedNom) || [...allChars].sort(SORTS[sortKey])[0];
+    selectedNom = first?.nom ?? null;
+    if (first) factionsOf(first).forEach(f => expanded.add(f));
     renderTagFilter();
     renderSheets();
 }
@@ -350,7 +353,7 @@ function inTeam(nom) {
 }
 
 const NO_FACTION = 'Sans faction';
-const collapsed = new Set();
+const expanded = new Set();   // groups start closed; the selected sheet's groups are opened at load
 
 const factionsOf = c => [].concat(c.faction ?? NO_FACTION);
 
@@ -382,7 +385,7 @@ function renderSheets(filter = '') {
     countEl.textContent = `${visible.length} / ${allChars.length} fiches`;
     const searching = q !== '' || activeTagFilter !== null;   // a search always shows its hits
     listEl.innerHTML = groupByFaction(visible).map(([fac, members]) => {
-        const open = searching || !collapsed.has(fac);
+        const open = searching || expanded.has(fac);
         return `<li class="list-group">
             <button class="group-toggle" aria-expanded="${open}" data-fac="${fac.replace(/"/g, '&quot;')}">
                 <span class="gt-caret">${open ? '▾' : '▸'}</span><span class="gt-name">${fac}</span><span class="gt-count">${members.length}</span>
@@ -418,7 +421,7 @@ listEl.addEventListener('click', e => {
     const head = e.target.closest('.group-toggle');
     if (head) {
         const fac = head.dataset.fac;
-        collapsed.has(fac) ? collapsed.delete(fac) : collapsed.add(fac);
+        expanded.has(fac) ? expanded.delete(fac) : expanded.add(fac);
         const top = listEl.scrollTop;
         renderSheets(searchInput.value);
         listEl.scrollTop = top;
