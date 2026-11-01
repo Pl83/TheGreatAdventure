@@ -7831,9 +7831,7 @@
       },
       {
         "nom": "Apex Predator",
-        "tags": [
-          "buff"
-        ],
+        "tags": ["buff", "huntMark", "huntFeast"],
         "applyOn": [],
         "description": "At the start of the battle, marks a random enemy: x2 damage against it, advantage on all defense throws against it. When it dies, restore 100% HP and spell slots."
       },
@@ -9144,9 +9142,7 @@
       },
       {
         "nom": "Huntress",
-        "tags": [
-          "buff"
-        ],
+        "tags": ["buff", "huntMark"],
         "applyOn": [],
         "description": "At the start of the battle marks a random enemy: x2 damage against it, advantage on all defense throws against it."
       },

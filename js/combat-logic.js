@@ -328,6 +328,7 @@ export function buildCombatant(char, teamIndex, id) {
     attacked: false,   // has made its first attack roll of the fight (Death Presence)
     stacks: {},   // stacking passives (Relentless Warrior): passive name -> stacks gained this fight
     chains: chainsFor(char),   // Vorrakan's Left and Right Chain: [{ name, hp, maxHp, holdingId, freed }] (they are not units)
+    huntMarkId: null,   // Sienna's Huntress / Apex Predator: id of the enemy marked at the start of the battle (x2 damage against it, advantage on defense against it)
     ownerId: null,   // a summon or companion: id of the unit that called it (it acts right after, and falls with, that unit)
     x: 0,
     y: 0,
@@ -2127,10 +2128,35 @@ function losePassive(c, nom, turns) {
   addLog(`🦴 ${c.name}'s ${nom} is gone for ${turns} turns.`, 'status');
 }
 
+// Vampire Sienna's Apex Predator: when her mark dies she is restored to full HP and spell slots
+function feastOnMark(fallen) {
+  for (const o of livingCombatants(1 - fallen.teamIndex)) {
+    if (o.huntMarkId !== fallen.id || !o.sourceChar.passif?.some(p => p.tags?.includes('huntFeast'))) continue;
+    o.currentHp = o.maxHp;
+    o.spellSlots = o.maxSpellSlots;
+    addLog(`🩸 ${o.name} feasts on ${fallen.name}: full HP and spell slots restored!`, 'heal');
+    updateCombatantCardDOM(o);
+  }
+}
+
+// At the start of the battle each hunter marks one random enemy (never a summon)
+function markHunters() {
+  for (const c of S.combatants) {
+    c.huntMarkId = null;
+    if (c.isKO || !c.sourceChar.passif?.some(p => p.tags?.includes('huntMark'))) continue;
+    const prey = livingCombatants(1 - c.teamIndex).filter(f => !f.ownerId);
+    if (!prey.length) continue;
+    const mark = prey[Math.floor(random() * prey.length)];
+    c.huntMarkId = mark.id;
+    addLog(`🎯 ${c.name} marks ${mark.name}: double damage against it, advantage on defense against it.`, 'spell');
+  }
+}
+
 // An ally falling feeds the stacking passives of the fighters still standing (Relentless Warrior)
 function noteFallen(fallen) {
   dismissOwned(fallen);
   releaseAllChains(fallen);
+  feastOnMark(fallen);
   if (isSummonUnit(fallen)) return;   // a summon's fall is no ally's death
   for (const o of livingCombatants(fallen.teamIndex)) {
     for (const p of o.sourceChar.passif ?? []) {
@@ -2279,6 +2305,7 @@ export function applyMoveEffect(ability, target, guaranteed = false) {
 // Does a passive of `owner` grant advantage on this kind of roll? (tag "adv" on the passive; a weapon condition
 // looks at the move, anything else needs the opponent, so an area roll made against nobody in particular skips it)
 function passiveAdvantage(owner, applyOn, other, ability) {
+  if (applyOn === 'defRoll' && other && owner.huntMarkId === other.id) return true;   // the hunter defends with advantage against its mark
   const formPassives = owner.isTransformed ? owner.sourceChar.transformation?.passif ?? [] : [];   // a form's own passives (Jay's Dragon Reflexes)
   return [...(owner.sourceChar.passif ?? []), ...formPassives].some(p => {
     if (!p.tags?.includes('adv') || !p.applyOn?.includes(applyOn) || passiveLost(owner, p)) return false;
@@ -2781,10 +2808,12 @@ export function resolveAttack(attacker, defender, diceExpr, ability = null) {
     }
 
     damage = rolled.total + passiveBonus;
+    const marked = attacker.huntMarkId != null && attacker.huntMarkId === defender.id;
+    if (marked) damage *= 2;   // the hunter's mark: double damage against its prey
     if (mutual) damage = Math.floor(damage / 2);
     recoil = mutual ? damage : 0;
     const passiveStr = passiveParts.length ? ` + ${passiveParts.join(' ')}` : '';
-    breakdown = `${bonusMult > 1 ? `CRIT dice ×${bonusMult}: ` : mutual ? 'HALVED: ' : ''}${rolled.breakdown}${passiveStr} = ${damage}`;
+    breakdown = `${marked ? 'HUNTED ×2: ' : ''}${bonusMult > 1 ? `CRIT dice ×${bonusMult}: ` : mutual ? 'HALVED: ' : ''}${rolled.breakdown}${passiveStr} = ${damage}`;
   }
 
   return {
@@ -4077,6 +4106,7 @@ export function startCombat() {
   if (S.currentMap) placeCharacters(S.currentMap);
   S.hasMoved = false;
   addRoundDivider();
+  markHunters();
   R.render();
   beginTurn(activeCombatant());
 }
