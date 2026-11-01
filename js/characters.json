@@ -201,7 +201,7 @@
       },
       {
         "category": "spell",
-        "base": { "nom": "Blink", "tags": ["magic", "dash", "teleportation", "instant", "noReact"] },
+        "base": { "nom": "Blink", "tags": ["magic", "dash", "teleportation", "instant"] },
         "target": "self",
         "range": 10,
         "description": "Teleportation.",
@@ -1018,10 +1018,11 @@
         "nom": "Blood of Fire",
         "dices": "1d6+2",
         "tags": ["regen", "fire", "buff"],
-        "applyOn": ["hpPerHit"],
-        "description": "Cauterise: heal 1d6+2 on each hit taken. Immune to toxic/freeze in immunities[]. -1d4+2 ice damage."
+        "applyOn": ["hpPerDamageTaken"],
+        "description": "Cauterise: heal 1d6+2 each time he takes damage. Immune to toxic/freeze in immunities[]."
       },
-      { "nom": "Beast Slayer", "dices": "+1d6+6", "tags": ["buff"], "applyOn": ["atkRoll"], "condition": { "targetHasTag": "beast" } },
+      { "nom": "Blood of Fire (ice)", "dices": "-1d4+2", "tags": ["buff"], "applyOn": ["incomingDam"], "condition": { "incomingHasTag": "ice" }, "description": "Takes 1d4+2 less from ice damage." },
+      { "nom": "Beast Slayer", "dices": "+1d6+6", "tags": ["buff"], "applyOn": ["atkRoll"], "condition": { "targetHasTag": "monster" }, "description": "+1d6+6 damage against monsters." },
       {
         "nom": "Kuraokami Rain Coat",
         "dices": "-1d8+10",
@@ -1031,6 +1032,7 @@
         "description": "Immune to wet. -1d8+10 water damage."
       },
       { "nom": "Blacksmith", "dices": "+1d4", "tags": ["buff"], "applyOn": ["atkRoll"] },
+      { "nom": "Blacksmith (constitution)", "dices": "+1", "tags": ["buff"], "applyOn": ["constRoll"] },
       { "nom": "Sword Master", "dices": "+2", "tags": ["buff"], "applyOn": ["atkRoll"], "condition": { "weaponType": "sword" } },
       { "nom": "Ifrit's Bane (Sleeping)", "tags": ["buff", "absorbFire"], "applyOn": ["incomingDam"], "description": "While the relic sleeps: absorbs fire damage, the hit does nothing and restores 1 spell slot. The first Awake strike wakes it for good." }
     ],
@@ -1044,8 +1046,8 @@
       },
       {
         "category": "technique",
-        "base": { "nom": "Reaver", "dices": "1d8+4", "tags": ["physical", "bleed", "sword"] },
-        "target": "aoe", "range": 3, "radius": 2, "cooldown": 3
+        "base": { "nom": "Reaver", "dices": "1d8+4", "tags": ["physical", "sword"] },
+        "target": "aoe", "range": 3, "radius": 2, "effect": "1d2 bleed", "cooldown": 3
       },
       {
         "category": "technique",
@@ -1055,7 +1057,10 @@
       {
         "category": "technique",
         "base": { "nom": "Raging Chopper", "dices": "2d6+4", "tags": ["physical", "sword"] },
-        "target": "cone", "range": 4, "cooldown": 3
+        "target": "cone", "range": 4,
+        "primaryBonus": "1d8+4",
+        "description": "A cone of 2d6+4 that hits everyone in it; the main target takes another 1d8+4.",
+        "cooldown": 3
       },
       {
         "category": "technique",
@@ -1065,10 +1070,13 @@
         "cooldown": 4
       },
       {
-        "category": "technique",
-        "base": { "nom": "Final Brasero", "tags": ["fire", "burn"] },
+        "category": "spell",
+        "base": { "nom": "Final Brasero", "dices": "1d20+10", "tags": ["fire", "magic"] },
         "target": "mono", "range": 3,
-        "description": "Apply burn.",
+        "effect": "calcinated",
+        "allSlots": true,
+        "spellCost": 1,
+        "description": "Spends every spell slot Kaelgrym has left: n slots deal nd20+10 fire damage and always leave the target calcinated.",
         "cooldown": 5
       },
       {
@@ -1080,8 +1088,8 @@
       },
       {
         "category": "relic",
-        "base": { "nom": "Ifrit's Bane (Awake)", "dices": "1d12+1d8+1d6+6", "tags": ["fire", "physical", "burn", "sword", "awaken"] },
-        "target": "mono", "range": 4, "cooldown": 0
+        "base": { "nom": "Ifrit's Bane (Awake)", "dices": "1d12+1d8+1d6+6", "tags": ["fire", "physical", "sword", "awaken"] },
+        "target": "mono", "range": 4, "effect": "1d2 burn", "cooldown": 0
       }
     ],
     "domain": {
@@ -1255,6 +1263,7 @@
   },
   {
     "nom": "Baal",
+    "tags": ["monster"],
     "hp": 70,
     "spellSlot": 0,
     "ki": 10,
@@ -1565,7 +1574,7 @@
   },
   {
     "nom": "Morrow",
-    "tags": ["evil"],
+    "tags": ["evil", "monster"],
     "hp": 65,
     "spellSlot": 5,
     "ki": 0,
@@ -1606,6 +1615,7 @@
   },
   {
     "nom": "Anti-magic Squelette",
+    "tags": ["monster"],
     "hp": 50,
     "spellSlot": 0,
     "ki": 0,
@@ -1691,7 +1701,7 @@
   },
   {
     "nom": "Spheras Nightmare",
-    "tags": ["evil"],
+    "tags": ["evil", "monster"],
     "hp": 105,
     "spellSlot": 10,
     "ki": 0,
@@ -4244,7 +4254,8 @@
     ],
     "moveSet": [],
     "tags": [
-      "summon"
+      "summon",
+      "monster"
     ]
   },
   {
@@ -4838,7 +4849,8 @@
     "passif": [],
     "moveSet": [],
     "tags": [
-      "summon"
+      "summon",
+      "monster"
     ]
   },
   {
@@ -7694,6 +7706,7 @@
   },
   {
     "nom": "Vampire Sienna",
+    "tags": ["monster"],
     "hp": 111,
     "spellSlot": 11,
     "ki": 0,
@@ -8192,11 +8205,13 @@
       }
     ],
     "tags": [
-      "summon"
+      "summon",
+      "monster"
     ]
   },
   {
     "nom": "Anti-magic Goul Egypte",
+    "tags": ["monster"],
     "hp": 70,
     "spellSlot": 0,
     "ki": 0,
@@ -8269,6 +8284,7 @@
   },
   {
     "nom": "Anti-magic Goul Nordic",
+    "tags": ["monster"],
     "hp": 70,
     "spellSlot": 0,
     "ki": 0,
@@ -8339,6 +8355,7 @@
   },
   {
     "nom": "Amalgame",
+    "tags": ["monster"],
     "hp": 70,
     "spellSlot": 0,
     "ki": 0,

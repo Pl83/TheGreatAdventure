@@ -1120,6 +1120,16 @@
       "who": "Thormak, Ras, General of the Wolf Clan, Cinder",
       "detail": "Settled case by case with the user. The AI may not chain Hunter Instinct and an attack in one turn yet.",
       "where": "characters.json · Thormak, Ras, Cinder; combat-logic.js · getReacts"
+    },
+    {
+      "id": "decide-kaelgrym-doc",
+      "resolution": "Settled with the user. Cauterise heals 1d6+2 each time Kaelgrym takes damage (applyOn hpPerDamageTaken); the ice reduction is its own passive. Blacksmith also gives +1 const. Reaver bleeds and Ifrit's Bane (Awake) burns as 1d2 effects. Final Brasero is a spell that spends every spell slot left (field allSlots): n slots deal nd20+10 and always leave the target calcinated. Raging Chopper is a 2d6+4 cone that hits everyone, the main target taking another 1d8+4 (field primaryBonus). Reaver's dash is not modelled. New tag monster (Morrow, Baal, Anti-magic Squelette, Spheras Nightmare, Fire Spirit, Golem, Floating Head, Vampire Sienna, Anti-magic Goul Egypte/Nordic, Amalgame): Beast Slayer now reads it. Blink (Thormak) is usable as a reaction again; noReact stays on Hunter Instinct only. See tests/kaelgrym.test.mjs.",
+      "cat": "oddities",
+      "sev": "low",
+      "title": "Kaelgrym differs from the doc",
+      "who": "Kaelgrym",
+      "detail": "Open: the AI does not plan around Final Brasero's all-slots cost.",
+      "where": "characters.json · Kaelgrym, monster tags; combat-logic.js · applyDamage, handleCastAbility, cone branch"
     }
   ]
 }

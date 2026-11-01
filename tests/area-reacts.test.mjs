@@ -53,7 +53,7 @@ test('Blink is instant: the turn stays open, so a spell can follow it', () => {
     currentMap: { grid: { walkable, cols: 5, rows: 5 } }, activeDomains: [], pendingAction: null,
     awaitingReact: false, reactOptions: [], hasActed: false, hasMoved: false,
   });
-  assert.equal(L.getReacts(thormak).some(a => a.name === 'Blink'), false);
+  assert.equal(L.getReacts(thormak).some(a => a.name === 'Blink'), true, 'Blink can also be answered as a reaction');
   L.handleCastAbility(thormak.id, 'Blink', [thormak.id]);
   assert.equal(L.S.teleportMode, true);
   assert.equal(L.S.hasActed, false, 'an instant move does not use the action');

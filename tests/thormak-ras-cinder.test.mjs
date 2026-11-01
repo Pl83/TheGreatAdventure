@@ -50,10 +50,10 @@ test('Cinder: Shatterspin only exists in Blood Cinder, which defends with advant
   assert.ok(c.sourceChar.transformation.passif.some(p => p.nom === 'Smoke Body' && p.tags.includes('adv')));
 });
 
-test('Blink and Hunter Instinct use no action, but are not offered as reactions to a blow', async () => {
+test('Blink can be answered as a reaction; Hunter Instinct cannot', async () => {
   await newFight({ teamA: ['Thormak, The Titan Slayer', 'Ras'], teamB: ['Kay Climber'], seed: 1 });
-  for (const name of ['Thormak, The Titan Slayer', 'Ras']) {
-    const names = L.getReacts(byName(name)).map(a => a.name);
-    assert.ok(!names.includes('Blink') && !names.includes('Hunter Instinct'), `${name}: ${names}`);
-  }
+  const thormak = L.getReacts(byName('Thormak, The Titan Slayer')).map(a => a.name);
+  const ras = L.getReacts(byName('Ras')).map(a => a.name);
+  assert.ok(thormak.includes('Blink'), String(thormak));
+  assert.ok(!ras.includes('Hunter Instinct'), String(ras));
 });

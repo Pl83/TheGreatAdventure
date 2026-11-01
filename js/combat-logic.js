@@ -243,6 +243,8 @@ export function resolveAbilitiesFromList(moveList) {
       maxBounce:     move.maxBounce ?? 0,
       bounceRange:   move.range ?? SPELL_RANGE,
       slotRegen:     move.slotRegen ?? 0,
+      allSlots:      move.allSlots ?? false,       // spends every spell slot left: n slots roll nd20+10 (Final Brasero)
+      primaryBonus:  move.primaryBonus ?? null,    // a cone's extra dice for the main target only (Raging Chopper)
       ifPoisoned:    move.ifPoisoned ?? null,   // dice dealt instead of the status when the target is already poisoned (Spheras' breath, Astrid Nightmare's daggers)
       groundChance:  move.groundChance ?? 1,   // the odds that a 'grounded' move brings a flier down
       followUp:      move.followUp ?? null,   // dice of a second blow that lands on each target the move hit, at the start of the caster's next turn (GunRang)
@@ -1598,6 +1600,11 @@ export function applyHeal(combatant, diceExpr, label = null, repair = false) {
 export function applyDamage(combatant, amount, damType = null, atkTags = [], ignoreDR = false) {
   const before = combatant.currentHp;
   const dealt = applyDamageCore(combatant, amount, damType, atkTags, ignoreDR);
+  if (dealt > 0 && !combatant.isKO) {
+    for (const p of combatant.sourceChar.passif ?? []) {
+      if (p.applyOn?.includes('hpPerDamageTaken') && p.dices && !passiveLost(combatant, p)) applyHeal(combatant, p.dices, p.nom);   // Kaelgrym's Cauterise
+    }
+  }
   if (strikeSource && strikeSource !== combatant && (dealt > 0 || combatant.currentHp < before)) corruptTarget(strikeSource, combatant);
   return dealt;
 }
@@ -2916,6 +2923,7 @@ export function handleCastAbility(casterId, abilityName, targetIds, center = nul
   const caster  = getCombatant(casterId);
   let ability = caster?.abilities.find(a => a.name === abilityName);
   if (!ability || !abilityAvailable(caster, ability)) return;
+  if (ability.allSlots) ability = { ...ability, dice: `${caster.spellSlots}d20+10`, cost: { type: 'slots', amount: caster.spellSlots } };
   if (ability.reactOnly) { addLog(`⚠ ${ability.name} can only be used as a reaction.`, 'info'); return; }
   if (S.hasActed && !ability.isInstant) { addLog('You have already acted this turn!', 'info'); return; }
   if (!ability.isInstant && refuseRepeat(caster, ability.name)) return;
@@ -3645,8 +3653,9 @@ function settlePendingAction(reactAbility) {
           const rd = parseDice(ability.dice, { diceMult: clash.diceMult });
           const versus = bonusVsFor(ability, target, clash.diceMult);
           const arcane = spellRollBonus(caster, target, ability, clash.diceMult);
-          const dmg = Math.floor((rd.total + (versus?.total ?? 0) + (arcane?.total ?? 0)) * mult);
-          addLog(`  ${target.name} is hit for ${dmg} (${rd.breakdown}${versus ? ` +${versus.label}` : ''}${arcane ? ` +${arcane.label}` : ''}${mult < 1 ? ' ×½' : ''})`, 'hit');
+          const main = ability.primaryBonus && target.id === action.targetIds[0] ? parseDice(ability.primaryBonus, { diceMult: clash.diceMult }) : null;
+          const dmg = Math.floor((rd.total + (versus?.total ?? 0) + (arcane?.total ?? 0) + (main?.total ?? 0)) * mult);
+          addLog(`  ${target.name} is hit for ${dmg} (${rd.breakdown}${versus ? ` +${versus.label}` : ''}${arcane ? ` +${arcane.label}` : ''}${main ? ` +main target ${main.breakdown}` : ''}${mult < 1 ? ' ×½' : ''})`, 'hit');
           applyDamage(target, dmg, damType, ability.tags, coneIgnoreDR);
           if (clash.mutual) strikeBack(caster, { recoil: dmg }, damType, ability.tags);
           if (grounds(ability)) removeFlying(target);

@@ -9,7 +9,7 @@ Susano, Sensei Lloyd (SETTLED), Kay / Zane / Jay / Cole Climber, Nya Léviathan,
 Ronin Lloyd, Mira, Nate, Jhin, Future Zane, Sun, Meï, Krilin, Baal, Jay Azure Dragon, Zhuqiao, Vayl-Soran,
 Alicia (appears in two tabs), Oslo, Kadgar, Eragon, Heracles, Huītzilōpōchtli, Rig, Glysain, Zed, Morrow,
 Anti-magic Squelettes, Hela, Astrid (SETTLED), Sylvanas (SETTLED), Dave (SETTLED), Spheras Nightmare (SETTLED), Dream Hunter (SETTLED), Astrid Nightmare (SETTLED),
-Sylvanas Nightmare (SETTLED), Thormak (SETTLED), Ras (SETTLED), General of the Wolf Clan (SETTLED), Cinder (SETTLED), Vorrakan Duskbane, Kaelgrym, White.
+Sylvanas Nightmare (SETTLED), Thormak (SETTLED), Ras (SETTLED), General of the Wolf Clan (SETTLED), Cinder (SETTLED), Kaelgrym (SETTLED), Vorrakan Duskbane, White.
 
 - **Jaegen** (doc) is **"Jeagen, White Tiger"** on the site: spelling differs, same character.
 - I did not compare the contents of these sheets with the doc; say which ones you want diffed.
@@ -54,7 +54,7 @@ The site also has Weapon Wall, Living Blade Armor and Balmung, which the doc doe
 - Sun: basic attack 1d12+6 (doc) / 2d8+1d12+6 (site).
 - **Climbers — SETTLED** (see `decide-climbers-doc`). Cole: Heavy Power Hammer 2d8+2 and 1d2 stun (doc) / 1d12+6 (site). Forms: duration, Lose Armored, Jay's slots and advantage, flight.
 - Oslo: Marrow Spear 1d8 mono + 1d6 aoe (doc) / 1d20 (site).
-- Vorrakan: sword attack 2d8+6 (doc) / 2d6+8 (site). Kaelgrym: Final Brasero damage unreadable in the doc ("?ssd20+10").
+- Vorrakan: sword attack 2d8+6 (doc) / 2d6+8 (site). Kaelgrym: SETTLED. "ssd20+10" reads as spell slots d20+10 (Final Brasero spends them all).
 - White: HP doc 350 / site 250. Every attack is one die size bigger in the doc (Flame of the Dead 1d10+3,
   Phantom Sword 2d8+4, Rise 3d8+9, Wake 3d10+4, Seven Blood 1d10+8, Diverging Sword 12d12+20).
 - Zhuqiao: Solar Flare 2d10+6 in the doc. Her site numbers were reduced on purpose in the last commits.

@@ -741,7 +741,7 @@ test('Kaelgrym absorbs fire into spell slots instead of taking it', async () => 
   kael.spellSlots = 3;
   assert.equal(hpLost(kael, () => L.applyDamage(kael, 20, 'fire', ['fire'], true)), 0);
   assert.equal(kael.spellSlots, 4);
-  assert.equal(hpLost(kael, () => L.applyDamage(kael, 20, 'physical', ['physical'], true)), 20);
+  { const lost = hpLost(kael, () => L.applyDamage(kael, 20, 'physical', ['physical'], true)); assert.ok(lost >= 12 && lost <= 17, `20 less Cauterise: ${lost}`); }
   assert.equal(kael.spellSlots, 4, 'only fire feeds him');
   kael.spellSlots = kael.maxSpellSlots;
   L.applyDamage(kael, 20, 'fire', ['fire'], true);
@@ -821,7 +821,7 @@ test('Ifrit\'s Bane starts asleep, and striking with the Awake form wakes it for
   kael.statusEffects.push(status('sure_hit'));
   cast(kael, "Ifrit's Bane (Awake)", [mei.id]);
   assert.ok(kael.statusEffects.some(e => e.name === 'relic_awake'), 'awake');
-  assert.equal(hpLost(kael, () => L.applyDamage(kael, 20, 'fire', ['fire'], true)), 20, 'awake: fire hurts');
+  { const lost = hpLost(kael, () => L.applyDamage(kael, 20, 'fire', ['fire'], true)); assert.ok(lost >= 12 && lost <= 17, `awake: fire hurts (${lost}, after Cauterise)`); }
   assert.equal(L.abilityAvailable(kael, sleeping), false, 'the Sleeping form is gone');
   assert.equal(L.abilityAvailable(kael, awake), true);
 });

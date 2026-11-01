@@ -661,9 +661,9 @@ export const personnageSheet = [
         abilities: [
             { name: "Reaver", type: "aoe", dice: "1d8+4", effect: "1d2 bleed", cooldown: "3t" },
             { name: "Farant Fullmoon", type: "mono", dice: "4d6+8", cooldown: "2t" },
-            { name: "Raging Chopper", type: "cone/mono", dice: "2d6+4 / 1d8+4", cooldown: "3t" },
+            { name: "Raging Chopper", type: "cone", dice: "2d6+4 (everyone) +1d8+4 on the main target", cooldown: "3t" },
             { name: "Vorpal Slash", type: "mono", dice: "1d12+5", effect: "100% heal", cooldown: "4t" },
-            { name: "Final Brasero", type: "mono", effect: "burn", cooldown: "5t" }
+            { name: "Final Brasero", type: "mono", dice: "Nd20+10 (N = every spell slot left, all spent)", effect: "calcinated (guaranteed)", cooldown: "5t" }
         ],
         relics: [
             { name: "Ifrit's Bane (Sleeping)", desc: "Absorb fire to spell slots", dice: "1d12+1d6+4" },
