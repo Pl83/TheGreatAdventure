@@ -37,15 +37,17 @@
         <p class="page-lede">Fiches personnage — héros et vilains de la campagne. <a href="https://docs.google.com/document/d/19VKFi6IF46_10NoL72J1CCjbk7RWifAbD2RVnKj14eA/edit?usp=sharing">Fiche complète sur Google Doc</a></p>
         <div class="tga-divider"><span>✦</span></div>
     </div>
-    <div class="header-flex">
-        <div class="search-box">
-            <input type="text" id="charSearch" placeholder="Rechercher un héros ou un vilain…">
-        </div>
+    <div class="sheet-layout">
+        <aside class="sheet-list-pane">
+            <div class="search-box">
+                <input type="search" id="charSearch" placeholder="Rechercher une fiche…" autocomplete="off">
+            </div>
+            <div id="tagFilter" class="tag-filter-row"></div>
+            <div id="listCount" class="list-count"></div>
+            <ul id="charList" class="char-list" role="listbox" aria-label="Fiches"></ul>
+        </aside>
+        <section id="sheet" class="sheet-detail" aria-live="polite"></section>
     </div>
-    <div id="tagFilter" class="tag-filter-row"></div>
-    
-    <section id="sheet" class="sheet-container">
-        </section>
 </main>
     <footer>
         <p><em>"All know artifacts crystallize from the death of a god."</em> <strong>✦</strong> © 2020 The Great Adventure by Pilou</p>

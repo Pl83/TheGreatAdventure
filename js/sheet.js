@@ -64,38 +64,59 @@ function saveTeams(teams) {
     localStorage.setItem('combatTeams', JSON.stringify(teams));
 }
 
-// ── Tag filter state ───────────────────────────────────────────────────────
+// ── Filters ────────────────────────────────────────────────────────────────
+
+// the chips shown by default: what a player cares about. Every other tag hides behind "Tous les tags".
+const ELEMENT_TAGS = ['fire', 'ice', 'lightning', 'water', 'earth', 'wind', 'radiant', 'dark', 'necro', 'poison', 'physical', 'magic', 'heal'];
+const KIND_TAGS    = ['monster', 'beast', 'mecha', 'evil', 'summon', 'divinity', 'tiger'];
 
 let activeTagFilter = null;
+let selectedNom = null;
+
+function charTags(c) {
+    const tags = new Set(c.tags ?? []);
+    c.moveSet?.forEach(m => m.base.tags?.forEach(t => tags.add(t)));
+    c.passif?.forEach(p => p.tags?.forEach(t => tags.add(t)));
+    c.transformation?.moveSet?.forEach(m => m.base.tags?.forEach(t => tags.add(t)));
+    return tags;
+}
 
 function getAllTags() {
     const tags = new Set();
-    allChars.forEach(c => {
-        c.moveSet?.forEach(m => m.base.tags?.forEach(t => tags.add(t)));
-        c.passif?.forEach(p => p.tags?.forEach(t => tags.add(t)));
-    });
+    allChars.forEach(c => charTags(c).forEach(t => tags.add(t)));
     return [...tags].sort();
 }
 
 function charMatchesTag(c, tag) {
-    if (!tag) return true;
-    return c.moveSet?.some(m => m.base.tags?.includes(tag)) ||
-           c.passif?.some(p => p.tags?.includes(tag));
+    return !tag || charTags(c).has(tag);
+}
+
+function chip(t) {
+    const color = TAG_COLOR[t];
+    const style = color ? ` style="--chip:${color}"` : '';
+    return `<button class="tag-filter-btn${activeTagFilter === t ? ' active' : ''}" data-tag="${t}"${style}>${t}</button>`;
 }
 
 function renderTagFilter() {
     const container = document.getElementById('tagFilter');
     if (!container) return;
-    const tags = getAllTags();
+    const present = new Set(getAllTags());
+    const elements = ELEMENT_TAGS.filter(t => present.has(t));
+    const kinds = KIND_TAGS.filter(t => present.has(t));
+    const shown = new Set([...elements, ...kinds]);
+    const others = [...present].filter(t => !shown.has(t));
+    const openOthers = activeTagFilter && others.includes(activeTagFilter);
     container.innerHTML = `
-        <button class="tag-filter-btn${!activeTagFilter ? ' active' : ''}" data-tag="">All</button>
-        ${tags.map(t =>
-            `<button class="tag-filter-btn${activeTagFilter === t ? ' active' : ''}"
-                     data-tag="${t}" style="background:${TAG_COLOR[t] ?? '#555'}">${t}</button>`
-        ).join('')}`;
+        <div class="chip-row"><button class="tag-filter-btn${!activeTagFilter ? ' active' : ''}" data-tag="">Tous</button>${kinds.map(chip).join('')}</div>
+        <div class="chip-row">${elements.map(chip).join('')}</div>
+        <details class="chip-more"${openOthers ? ' open' : ''}>
+            <summary>Tous les tags (${others.length})</summary>
+            <div class="chip-row">${others.map(chip).join('')}</div>
+        </details>`;
     container.querySelectorAll('.tag-filter-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            activeTagFilter = btn.dataset.tag || null;
+            const t = btn.dataset.tag || null;
+            activeTagFilter = (t && t === activeTagFilter) ? null : t;
             renderTagFilter();
             renderSheets(searchInput.value);
         });
@@ -295,20 +316,77 @@ function renderCard(char) {
 
 let allChars = [];
 
+const listEl = document.getElementById('charList');
+const countEl = document.getElementById('listCount');
+let visible = [];
+
 async function init() {
     const res = await fetch('js/characters.json');
     allChars = await res.json();
+    selectedNom = decodeURIComponent(location.hash.slice(1)) || null;
     renderTagFilter();
     renderSheets();
 }
 
-function renderSheets(filter = '') {
-    sheetContainer.innerHTML = '';
-    const q = filter.toLowerCase();
-    allChars
-        .filter(c => c.nom.toLowerCase().includes(q) && charMatchesTag(c, activeTagFilter))
-        .forEach(c => sheetContainer.appendChild(renderCard(c)));
+function inTeam(nom) {
+    const teams = getStoredTeams();
+    return teams[0].includes(nom) ? 1 : teams[1].includes(nom) ? 2 : 0;
 }
+
+function renderSheets(filter = '') {
+    const q = filter.trim().toLowerCase();
+    visible = allChars.filter(c => c.nom.toLowerCase().includes(q) && charMatchesTag(c, activeTagFilter));
+    if (!visible.some(c => c.nom === selectedNom)) selectedNom = visible[0]?.nom ?? null;
+    countEl.textContent = `${visible.length} / ${allChars.length} fiches`;
+    listEl.innerHTML = visible.map(c => {
+        const team = inTeam(c.nom);
+        return `<li><button class="char-list-item${c.nom === selectedNom ? ' selected' : ''}" role="option"
+                    aria-selected="${c.nom === selectedNom}" data-nom="${c.nom.replace(/"/g, '&quot;')}">
+            <span class="cli-name">${c.nom}</span>
+            ${team ? `<span class="cli-team">T${team}</span>` : ''}
+            <span class="cli-hp">${c.hp}</span>
+        </button></li>`;
+    }).join('') || '<li class="list-empty">Aucune fiche.</li>';
+    renderDetail();
+}
+
+function renderDetail() {
+    sheetContainer.innerHTML = '';
+    const c = allChars.find(x => x.nom === selectedNom);
+    if (!c) { sheetContainer.innerHTML = '<p class="list-empty">Aucune fiche à afficher.</p>'; return; }
+    sheetContainer.appendChild(renderCard(c));
+}
+
+function select(nom, scroll = true) {
+    selectedNom = nom;
+    history.replaceState(null, '', '#' + encodeURIComponent(nom));
+    listEl.querySelectorAll('.char-list-item').forEach(btn => {
+        const on = btn.dataset.nom === nom;
+        btn.classList.toggle('selected', on);
+        btn.setAttribute('aria-selected', on);
+    });
+    renderDetail();
+    if (scroll && window.matchMedia('(max-width: 800px)').matches) {
+        sheetContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
+listEl.addEventListener('click', e => {
+    const btn = e.target.closest('.char-list-item');
+    if (btn) select(btn.dataset.nom);
+});
+
+listEl.addEventListener('keydown', e => {
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+    e.preventDefault();
+    const i = visible.findIndex(c => c.nom === selectedNom);
+    const next = visible[Math.min(visible.length - 1, Math.max(0, i + (e.key === 'ArrowDown' ? 1 : -1)))];
+    if (!next) return;
+    select(next.nom, false);
+    const sel = listEl.querySelector('.char-list-item.selected');
+    sel?.focus();
+    sel?.scrollIntoView({ block: 'nearest' });
+});
 
 searchInput.addEventListener('input', e => renderSheets(e.target.value));
 init();
