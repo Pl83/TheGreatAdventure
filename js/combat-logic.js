@@ -246,6 +246,7 @@ export function resolveAbilitiesFromList(moveList) {
       allSlots:      move.allSlots ?? false,       // spends every spell slot left: n slots roll nd20+10 (Final Brasero)
       primaryBonus:  move.primaryBonus ?? null,    // a cone's extra dice for the main target only (Raging Chopper)
       ifPoisoned:    move.ifPoisoned ?? null,   // dice dealt instead of the status when the target is already poisoned (Spheras' breath, Astrid Nightmare's daggers)
+      steamMode:     move.steamMode ?? false,   // Sienna's Range Mode and Rodent Mode: the techniques her SteamGun reads
       drainSlots:    move.drainSlots ?? null,   // spell slots taken from the target and given to the caster (Vampire Sienna's Bite)
       drainKi:       move.drainKi ?? null,
       groundChance:  move.groundChance ?? 1,   // the odds that a 'grounded' move brings a flier down
@@ -1585,7 +1586,7 @@ export const isMecha = c => !!c && unitHasTag(c, 'mecha');
 // Can heal `ability` mend `target`? Remake mends only machines, every other heal only the living
 export const healsTarget = (ability, target) => ability?.tags?.includes('repair') ? isMecha(target) : !(ability?.isHeal && isMecha(target));
 
-export function applyHeal(combatant, diceExpr, label = null, repair = false) {
+export function applyHeal(combatant, diceExpr, label = null, repair = false, shieldOverheal = true) {
   if (!diceExpr) return;
   if (isMecha(combatant) && !repair) {
     if (combatant.currentHp < combatant.maxHp) addLog(`⚙ ${combatant.name} is a machine${label ? ` — ${label} cannot mend it` : ' — a classic heal cannot mend it'}. Only a repair can.`, 'info');
@@ -1595,7 +1596,7 @@ export function applyHeal(combatant, diceExpr, label = null, repair = false) {
   const amount = Math.max(0, r.total);
   const healed = Math.min(amount, combatant.maxHp - combatant.currentHp);
   combatant.currentHp = Math.min(combatant.maxHp, combatant.currentHp + amount);
-  overhealToShield(combatant, amount - healed);
+  if (shieldOverheal) overhealToShield(combatant, amount - healed);
   if (healed > 0)
     addLog(`💚 ${combatant.name}${label ? ` [${label}]` : ''} recovers ${healed} HP! (${combatant.currentHp}/${combatant.maxHp}) [${r.breakdown}]`, 'heal');
   updateCombatantCardDOM(combatant);
@@ -2133,6 +2134,12 @@ function losePassive(c, nom, turns) {
   c.statusEffects = c.statusEffects.filter(e => e.name !== `lost:${nom}`);
   c.statusEffects.push({ name: `lost:${nom}`, turnsLeft: turns + 1, dice: null, damType: null, notes: `Back after ${turns} turns` });
   addLog(`🦴 ${c.name}'s ${nom} is gone for ${turns} turns.`, 'status');
+}
+
+// A healing move's dice plus the caster's healing-roll bonuses (Battle Medic)
+function healDice(caster, target, ability) {
+  const extra = rollBonuses(caster, 'healRoll', target, ability).map(b => /^[+-]/.test(b.dices) ? b.dices : '+' + b.dices);
+  return [ability.dice, ...extra].join('');
 }
 
 const hasPassiveTag = (c, tag) => !!c.sourceChar.passif?.some(p => p.tags?.includes(tag) && !passiveLost(c, p));
@@ -2854,7 +2861,7 @@ export function resolveAttack(attacker, defender, diceExpr, ability = null) {
     damage = rolled.total + passiveBonus;
     const marked = attacker.huntMarkId != null && attacker.huntMarkId === defender.id;
     if (marked) damage *= 2;   // the hunter's mark: double damage against its prey
-    const steam = ability?.source === 'technique' && attacker.prevKind === 'technique' && hasPassiveTag(attacker, 'steamGun');
+    const steam = !!ability?.steamMode && attacker.prevKind === 'steamMode' && hasPassiveTag(attacker, 'steamGun');
     if (steam) damage = Math.floor(damage / 2);   // two techniques in a row
     if (mutual) damage = Math.floor(damage / 2);
     recoil = mutual ? damage : 0;
@@ -3048,7 +3055,7 @@ export function handleCastAbility(casterId, abilityName, targetIds, center = nul
     caster.remainingCharges[ability.name]--;
   }
 
-  if (!ability.isInstant) spendAction(caster, ability.name, ability.source);
+  if (!ability.isInstant) spendAction(caster, ability.name, ability.steamMode ? 'steamMode' : ability.source);
 
   addLog(`${caster.name} uses ${ability.name}!`, ability.source === 'spell' ? 'spell' : 'tech');
   if (ability.summon || ability.isDetonate) {
@@ -3568,7 +3575,7 @@ function settlePendingAction(reactAbility) {
           drainOnHit(atk, dealt);
           const basic = atk.transformedBaseAtk ?? atk.sourceChar.baseAtk;
           if (!poisonCombo(basic, def)) applyStatus(def, basic?.effect);   // a basic attack's rider (Cole's 1d2 stun)
-          if (atk.prevKind === 'technique' && hasPassiveTag(atk, 'steamGun') && !def.isKO) {
+          if (atk.prevKind === 'steamMode' && hasPassiveTag(atk, 'steamGun') && !def.isKO) {
             addLog(`  🔥 ${atk.name}'s SteamGun scorches ${def.name}!`, 'status');
             applyStatus(def, 'burn');
           }
@@ -3644,7 +3651,7 @@ function settlePendingAction(reactAbility) {
               if (re) re.dice = ability.dice;
               addLog(`  ${target.name} regenerates ${ability.dice}/turn!`, 'heal');
             } else {
-              applyHeal(target, ability.dice, null, !!ability.tags?.includes("repair"));
+              applyHeal(target, healDice(caster, target, ability), null, !!ability.tags?.includes("repair"));
             }
           } else {
             const rd = parseDice(ability.dice, { diceMult: clash.diceMult });
@@ -3857,7 +3864,7 @@ function settlePendingAction(reactAbility) {
               if (re) re.dice = ability.dice;
               addLog(`${target.name} regenerates ${ability.dice}/turn!`, 'heal');
             } else {
-              applyHeal(target, ability.dice, null, !!ability.tags?.includes("repair"));
+              applyHeal(target, healDice(caster, target, ability), null, !!ability.tags?.includes("repair"));
             }
           }
           applyMoveEffect(ability, target);
@@ -4243,7 +4250,7 @@ export function beginTurn(c) {
         applyHeal(ally, p.dices);
       }
     } else {
-      applyHeal(c, p.dices);
+      applyHeal(c, p.dices, null, false, false);   // a passive's own regeneration makes no blood shield
     }
   }
 

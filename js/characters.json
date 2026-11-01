@@ -7880,7 +7880,10 @@
         ],
         "applyOn": [
           "atkRoll"
-        ]
+        ],
+        "condition": {
+          "weaponType": "physical"
+        }
       }
     ],
     "moveSet": [
@@ -7891,12 +7894,13 @@
           "tags": [
             "magic",
             "psy",
-            "controled"
+            "controled",
+            "puppet"
           ]
         },
         "target": "mono",
         "range": 8,
-        "description": "Submits the target to her will.",
+        "description": "If it succeeds, she chooses her target's next action.",
         "spellCost": 1
       },
       {
@@ -7942,10 +7946,13 @@
             "burn"
           ]
         },
-        "target": "mono",
+        "target": "splash",
         "range": 12,
+        "radius": 2,
+        "splashDice": "1d10",
         "effect": "1d2 burn",
-        "description": "Mono hit plus 1d10 aoe.",
+        "description": "A long-range shot: 1d10+8 on the target, 1d10 on those around it.",
+        "steamMode": true,
         "cooldown": 1
       },
       {
@@ -7961,6 +7968,8 @@
         "target": "cone",
         "range": 4,
         "effect": "1d2 burn",
+        "description": "A flamethrower cone.",
+        "steamMode": true,
         "cooldown": 1
       },
       {
@@ -9002,7 +9011,10 @@
         ],
         "applyOn": [
           "atkRoll"
-        ]
+        ],
+        "condition": {
+          "weaponType": "physical"
+        }
       },
       {
         "nom": "Precise Shot",
@@ -9146,7 +9158,7 @@
           "steamGun"
         ],
         "applyOn": [],
-        "description": "A normal attack after a technique applies burn. Using two techniques in a row halves damage."
+        "description": "A normal attack after Range Mode or Rodent Mode applies burn. Using those two modes in a row halves the damage."
       },
       {
         "nom": "Huntress",
@@ -9185,7 +9197,10 @@
         ],
         "applyOn": [
           "atkRoll"
-        ]
+        ],
+        "condition": {
+          "weaponType": "physical"
+        }
       }
     ],
     "moveSet": [
@@ -9212,9 +9227,12 @@
             "ranged"
           ]
         },
-        "target": "mono",
+        "target": "splash",
         "range": 12,
-        "description": "Mono hit plus 1d10 aoe.",
+        "radius": 2,
+        "splashDice": "1d10",
+        "description": "A long-range shot: 1d10+8 on the target, 1d10 on those around it.",
+        "steamMode": true,
         "cooldown": 1
       },
       {
@@ -9230,6 +9248,8 @@
         "target": "cone",
         "range": 4,
         "effect": "1d2 burn",
+        "description": "A flamethrower cone.",
+        "steamMode": true,
         "cooldown": 1
       }
     ]

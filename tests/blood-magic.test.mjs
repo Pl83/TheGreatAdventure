@@ -96,19 +96,97 @@ test('Bite takes spell slots and ki from the target', async () => {
   assert.ok(me.spellSlots > 2, 'she keeps the slots');
 });
 
-test('SteamGun: a basic attack right after a technique sets the target on fire', async () => {
+test('Blood Magic: her 10 HP regeneration makes no blood shield, even at full HP', async () => {
+  const { me } = await setup('Vampire Sienna');
+  toTurn(me.name);
+  L.handlePass(); settle();
+  me.statusEffects = me.statusEffects.filter(e => e.name !== 'damage_shield');
+  me.currentHp = me.maxHp - 3;   // the regeneration would overflow by 7
+  toTurn(me.name);
+  assert.equal(me.currentHp, me.maxHp);
+  assert.ok(!me.statusEffects.some(e => e.name === 'damage_shield'), 'no shield from a regeneration');
+});
+
+test('Range Mode is a long mono shot with a splash; Rodent Mode is a flamethrower cone', async () => {
+  for (const hero of ['Sienna', 'Vampire Sienna']) {
+    const { me } = await setup(hero);
+    const range = ability(me, 'Range Mode'), rodent = ability(me, 'Rodent Mode');
+    assert.equal(range.isSplash, true, hero);
+    assert.equal(range.splashDice, '1d10');
+    assert.equal(range.range, 12);
+    assert.equal(rodent.isCone, true, hero);
+  }
+});
+
+test('her roll bonuses count: Precise Shot on the ranged mode, Basic Training on weapons only', async () => {
+  const { me, foe } = await setup('Vampire Sienna');
+  const range = ability(me, 'Range Mode'), torpedo = ability(me, 'Blood Torpedo');
+  let shot = null, spell = null;
+  for (let i = 0; i < 80 && !(shot && spell); i++) {
+    if (!shot) { const r = L.resolveAttack(me, foe, range.dice, range); if (r.hit) shot = r; }
+    if (!spell) { const r = L.resolveAttack(me, foe, torpedo.dice, torpedo); if (r.hit) spell = r; }
+  }
+  assert.match(shot.breakdown, /Precise Shot/);
+  assert.match(shot.breakdown, /Basic Training/);
+  assert.doesNotMatch(spell.breakdown, /Basic Training/, 'a spell is no weapon roll');
+  assert.doesNotMatch(spell.breakdown, /Precise Shot/);
+});
+
+test('Battle Medic: her Healing Potion heals 1d10+2 and 3 more', async () => {
+  const { me } = await setup('Sienna');
+  let min = 99, max = 0;
+  for (let i = 0; i < 60; i++) {
+    toTurn(me.name);
+    me.currentHp = 10;
+    L.handleCastAbility(me.id, 'Healing Potion', [me.id]); settle();
+    const got = me.currentHp - 10;
+    min = Math.min(min, got); max = Math.max(max, got);
+  }
+  assert.ok(min >= 6, `at least 1+2+3, saw ${min}`);
+  assert.ok(max <= 15, `at most 10+2+3, saw ${max}`);
+});
+
+test('Hypnosis: on a success Vampire Sienna steers her target\'s next action', async () => {
+  const { me, foe } = await setup('Vampire Sienna');
+  let seized = false;
+  for (let i = 0; i < 60 && !seized; i++) {
+    toTurn(me.name);
+    me.spellSlots = 5;
+    foe.statusEffects = [];
+    L.handleCastAbility(me.id, 'Hypnosis', [foe.id]); settle();
+    seized = foe.statusEffects.some(e => e.name === 'puppeteered' && e.controllerId === me.id);
+  }
+  assert.ok(seized, 'the target was put under her control');
+});
+
+test('SteamGun: a basic attack right after Range Mode or Rodent Mode sets the target on fire', async () => {
+  for (const mode of ['Range Mode', 'Rodent Mode']) {
+    const { me, foe } = await setup('Sienna');
+    let burned = false;
+    for (let i = 0; i < 60 && !burned; i++) {
+      toTurn(me.name);
+      foe.statusEffects = []; me.cooldowns = {};
+      L.handleCastAbility(me.id, mode, [foe.id]); settle();
+      foe.statusEffects = foe.statusEffects.filter(e => e.name.toLowerCase() !== 'burn');   // Rodent burns on its own
+      toTurn(me.name);
+      L.handleAttack(me.id, foe.id); settle();
+      burned = foe.statusEffects.some(e => e.name.toLowerCase() === 'burn');
+    }
+    assert.ok(burned, `burn after ${mode} + attack`);
+    assert.match(logText(), /SteamGun scorches/);
+  }
+});
+
+test('SteamGun: Healing Potion before the attack does not count', async () => {
   const { me, foe } = await setup('Sienna');
-  let burned = false;
-  for (let i = 0; i < 40 && !burned; i++) {
+  for (let i = 0; i < 12; i++) {
     toTurn(me.name);
     foe.statusEffects = [];
     L.handleCastAbility(me.id, 'Healing Potion', [me.id]); settle();
     toTurn(me.name);
     L.handleAttack(me.id, foe.id); settle();
-    burned = foe.statusEffects.some(e => e.name.toLowerCase() === 'burn');
+    assert.ok(!foe.statusEffects.some(e => e.name.toLowerCase() === 'burn'), `no burn on try ${i}`);
   }
-  assert.ok(burned, 'burn after technique + attack');
-  assert.match(logText(), /SteamGun scorches/);
 });
 
 test('SteamGun: an attack that follows another attack does not burn', async () => {
@@ -117,22 +195,17 @@ test('SteamGun: an attack that follows another attack does not burn', async () =
   assert.ok(!foe.statusEffects.some(e => e.name.toLowerCase() === 'burn'));
 });
 
-test('SteamGun: two techniques in a row halve the second one\'s damage', async () => {
+test('SteamGun: Range Mode or Rodent Mode right after the other halves the damage, not after another technique', async () => {
   const { me, foe } = await setup('Sienna');
   const range = ability(me, 'Range Mode');
-  const first = r => r.breakdown.includes('STEAMGUN');
+  const landed = () => {
+    for (let i = 0; i < 80; i++) { const r = L.resolveAttack(me, foe, range.dice, range); if (r.hit) return r; }
+    throw new Error('no hit');
+  };
+  me.prevKind = 'steamMode';
+  assert.match(landed().breakdown, /STEAMGUN/);
   me.prevKind = 'technique';
-  let halved = null;
-  for (let i = 0; i < 60 && !halved; i++) {
-    const r = L.resolveAttack(me, foe, range.dice, range);
-    if (r.hit) halved = r;
-  }
-  assert.ok(halved && first(halved), halved?.breakdown);
+  assert.doesNotMatch(landed().breakdown, /STEAMGUN/, 'Healing Potion is not a mode');
   me.prevKind = 'attack';
-  let normal = null;
-  for (let i = 0; i < 60 && !normal; i++) {
-    const r = L.resolveAttack(me, foe, range.dice, range);
-    if (r.hit) normal = r;
-  }
-  assert.ok(normal && !first(normal), normal?.breakdown);
+  assert.doesNotMatch(landed().breakdown, /STEAMGUN/);
 });

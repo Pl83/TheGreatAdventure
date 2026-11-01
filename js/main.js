@@ -2149,15 +2149,15 @@ export const personnageSheet = [
             "Magical Race (Advantage on all magic spells)",
             "Precise Shot (+1d4+2 attack roll with ranged weapons)",
             "Blood Magic (Every hit drains 50%. Overheal becomes a blood shield. Regenerates 10 HP per turn)",
-            "Basic Training (+1 attack roll)"
+            "Basic Training (+1 weapon roll)"
         ],
         abilities: [
-            { name: "Range Mode", type: "mono", dice: "1d10+8", cooldown: "1T", effect: "1d2 burn", desc: "Mono hit plus 1d10 aoe." },
-            { name: "Rodent Mode", type: "cone", dice: "1d12+4", cooldown: "1T", effect: "1d2 burn" },
+            { name: "Range Mode", type: "splash", dice: "1d10+8", cooldown: "1T", effect: "1d2 burn", desc: "A long-range shot: 1d10+8 on the target, 1d10 on those around it." },
+            { name: "Rodent Mode", type: "cone", dice: "1d12+4", cooldown: "1T", effect: "1d2 burn", desc: "A flamethrower cone." },
             { name: "Bite", type: "mono", dice: "2d12", desc: "Drains 2d12 HP, 1d4 spell slots and 2d4 ki, healing 100%." }
         ],
         spells: [
-            { name: "Hypnosis", type: "mono", desc: "Submits the target to her will." },
+            { name: "Hypnosis", type: "mono", desc: "If it succeeds, she chooses her target's next action." },
             { name: "Blood Drain", type: "aoe", dice: "2d10+5", desc: "Drains 100%." },
             { name: "Blood Torpedo", type: "mono", dice: "2d12+10" }
         ],
@@ -2354,7 +2354,7 @@ export const personnageSheet = [
         passives: [
             "Ranger (+3 lockpicking/perception/defuse/set trap)",
             "Sharp-Eyed (+2 perception)",
-            "Basic Training (+1 attack roll)",
+            "Basic Training (+1 weapon roll)",
             "Precise Shot (+1d4+2 attack roll with ranged weapons)",
             "Battle Medic (+3 healing roll; can heal as a bonus action)"
         ],
@@ -2381,16 +2381,16 @@ export const personnageSheet = [
         faction: "Mercenaries",
         hp: 60,
         passives: [
-            "SteamGun (A normal attack after a technique applies burn. Using two techniques in a row halves damage)",
+            "SteamGun (A normal attack after Range Mode or Rodent Mode applies burn. Using those two modes in a row halves the damage)",
             "Huntress (At the start of the battle marks a random enemy: x2 damage against it, advantage on all defense throws against it)",
             "Precise Shot (+1d4+2 attack roll with ranged weapons)",
             "Battle Medic (+3 healing roll)",
-            "Basic Training (+1 attack roll)"
+            "Basic Training (+1 weapon roll)"
         ],
         abilities: [
             { name: "Healing Potion", type: "mono", dice: "1d10+2" },
-            { name: "Range Mode", type: "mono", dice: "1d10+8", cooldown: "1T", desc: "Mono hit plus 1d10 aoe." },
-            { name: "Rodent Mode", type: "cone", dice: "1d12+4", cooldown: "1T", effect: "1d2 burn" }
+            { name: "Range Mode", type: "splash", dice: "1d10+8", cooldown: "1T", desc: "A long-range shot: 1d10+8 on the target, 1d10 on those around it." },
+            { name: "Rodent Mode", type: "cone", dice: "1d12+4", cooldown: "1T", effect: "1d2 burn", desc: "A flamethrower cone." }
         ],
         attack: "Blade Mode 1d6+4"
     }
