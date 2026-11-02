@@ -2144,7 +2144,7 @@ export const personnageSheet = [
     {
         name: "Demon",
         faction: "Covenant",
-        hp: 30,
+        hp: 70,
         passives: [
             "Dragon Slayer (+1d8+4 attack roll vs dragon)"
         ],

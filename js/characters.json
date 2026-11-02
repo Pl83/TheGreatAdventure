@@ -7814,7 +7814,7 @@
   {
     "nom": "Demon",
     "faction": "Covenant",
-    "hp": 30,
+    "hp": 70,
     "spellSlot": 0,
     "ki": 0,
     "kiRegen": 0,
