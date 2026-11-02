@@ -7760,9 +7760,9 @@
           "atkRoll"
         ],
         "condition": {
-          "selfBelow50pct": true
+          "selfHasStatus": "destiny_fire"
         },
-        "description": "At 30 HP: +1d10 on all attacks until the end of battle."
+        "description": "Once Destiny's Fire has been cast: +1d10 on all attacks until the end of battle."
       }
     ],
     "moveSet": [
@@ -7845,30 +7845,34 @@
         "category": "relic",
         "base": {
           "nom": "Destiny's Fire",
-          "dices": "2d20",
-          "tags": [
-            "fire"
-          ]
+          "dices": "1d20",
+          "tags": ["fire"]
         },
-        "target": "mono",
+        "target": "splash",
         "range": 6,
-        "description": "When HP is 30: mono 2d20, aoe 1d20+1d12.",
+        "radius": 3,
+        "splashDice": "1d20+1d6",
+        "hpAtMost": 30,
+        "lights": "destiny_fire",
+        "description": "Only at 30 HP or less. 1d20 on the target, 1d20+1d6 on those around it. From then on, +1d10 on all of Kyros's attacks until the end of the battle.",
         "cooldown": 99
       },
       {
         "category": "relic",
         "base": {
           "nom": "The End Slash",
-          "dices": "4d20",
-          "tags": [
-            "fire",
-            "para",
-            "execute"
-          ]
+          "dices": "2d20",
+          "tags": ["fire"]
         },
-        "target": "mono",
+        "target": "splash",
         "range": 3,
-        "description": "Under 25 HP. Mono 4d20, aoe 2d20 + burn + para + 1d8 heal.",
+        "radius": 2,
+        "splashDice": "1d20",
+        "hpBelow": 25,
+        "effect": "para",
+        "splashEffect": "burn",
+        "healSelf": "1d8",
+        "description": "Only under 25 HP. 2d20 and paralysis on the target, 1d20 and burn on those around it, and Kyros heals 1d8.",
         "cooldown": 99
       }
     ]

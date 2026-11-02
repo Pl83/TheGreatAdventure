@@ -789,12 +789,23 @@
     },
     {
       "id": "mech-kyros-thresholds",
+      "resolution": "Done. Both relics are splash moves, once a fight: Destiny's Fire (1d20, splash 1d20+1d6) is open at 30 HP or less and lights the passive +1d10 on all attacks to the end of the battle; The End Slash (2d20 + para, splash 1d20 + burn, Kyros heals 1d8) needs under 25 HP, and its stray 'execute' tag is gone. Engine: hpAtMost / hpBelow gates, lights, splashEffect, healSelf, passive condition selfHasStatus. Motion Channel already works from its tags; Motion Guard's 'ultimate block' is split off as mech-motion-guard.",
       "cat": "mechanics",
       "sev": "med",
       "title": "Destiny's Fire and The End Slash thresholds",
       "who": "Kyros",
       "detail": "Destiny's Fire starts at 30 HP (mono 2d20, aoe 1d20+1d12, then +1d10 on all attacks to the end of the battle). The End Slash needs less than 25 HP (mono 4d20, aoe 2d20 + burn + para + 1d8 heal). Both are plain relics with no HP threshold. Motion Channel (unblockable, burn) and Motion Guard (ultimate block) are tags only.",
+      "evidence": "tests/kyros.test.mjs",
       "where": "characters.json · Google Doc import"
+    },
+    {
+      "id": "mech-motion-guard",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "Motion Guard: ultimate block",
+      "who": "Kyros",
+      "detail": "Ultimate block, 1d2 disadvantage. It is a block react with the 'ultimate' tag, which nothing reads: decide what makes a block ultimate (beats guardbreak?) and what the 1d2 disadvantage lands on.",
+      "where": "characters.json"
     },
     {
       "id": "mech-annastasia",

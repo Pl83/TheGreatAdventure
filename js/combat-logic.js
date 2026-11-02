@@ -251,6 +251,11 @@ export function resolveAbilitiesFromList(moveList) {
       steamMode:     move.steamMode ?? false,   // Sienna's Range Mode and Rodent Mode: the techniques her SteamGun reads
       drainSlots:    move.drainSlots ?? null,   // spell slots taken from the target and given to the caster (Vampire Sienna's Bite)
       drainKi:       move.drainKi ?? null,
+      hpAtMost:      move.hpAtMost ?? null,   // usable only while the caster's HP is this or less (Kyros's Destiny's Fire)
+      hpBelow:       move.hpBelow ?? null,    // usable only while the caster's HP is under this (Kyros's The End Slash)
+      lights:        move.lights ?? null,     // a status the caster keeps to the end of the fight once the move is cast (Destiny's Fire lights the passive)
+      splashEffect:  move.splashEffect ?? null,   // the status the bystanders of a splash get instead of the target's effect
+      healSelf:      move.healSelf ?? null,   // dice the caster heals when the move lands
       drainDestroy:  move.drainDestroy ?? false,   // the drained slots are lost, not given to the caster (Krux & Acronix's Forward)
       groundChance:  move.groundChance ?? 1,   // the odds that a 'grounded' move brings a flier down
       followUp:      move.followUp ?? null,   // dice of a second blow that lands on each target the move hit, at the start of the caster's next turn (GunRang)
@@ -715,6 +720,8 @@ export function abilityAvailable(c, ab) {
     if (domainNoCD.length === 0) return false;
   }
   if (ab.isOncePerFight && c.usedThisFight.includes(ab.name)) return false;
+  if (ab.hpAtMost != null && c.currentHp > ab.hpAtMost) return false;   // too healthy for a last resort
+  if (ab.hpBelow != null && c.currentHp >= ab.hpBelow) return false;
   if ((ab.tags?.includes('chain_grab') || ab.tags?.includes('chain_guard')) && !freeChains(c).length) return false;   // no free chain, no grab and no guard
   if (ab.isRemnant && remnantsOf(c).length >= REMNANT_CAP) return false;   // the rift holds two remnants at most
   if (ab.hitCountMult > 0 && !(c.hitCount > 0)) return false;   // nothing to give back
@@ -2265,6 +2272,7 @@ function passiveConditionMet(p, owner, other, ability) {
   if (cond.targetMoreHp)   return other.currentHp > owner.currentHp;
   if (cond.allyKO)         return S.combatants.some(c => c.teamIndex === owner.teamIndex && c.isKO);
   if (cond.selfBelow50pct) return owner.currentHp <= owner.maxHp * 0.5;
+  if (cond.selfHasStatus)  return owner.statusEffects.some(e => e.name === cond.selfHasStatus);
   if (cond.is1v1)          return livingCombatants(0).length === 1 && livingCombatants(1).length === 1;
   if (cond.targetArmored)  return (other.sourceChar.passif ?? []).some(q => /armou?r/i.test(q.nom) && q.applyOn?.includes('defRoll'));
   if (cond.targetHasAnyTag) return cond.targetHasAnyTag.some(t => unitHasTag(other, t));
@@ -4251,12 +4259,17 @@ function settlePendingAction(reactAbility) {
                 addLog(`  ${t.name} is caught by the splash for ${splashDmg} (${rd.breakdown}).`, 'hit');
                 applyDamage(t, splashDmg, damType, ability.tags);
                 if (clash.mutual) strikeBack(caster, { recoil: splashDmg }, damType, ability.tags);
-                applyMoveEffect(ability, t, clash.diceMult > 1);
+                if (ability.splashEffect) applyStatus(t, ability.splashEffect);
+                else applyMoveEffect(ability, t, clash.diceMult > 1);
               }
             }
           }
         }
         applyMoveEffect(ability, primary, action.result.guaranteed);
+        if (ability.healSelf && action.result.hit) applyHeal(caster, ability.healSelf, ability.name);
+        if (ability.lights && pushStatus(caster, { name: ability.lights, turnsLeft: 999 }, true)) {
+          addLog(`🔥 ${caster.name}'s ${ability.name} burns on — +1d10 on all their attacks to the end of the battle.`, 'spell');
+        }
       }
 
     } else if (action.type === 'ability') {
