@@ -700,9 +700,16 @@ export function getDomainEffects(combatant, context = {}) {
 const NEXO_KNIGHTS = ['Alicia', 'Aron', 'Lance', 'Axel', 'Clay'];
 const nexoTeam = c => NEXO_KNIGHTS.every(n => S.combatants.some(u => u.teamIndex === c.teamIndex && u.name === n));
 const nexoSurvivors = c => NEXO_KNIGHTS.filter(n => S.combatants.some(u => u.teamIndex === c.teamIndex && u.name === n && !u.isKO)).length;
+const NEXO_MIN = 2;   // it takes two knights standing to combine anything
+// What each knight adds to the shared strike (Lance needs nothing: his Faster already hits slower foes harder; Clay orders the team after the cast)
+const NEXO_TWISTS = {
+  Alicia: ab => ({ tags: [...ab.tags, 'fire'], effect: '1d2 burn' }),
+  Aron:   ab => ({ tags: [...ab.tags, 'unreactable'] }),
+  Axel:   ab => ({ tags: [...ab.tags, 'root'], effect: '1d2 root' }),
+};
 
 export function abilityAvailable(c, ab) {
-  if (ab.tags?.includes('nexoCombined') && !nexoTeam(c)) return false;
+  if (ab.tags?.includes('nexoCombined') && !(nexoTeam(c) && nexoSurvivors(c) >= NEXO_MIN)) return false;
   if ((c.cooldowns[ab.name] ?? 0) > 0) {
     // Domain: no cooldown on matching abilities
     const domainNoCD = getDomainEffects(c, { applyOn: 'cooldown', ability: ab });
@@ -3388,7 +3395,7 @@ export function handleCastAbility(casterId, abilityName, targetIds, center = nul
   if (!ability || !abilityAvailable(caster, ability)) return;
   if (ability.tags?.includes('nexoCombined')) {   // one d12 for every knight still standing
     const standing = nexoSurvivors(caster);
-    ability = { ...ability, dice: `${standing}d12` };
+    ability = { ...ability, dice: `${standing}d12`, ...NEXO_TWISTS[caster.name]?.(ability) };
     addLog(`  ⚔ The Nexo Knights combine their powers: ${standing} of five still stand (${standing}d12).`, 'spell');
   }
   if (ability.allSlots) ability = { ...ability, dice: `${caster.spellSlots}d20+10`, cost: { type: 'slots', amount: caster.spellSlots } };
@@ -3455,6 +3462,9 @@ export function handleCastAbility(casterId, abilityName, targetIds, center = nul
   if (ability.isOncePerFight) caster.usedThisFight.push(ability.name);
   if (ability.tags?.includes('nexoCombined')) {   // the team has one shot, whoever fires it
     for (const u of S.combatants) if (u.teamIndex === caster.teamIndex && !u.usedThisFight.includes(ability.name)) u.usedThisFight.push(ability.name);
+    if (caster.name === 'Clay') {   // his twist: the whole team gets his Orders
+      for (const a of allies(caster)) if (!a.isKO && pushStatus(a, { name: 'orders', turnsLeft: 2 }, true)) addLog(`  📣 ${a.name} follows Clay's orders: +2 on attack rolls.`, 'status');
+    }
   }
   if (ability.maxCharges > 0) {
     if (caster.remainingCharges[ability.name] == null) caster.remainingCharges[ability.name] = ability.maxCharges;
@@ -3506,7 +3516,7 @@ export function handleCastAbility(casterId, abilityName, targetIds, center = nul
   }
 
   // Effects that never prompt a react: friendly buffs, unblockable moves, and moves that deal no damage or status
-  const noReacts = ability.targetKind === 'ally' || !!ability.tags?.some(t => t === 'unblockabled' || t === 'taunt');
+  const noReacts = ability.targetKind === 'ally' || !!ability.tags?.some(t => t === 'unblockabled' || t === 'taunt' || t === 'unreactable');
   const hasMechanics = ability.summon || ability.isCage || ability.isTaboo || ability.isPetrify || ability.isPact || ability.isRemnant || ability.isDetonate || ability.dice || ability.effect || ability.precastDice || ability.slotRegen > 0 || ability.isRevive
     || ability.isBlock || ability.targetKind === 'self' || ability.field
     || ability.isContest || ability.tags?.some(t => ['dash', 'fly', 'teleportation', 'cleans', 'pull', 'taunt', 'smoke', 'adv_next', 'orders', 'ward', 'dry'].includes(t));

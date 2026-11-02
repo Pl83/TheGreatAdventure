@@ -208,3 +208,62 @@ test('Combined Nexo Power: the team keeps it when one knight falls before it is 
   byName('Axel').isKO = true;
   assert.ok(L.abilityAvailable(byName('Aron'), combined(byName('Aron'))));
 });
+
+test('Combined Nexo Power: it needs two knights standing', async () => {
+  await newFight({ teamA: FIVE, teamB: ['Kadgar'], seed: 2 });
+  for (const n of ['Aron', 'Lance', 'Axel']) byName(n).isKO = true;
+  assert.ok(L.abilityAvailable(byName('Clay'), combined(byName('Clay'))), 'two stand');
+  byName('Alicia').isKO = true;
+  assert.ok(!L.abilityAvailable(byName('Clay'), combined(byName('Clay'))), 'one stands');
+});
+
+async function fire(who, foeName = 'Kadgar') {
+  await newFight({ teamA: FIVE, teamB: [foeName], seed: 2 });
+  const foe = byName(foeName), me = toTurn(who);
+  foe.currentHp = foe.maxHp = 3000;
+  foe.statusEffects = [];
+  forceD20(19, 2);
+  L.handleCastAbility(me.id, 'Combined Nexo Power', [foe.id], { x: foe.x, y: foe.y });
+  return { me, foe };
+}
+
+test('Twist, Alicia: the strike burns', async () => {
+  const { foe } = await fire('Alicia');
+  settle();
+  assert.ok(foe.statusEffects.some(e => /burn/i.test(e.name)) || /burn/i.test(logText()), 'a burn is rolled');
+});
+
+test('Twist, Aron: the foe is given no chance to react', async () => {
+  const { foe } = await fire('Aron', 'Alicia');
+  assert.ok(!S.awaitingReact, 'no reaction offered');
+  assert.ok(foe.currentHp < foe.maxHp);
+});
+
+test('Twist, Axel: the strike can root', async () => {
+  forceD20(19, 2);
+  const { foe } = await fire('Axel');
+  settle();
+  assert.ok(foe.currentHp < foe.maxHp);
+  assert.ok(foe.statusEffects.some(e => /root/i.test(e.name)) || /root/i.test(logText()), 'a root is rolled');
+});
+
+test('Twist, Clay: the whole team follows his orders', async () => {
+  const { me } = await fire('Clay');
+  settle();
+  for (const n of FIVE) assert.ok(byName(n).statusEffects.some(e => e.name === 'orders'), n);
+  assert.ok(me.statusEffects.some(e => e.name === 'orders'));
+});
+
+test('Twist, Lance: Faster makes the strike bite harder on a slower foe than the same strike from Alicia would without a twist', async () => {
+  async function dmg(who, foeInit) {
+    await newFight({ teamA: FIVE, teamB: ['Kadgar'], seed: 2 });
+    const foe = byName('Kadgar'), me = toTurn(who);
+    foe.currentHp = foe.maxHp = 3000; foe.initiativeRoll = foeInit; me.initiativeRoll = 20;
+    forceD20(19, 2);
+    L.handleCastAbility(me.id, 'Combined Nexo Power', [foe.id], { x: foe.x, y: foe.y });
+    settle();
+    return foe.maxHp - foe.currentHp;
+  }
+  const slower = await dmg('Lance', 1), faster = await dmg('Lance', 99);
+  assert.ok(slower > faster, `${slower} vs ${faster}`);
+});

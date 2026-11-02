@@ -923,7 +923,7 @@
         "range": 10,
         "radius": 6,
         "cooldown": 99,
-        "description": "Synergy: only when all five Nexo Knights are on the team. Once per fight for the whole team, fired by any of them: 1d12 for every knight still standing, on every foe in the area."
+        "description": "Synergy: only a team that fielded all five Nexo Knights, and only while two of them stand. Once per fight for the whole team, fired by any of them: 1d12 for every knight still standing, on every foe in the area. Each knight adds a twist: Alicia fire and a 1d2 burn; Aron cannot be reacted to; Lance hits slower foes 1.5x (Faster); Axel a 1d2 root; Clay gives the whole team his Orders (+2 on attack rolls)."
       }
     ]
   },
@@ -7180,7 +7180,7 @@
         "range": 10,
         "radius": 6,
         "cooldown": 99,
-        "description": "Synergy: only when all five Nexo Knights are on the team. Once per fight for the whole team, fired by any of them: 1d12 for every knight still standing, on every foe in the area."
+        "description": "Synergy: only a team that fielded all five Nexo Knights, and only while two of them stand. Once per fight for the whole team, fired by any of them: 1d12 for every knight still standing, on every foe in the area. Each knight adds a twist: Alicia fire and a 1d2 burn; Aron cannot be reacted to; Lance hits slower foes 1.5x (Faster); Axel a 1d2 root; Clay gives the whole team his Orders (+2 on attack rolls)."
       }
     ]
   },
@@ -7292,7 +7292,7 @@
         "range": 10,
         "radius": 6,
         "cooldown": 99,
-        "description": "Synergy: only when all five Nexo Knights are on the team. Once per fight for the whole team, fired by any of them: 1d12 for every knight still standing, on every foe in the area."
+        "description": "Synergy: only a team that fielded all five Nexo Knights, and only while two of them stand. Once per fight for the whole team, fired by any of them: 1d12 for every knight still standing, on every foe in the area. Each knight adds a twist: Alicia fire and a 1d2 burn; Aron cannot be reacted to; Lance hits slower foes 1.5x (Faster); Axel a 1d2 root; Clay gives the whole team his Orders (+2 on attack rolls)."
       }]
   },
   {
@@ -7401,7 +7401,7 @@
         "range": 10,
         "radius": 6,
         "cooldown": 99,
-        "description": "Synergy: only when all five Nexo Knights are on the team. Once per fight for the whole team, fired by any of them: 1d12 for every knight still standing, on every foe in the area."
+        "description": "Synergy: only a team that fielded all five Nexo Knights, and only while two of them stand. Once per fight for the whole team, fired by any of them: 1d12 for every knight still standing, on every foe in the area. Each knight adds a twist: Alicia fire and a 1d2 burn; Aron cannot be reacted to; Lance hits slower foes 1.5x (Faster); Axel a 1d2 root; Clay gives the whole team his Orders (+2 on attack rolls)."
       }
     ]
   },
@@ -7507,7 +7507,7 @@
         "range": 10,
         "radius": 6,
         "cooldown": 99,
-        "description": "Synergy: only when all five Nexo Knights are on the team. Once per fight for the whole team, fired by any of them: 1d12 for every knight still standing, on every foe in the area."
+        "description": "Synergy: only a team that fielded all five Nexo Knights, and only while two of them stand. Once per fight for the whole team, fired by any of them: 1d12 for every knight still standing, on every foe in the area. Each knight adds a twist: Alicia fire and a 1d2 burn; Aron cannot be reacted to; Lance hits slower foes 1.5x (Faster); Axel a 1d2 root; Clay gives the whole team his Orders (+2 on attack rolls)."
       }
     ]
   },
