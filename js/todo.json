@@ -864,7 +864,7 @@
       "who": "Phoenix King, Phoenix Prince",
       "detail": "Phoenix King: Phoenix Feathers resurrect a target (4 charges) and regenerate all spell slots; modelled as a relic with 4 charges, the slot regeneration was not checked. Phoenix Prince: Grow Spurt turns him into the Adult form for 4 turns (modelled as a once-per-fight technique, not a timed form switch); Phoenix Hug heals both, then again next turn.",
       "where": "characters.json · Google Doc import",
-      "resolution": "Done. Phoenix Feathers (4 charges) revive the target at half HP and now give it back all its spell slots. Grow Spurt is a real timed form: the Prince takes the Adult Form (+20 HP, +3 slots, Flaming Dash, Phoenix Hug, Phoenix Feather) for 4 of his turns, then shrinks back; once per fight. Phoenix Hug heals the target and the Prince, and both again when the Prince next turn starts."
+      "resolution": "Done. Phoenix Feathers (4 charges) revive the target at half HP and now give it back all its spell slots. Grow Spurt is a real form (like Susano's Nirvana): the Prince takes the Adult Form (+20 HP, +3 slots, Flaming Dash, Phoenix Hug, Phoenix Feather) until the end of the fight (balance change: it first lasted 4 turns); once per fight. Phoenix Hug heals the target and the Prince, and both again when the Prince next turn starts."
     },
     {
       "id": "mech-escanor-sunshine",

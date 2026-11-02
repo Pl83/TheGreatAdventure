@@ -6861,8 +6861,8 @@
         },
         "target": "self",
         "range": 0,
-        "description": "Grows into the Adult form for 4 turns.",
-        "duration": 4,
+        "description": "Grows into the Adult form until the end of the fight.",
+        "duration": -1,
         "cooldown": 99
       }
     ],

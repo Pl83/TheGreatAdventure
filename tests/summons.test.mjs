@@ -330,7 +330,7 @@ test('Phoenix Feathers revive a fallen ally with all its spell slots, four times
   assert.equal(king.remainingCharges['Phoenix Feathers'], 3);
 });
 
-test('Grow Spurt is a timed form: the Prince grows for 4 turns, then shrinks back', async () => {
+test('Grow Spurt lasts until the end of the fight: the Prince stays grown', async () => {
   await newFight({ teamA: ['Phoenix Prince'], teamB: ['Rox'], seed: 3 });
   const prince = byName('Phoenix Prince');
   const hp = prince.maxHp;
@@ -339,9 +339,9 @@ test('Grow Spurt is a timed form: the Prince grows for 4 turns, then shrinks bac
   assert.ok(prince.isTransformed);
   assert.equal(prince.maxHp, hp + 20);
   assert.ok(prince.abilities.some(a => a.name === 'Phoenix Hug'));
-  for (let i = 0; i < 6 && prince.isTransformed; i++) { toTurn('Phoenix Prince'); L.handlePass(); }
-  assert.ok(!prince.isTransformed, 'the form ended');
-  assert.equal(prince.maxHp, hp);
+  for (let i = 0; i < 8; i++) { toTurn('Phoenix Prince'); L.handlePass(); }
+  assert.ok(prince.isTransformed, 'the form does not end');
+  assert.equal(prince.maxHp, hp + 20);
 });
 
 test('Phoenix Hug heals the Prince and his ally, and both again when his next turn starts', async () => {

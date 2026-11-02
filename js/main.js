@@ -1989,7 +1989,7 @@ export const personnageSheet = [
             }
         ],
         abilities: [
-            { name: "Grow Spurt", type: "instant", limit: "1/fight", duration: "4T", desc: "Grows into the Adult form for 4 turns." }
+            { name: "Grow Spurt", type: "instant", limit: "1/fight", desc: "Grows into the Adult form until the end of the fight." }
         ],
         attack: "Sword 1d8"
     },
