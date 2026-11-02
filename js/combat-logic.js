@@ -1799,6 +1799,8 @@ function applyDamageCore(combatant, amount, damType = null, atkTags = [], ignore
       combatant.usedThisFight.push('Resurrection');
       addLog(`💀✨ ${combatant.name} RESURRECTS with 150 HP — Final Reckoning activates!`, 'crit');
       combatant.statusEffects.push({ name: 'final_reckoning', turnsLeft: 999, dice: '2d12', damType: null, notes: '+2d12 atk bonus, one more action a turn' });
+    } else if (!survived && rollReborn(combatant)) {
+      rebornAs(combatant);
     } else if (!survived) {
       combatant.isKO = true;
       noteFallen(combatant);
@@ -1809,6 +1811,21 @@ function applyDamageCore(combatant, amount, damType = null, atkTags = [], ignore
   }
   updateCombatantCardDOM(combatant);
   return dmg;
+}
+
+// Easter egg: a sheet with `reborn: { into, chance }` may rise again as another sheet when it dies (Sienna, 1 in 100, as Vampire Sienna)
+const rollReborn = c => !!c.sourceChar.reborn && random() < c.sourceChar.reborn.chance;
+
+// The fallen is the same unit (id, cell, team, owner, place in the order) but wears the new sheet, whole again
+function rebornAs(c) {
+  const sheet = allChars.find(x => x.nom === c.sourceChar.reborn.into);
+  if (!sheet) return;
+  const from = c.name;
+  const fresh = buildCombatant(sheet, c.teamIndex, c.id);
+  Object.assign(fresh, { x: c.x, y: c.y, ownerId: c.ownerId, initiativeRoll: c.initiativeRoll });
+  Object.assign(c, fresh);
+  addLog(`🦇✨ ${from} falls... and rises again as ${c.name}, whole once more!`, 'crit');
+  markHunter(c);
 }
 
 // Chronos' Rewind: on a killing blow, once per fight, he steps back to where he stood two rounds ago. His life
@@ -2196,15 +2213,17 @@ function feastOnMark(fallen) {
 
 // At the start of the battle each hunter marks one random enemy (never a summon)
 function markHunters() {
-  for (const c of S.combatants) {
-    c.huntMarkId = null;
-    if (c.isKO || !c.sourceChar.passif?.some(p => p.tags?.includes('huntMark'))) continue;
-    const prey = livingCombatants(1 - c.teamIndex).filter(f => !f.ownerId);
-    if (!prey.length) continue;
-    const mark = prey[Math.floor(random() * prey.length)];
-    c.huntMarkId = mark.id;
-    addLog(`🎯 ${c.name} marks ${mark.name}: double damage against it, advantage on defense against it.`, 'spell');
-  }
+  for (const c of S.combatants) markHunter(c);
+}
+
+function markHunter(c) {
+  c.huntMarkId = null;
+  if (c.isKO || !c.sourceChar.passif?.some(p => p.tags?.includes('huntMark'))) return;
+  const prey = livingCombatants(1 - c.teamIndex).filter(f => !f.ownerId);
+  if (!prey.length) return;
+  const mark = prey[Math.floor(random() * prey.length)];
+  c.huntMarkId = mark.id;
+  addLog(`🎯 ${c.name} marks ${mark.name}: double damage against it, advantage on defense against it.`, 'spell');
 }
 
 // Annastasia's Sacrifice Mark: there is always a marked enemy. She marks a random one (never a summon, never `except`)

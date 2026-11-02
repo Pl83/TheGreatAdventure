@@ -9200,6 +9200,7 @@
   {
     "nom": "Sienna",
     "faction": "Mercenaries",
+    "reborn": { "into": "Vampire Sienna", "chance": 0.01 },
     "hp": 60,
     "spellSlot": 0,
     "ki": 0,

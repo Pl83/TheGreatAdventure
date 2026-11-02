@@ -196,3 +196,26 @@ test('the Sacrifice Mark always passes to another enemy: after a death and after
   assert.ok(third && !third.isKO && third.id !== second.id, 'Taboo moves the mark to another enemy');
   assert.ok(!second.isKO, 'the Taboo victim lives');
 });
+
+test('easter egg: when Sienna falls she has a 1 in 100 chance to rise as Vampire Sienna', async () => {
+  await newFight({ teamA: ['Sienna'], teamB: ['Rox'], seed: 3 });
+  const sienna = byName('Sienna');
+  assert.equal(sienna.sourceChar.reborn.chance, 0.01);
+  const id = sienna.id, team = sienna.teamIndex, sheet = sienna.sourceChar;
+  sheet.reborn.chance = 1;
+  try { L.applyDamage(sienna, 999, 'physical', ['physical']); } finally { sheet.reborn.chance = 0.01; }
+  assert.equal(sienna.name, 'Vampire Sienna');
+  assert.ok(!sienna.isKO);
+  assert.equal(sienna.id, id);
+  assert.equal(sienna.teamIndex, team);
+  assert.equal(sienna.currentHp, sienna.maxHp);
+});
+
+test('Sienna usually just falls', async () => {
+  await newFight({ teamA: ['Sienna'], teamB: ['Rox'], seed: 3 });
+  const sienna = byName('Sienna');
+  sienna.sourceChar.reborn.chance = 0;
+  try { L.applyDamage(sienna, 999, 'physical', ['physical']); } finally { sienna.sourceChar.reborn.chance = 0.01; }
+  assert.ok(sienna.isKO);
+  assert.equal(sienna.name, 'Sienna');
+});
