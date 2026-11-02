@@ -283,6 +283,8 @@ export function resolveAbilitiesFromList(moveList) {
       isRemnant:  tags.includes('remnant'),   // Krux & Acronix's Summoning Portal: calls a whole roster character, its cost set by that character's HP
       isDuel:     tags.includes('duel'),   // Arthur's Holy Duel: binds him to one adversary for the rest of the fight
       wetAdvantage: move.wetAdvantage ?? false,   // Runik Sea Bound: its 1d2 chances roll with advantage against a wet target
+      isPetrify:  tags.includes('petrify'),   // Emeraud's Petrify: 1d20 + the target's petrification stacks
+      hitCountMult: move.hitCountMult ?? 0,   // Rubis' Retribution Shard: damage is the hits taken times this, then the count resets
       isPact:     tags.includes('pact'),   // Annastasia's Demon Pact: pays 10 HP for 1 spell slot
       isTaboo:    tags.includes('taboo'),   // Annastasia: pays half her current HP to spring the Sacrifice Mark now
       isDetonate: tags.includes('detonate'),   // bursts every living unit the caster owns, on its own spot
@@ -339,6 +341,8 @@ export function buildCombatant(char, teamIndex, id) {
     chains: chainsFor(char),   // Vorrakan's Left and Right Chain: [{ name, hp, maxHp, holdingId, freed }] (they are not units)
     lastKind: null,   // what its last action was: 'attack', 'technique', 'spell'... (Sienna's SteamGun reads the one before)
     prevKind: null,
+    hitCount: 0,        // Rubis: hits taken since his last Retribution Shard
+    petrifyStacks: 0,   // Emeraud's Petrification: stacks on the unit he has struck
     duelId: null,       // Arthur's Holy Duel: id of the adversary he is bound to (advantage on every roll against it)
     sacMarkId: null,    // Annastasia's Sacrifice Mark: id of the enemy marked at the start of the battle (its death calls demons)
     huntMarkId: null,   // Sienna's Huntress / Apex Predator: id of the enemy marked at the start of the battle (x2 damage against it, advantage on defense against it)
@@ -698,6 +702,7 @@ export function abilityAvailable(c, ab) {
   if (ab.isOncePerFight && c.usedThisFight.includes(ab.name)) return false;
   if ((ab.tags?.includes('chain_grab') || ab.tags?.includes('chain_guard')) && !freeChains(c).length) return false;   // no free chain, no grab and no guard
   if (ab.isRemnant && remnantsOf(c).length >= REMNANT_CAP) return false;   // the rift holds two remnants at most
+  if (ab.hitCountMult > 0 && !(c.hitCount > 0)) return false;   // nothing to give back
   if (ab.isPact && (c.currentHp <= PACT_HP || c.spellSlots >= c.maxSpellSlots)) return false;   // she cannot pay her last HP, nor hold more slots than she has
   if (ab.isTaboo && !markedByYou(c)) return false;   // no mark to spring
   if (ab.isDetonate && !ownedBy(c).some(u => !u.isKO && u.name === 'Fire Spirit')) return false;   // nothing to burst
@@ -1743,6 +1748,16 @@ function applyDamageCore(combatant, amount, damType = null, atkTags = [], ignore
     amount = Math.max(0, amount - stance.amount);
     addLog(`🐗 ${combatant.name}'s ${stance.label ?? 'stance'} shaves ${before - amount} off the hit! (${before} → ${amount})`, 'spell');
   }
+  // Prismatic Guard: a spell is cut by a flat amount, once
+  const prism = combatant.statusEffects.find(e => e.name === 'prismatic_guard');
+  if (prism) {
+    combatant.statusEffects = combatant.statusEffects.filter(e => e !== prism);
+    if (!ignoreDR && amount > 0 && (atkTags.includes('magic') || damType === 'magic')) {
+      const before = amount;
+      amount = Math.max(0, amount - prism.amount);
+      addLog(`💎 ${combatant.name}'s Prismatic Guard cuts the spell by ${before - amount}! (${before} → ${amount})`, 'spell');
+    }
+  }
   // Damage-absorption shield / chains check (bypassed by unblockabled or antiMagic on spell/art shields)
   const dmgShield = combatant.statusEffects.find(e => e.name === 'damage_shield');
   const MAGIC_SOURCES = ['spell', 'Art', 'technoSpell'];
@@ -1815,6 +1830,7 @@ function applyDamageCore(combatant, amount, damType = null, atkTags = [], ignore
   const hpBefore = combatant.currentHp;
   combatant.currentHp = Math.max(0, hpBefore - dmg);
   if (dmg > 0) addLog(`  ${combatant.name}: ${hpBefore} → ${combatant.currentHp}`, 'hit');
+  if (dmg > 0 && combatant.currentHp > 0) onHitTaken(combatant);
   if (combatant.currentHp <= 0 && !combatant.isKO) {
     const lives = combatant.sourceChar.passif?.find(p => p.applyOn?.includes('deathRoll') && p.maxStacks
       && (combatant.deathSaves[p.nom] ?? 0) < p.maxStacks);
@@ -2321,6 +2337,47 @@ function hugEcho(c) {
   applyHeal(c, echo.dice);
   const t = getCombatant(echo.targetId);
   if (t && t.id !== c.id && !t.isKO) applyHeal(t, echo.dice);
+}
+
+// ── Gem knights ──
+const GEM_RADIUS = 2;
+let inShard = false;   // a Retribution Shard that hits another gem knight does not bounce back and forth
+
+// Called when a unit has taken damage and still stands: Rubis counts the hit; Retribution Shard may lash out around the unit
+function onHitTaken(c) {
+  if (hasPassiveTag(c, 'hitCount')) c.hitCount = (c.hitCount ?? 0) + 1;
+  const p = (c.sourceChar.passif ?? []).find(q => q.tags?.includes('retribution') && !passiveLost(c, q));
+  if (!p || inShard || random() >= 0.5) return;   // 1d2: it triggers on the 2
+  const foes = enemies(c).filter(f => !f.isKO && (!S.currentMap || chebyshev(c, f) <= (p.radius ?? GEM_RADIUS)));
+  if (!foes.length) return;
+  inShard = true;
+  try {
+    addLog(`💎 ${c.name}'s Retribution Shard bursts around it!`, 'spell');
+    for (const f of foes) {
+      const r = parseDice(p.dices);
+      addLog(`  ${f.name} is cut for ${r.total} (${r.breakdown}).`, 'hit');
+      applyDamage(f, r.total, 'physical', ['physical']);
+    }
+  } finally { inShard = false; }
+}
+
+// Emeraud: every blow that lands leaves a petrification stack on its target
+function petrifyStack(atk, def) {
+  if (!hasPassiveTag(atk, 'petrifying') || def.isKO || def.teamIndex === atk.teamIndex) return;
+  def.petrifyStacks = (def.petrifyStacks ?? 0) + 1;
+  addLog(`  🗿 ${def.name} stiffens: ${def.petrifyStacks} petrification stack${def.petrifyStacks === 1 ? '' : 's'}.`, 'status');
+}
+
+// Emeraud's Petrify: 1d20 + the stacks on the target; 20 or more turns it to stone for 3 turns and clears the stacks
+const PETRIFY_DC = 20;
+function castPetrify(caster, target) {
+  if (!target) return;
+  const roll = rollD20().value, stacks = target.petrifyStacks ?? 0;
+  const total = roll + stacks;
+  if (total < PETRIFY_DC) { addLog(`  🗿 ${target.name} resists the stone (${roll} + ${stacks} = ${total} vs ${PETRIFY_DC}).`, 'miss'); return; }
+  addLog(`  🗿 ${target.name} turns to stone! (${roll} + ${stacks} = ${total} vs ${PETRIFY_DC})`, 'crit');
+  target.petrifyStacks = 0;
+  applyStatus(target, 'stun', 3);
 }
 
 // Annastasia's Demon Pact: 10 HP buys 1 spell slot (an instant, as often as she can pay)
@@ -3084,6 +3141,7 @@ export function getReacts(target, incoming = null) {
     // Guardbreak beats every block but not a dodge: teleports, dashes and the like still get away
     if (incoming?.tags?.includes('guardbreak') && ab.isBlock && !ab.tags?.some(t => ['dodge', 'dash', 'teleportation'].includes(t))) return false;
     if (ab.tags?.includes('reflect') && !isSpellMove(incoming)) return false;
+    if (ab.tags?.includes('prismatic') && !isSpellMove(incoming)) return false;   // Prismatic Guard only cuts a spell
     if (ab.tags?.includes('dispel') && !isSpellMove(incoming)) return false;   // Dispel Magic only unravels a spell
     if (insideClosedDomain && ab.tags?.includes('teleportation')) return false;
     return abilityAvailable(target, ab);
@@ -3151,6 +3209,11 @@ export function handleCastAbility(casterId, abilityName, targetIds, center = nul
   if (!ability || !abilityAvailable(caster, ability)) return;
   if (ability.allSlots) ability = { ...ability, dice: `${caster.spellSlots}d20+10`, cost: { type: 'slots', amount: caster.spellSlots } };
   if (ability.reactOnly) { addLog(`⚠ ${ability.name} can only be used as a reaction.`, 'info'); return; }
+  if (ability.hitCountMult > 0) {
+    const dmg = Math.floor(caster.hitCount * ability.hitCountMult);
+    ability = { ...ability, dice: String(dmg) };
+    addLog(`  💎 ${caster.name} gives back ${caster.hitCount} hits: ${dmg} damage.`, 'spell');
+  }
   let remnantSheet = null;
   if (ability.isRemnant) {
     remnantSheet = remnantRoster().find(r => r.nom === choice) && allChars.find(c => c.nom === choice);
@@ -3201,6 +3264,7 @@ export function handleCastAbility(casterId, abilityName, targetIds, center = nul
   }
 
   spendResource(caster, ability);
+  if (ability.hitCountMult > 0) caster.hitCount = 0;
   // Cooldowns tick once at the start of the owner's turns, so +1 gives a lockout of exactly N turns
   if (ability.cooldownTurns > 0) caster.cooldowns[ability.name] = ability.cooldownTurns + 1;
   else if (ability.oncePerTurn) caster.cooldowns[ability.name] = 1;   // lifts when its owner's next turn starts
@@ -3214,8 +3278,8 @@ export function handleCastAbility(casterId, abilityName, targetIds, center = nul
 
   addLog(`${caster.name} uses ${ability.name}!`, ability.source === 'spell' ? 'spell' : 'tech');
   if (ability.isDuel && targets[0]) startDuel(caster, targets[0]);
-  if (ability.summon || ability.isDetonate || ability.isTaboo || ability.isRemnant || ability.isPact) {
-    if (ability.summon) castSummon(caster, ability); else if (ability.isPact) castPact(caster); else if (ability.isRemnant) castRemnant(caster, remnantSheet); else if (ability.isTaboo) castTaboo(caster); else castDetonate(caster, ability);
+  if (ability.summon || ability.isDetonate || ability.isTaboo || ability.isRemnant || ability.isPact || ability.isPetrify) {
+    if (ability.summon) castSummon(caster, ability); else if (ability.isPetrify) castPetrify(caster, targets[0]); else if (ability.isPact) castPact(caster); else if (ability.isRemnant) castRemnant(caster, remnantSheet); else if (ability.isTaboo) castTaboo(caster); else castDetonate(caster, ability);
     concludeAction(!!ability.isInstant);
     return;
   }
@@ -3255,7 +3319,7 @@ export function handleCastAbility(casterId, abilityName, targetIds, center = nul
 
   // Effects that never prompt a react: friendly buffs, unblockable moves, and moves that deal no damage or status
   const noReacts = ability.targetKind === 'ally' || !!ability.tags?.some(t => t === 'unblockabled' || t === 'taunt');
-  const hasMechanics = ability.summon || ability.isTaboo || ability.isPact || ability.isRemnant || ability.isDetonate || ability.dice || ability.effect || ability.precastDice || ability.slotRegen > 0 || ability.isRevive
+  const hasMechanics = ability.summon || ability.isTaboo || ability.isPetrify || ability.isPact || ability.isRemnant || ability.isDetonate || ability.dice || ability.effect || ability.precastDice || ability.slotRegen > 0 || ability.isRevive
     || ability.isBlock || ability.targetKind === 'self' || ability.field
     || ability.isContest || ability.tags?.some(t => ['dash', 'fly', 'teleportation', 'cleans', 'pull', 'taunt', 'smoke', 'adv_next', 'orders', 'ward', 'dry'].includes(t));
   if (!hasMechanics) addLog(`  ⚠ ${ability.name} has no mechanical effect in the simulator yet.`, 'info');
@@ -3650,6 +3714,11 @@ function settlePendingAction(reactAbility) {
         // A dodge is total against one target but only gets half out of the way of an area
         addLog(`💨 ${reactor.name} reacts with ${reactAbility.name} — half damage from the area.`, 'spell');
         if (!action.halvedIds.includes(reactor.id)) action.halvedIds.push(reactor.id);
+      } else if (reactAbility.tags?.includes('prismatic')) {
+        // The cut is in place before the spell lands; the spell itself is not stopped
+        const cut = Math.max(0, parseDice(String(reactAbility.dice).replace(/^-/, '')).total);
+        pushStatus(reactor, { name: 'prismatic_guard', turnsLeft: 1, amount: cut }, true);
+        addLog(`💎 ${reactor.name} raises Prismatic Guard — the spell will lose ${cut}.`, 'spell');
       } else if (reactAbility.isBlock) {
         if (reactAbility.dice && !reactAbility.tags?.includes('regen') && !reactAbility.tags?.includes('heal')) {
           const shieldHp = Math.max(0, parseDice(reactAbility.dice).total);
@@ -3736,6 +3805,7 @@ function settlePendingAction(reactAbility) {
             applyStatus(def, 'burn');
           }
           witherMax(atk, def);
+          petrifyStack(atk, def);
           strikeBack(atk, action.result, damType, atkTags);
           applyHpPerHitPassives(atk);
           if (atkTags.includes('grounded')) removeFlying(def);
@@ -3822,6 +3892,10 @@ function settlePendingAction(reactAbility) {
             if (grounds(ability)) removeFlying(target);
             if (ability.tags?.includes('knockback')) knockBack(caster, target);
           }
+        }
+        if (!isPureHeal) petrifyStack(caster, target);
+        if (!isPureHeal && ability.tags?.includes('puppet') && !target.isKO && pushStatus(target, { name: 'puppeteered', turnsLeft: 2, controllerId: caster.id })) {
+          addLog(`  🎭 ${target.name} fails the psy save — ${caster.name} chooses what it does next turn!`, 'spell');   // the target failed its defense roll against the blast: it did not save
         }
         applyMoveEffect(ability, target, clash.diceMult > 1);
         if (isPureHeal && ability.slotRegen > 0 && !(ability.excludeSelf && target.id === caster.id)) restoreSlots(target, ability.slotRegen, ability.name);
@@ -4050,6 +4124,7 @@ function settlePendingAction(reactAbility) {
               applyHpPerHitPassives(caster);
               if (grounds(ability)) removeFlying(target);
             }
+            petrifyStack(caster, target);
             applyMoveEffect(ability, target, action.result.guaranteed);
             if (ability.grants) grantTimed(caster, ability);   // a hostile move that also arms its caster (Withering Hour)
             if (ability.tags?.includes('pull') && !target.isKO) pullTarget(caster, target);

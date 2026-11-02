@@ -5789,11 +5789,13 @@
         "nom": "Retribution Shard",
         "dices": "1d6",
         "tags": [
-          "buff"
+          "buff",
+          "retribution"
         ],
         "applyOn": [
           "incomingDam"
         ],
+        "radius": 2,
         "description": "1d2 chance of dealing 1d6 to everyone around when hit (aoe self)."
       }
     ],
@@ -5834,7 +5836,8 @@
           "tags": [
             "block",
             "react",
-            "magic"
+            "magic",
+            "prismatic"
           ]
         },
         "target": "self",
@@ -5927,7 +5930,8 @@
       {
         "nom": "Hit Count",
         "tags": [
-          "buff"
+          "buff",
+          "hitCount"
         ],
         "applyOn": [],
         "description": "Counts the hits taken (starts at 0). Feeds Retribution Shard."
@@ -5947,6 +5951,7 @@
         "target": "mono",
         "range": 3,
         "effect": "1d2 burn",
+        "hitCountMult": 0.8,
         "description": "Damage is hitCount × 0.8, then the count resets.",
         "cooldown": 0
       },
@@ -5986,7 +5991,8 @@
           "tags": [
             "block",
             "react",
-            "magic"
+            "magic",
+            "prismatic"
           ]
         },
         "target": "self",
@@ -6080,17 +6086,20 @@
         "nom": "Retribution Shard",
         "dices": "1d6",
         "tags": [
-          "buff"
+          "buff",
+          "retribution"
         ],
         "applyOn": [
           "incomingDam"
         ],
+        "radius": 2,
         "description": "1d2 chance of dealing 1d6 to everyone around when hit (aoe self)."
       },
       {
         "nom": "Petrification",
         "tags": [
-          "buff"
+          "buff",
+          "petrifying"
         ],
         "applyOn": [],
         "description": "Each hit applies a petrification stack."
@@ -6103,12 +6112,13 @@
           "nom": "Petrify",
           "tags": [
             "magic",
-            "psy"
+            "psy",
+            "petrify"
           ]
         },
         "target": "mono",
         "range": 6,
-        "description": "Roll 1d20 + stacks: chance to petrify.",
+        "description": "Roll 1d20 + stacks: 20 or more turns the target to stone (stunned 3 turns) and clears the stacks.",
         "cooldown": 0
       },
       {
@@ -6147,7 +6157,8 @@
           "tags": [
             "block",
             "react",
-            "magic"
+            "magic",
+            "prismatic"
           ]
         },
         "target": "self",
@@ -6241,11 +6252,13 @@
         "nom": "Retribution Shard",
         "dices": "1d6",
         "tags": [
-          "buff"
+          "buff",
+          "retribution"
         ],
         "applyOn": [
           "incomingDam"
         ],
+        "radius": 2,
         "description": "1d2 chance of dealing 1d6 to everyone around when hit (aoe self)."
       }
     ],
@@ -6381,11 +6394,13 @@
         "nom": "Retribution Shard",
         "dices": "1d6",
         "tags": [
-          "buff"
+          "buff",
+          "retribution"
         ],
         "applyOn": [
           "incomingDam"
         ],
+        "radius": 2,
         "description": "1d2 chance of dealing 1d6 to everyone around when hit (aoe self)."
       }
     ],
@@ -6411,7 +6426,8 @@
           "dices": "1d8+4",
           "tags": [
             "physical",
-            "psy"
+            "psy",
+            "puppet"
           ]
         },
         "target": "aoe",
@@ -6428,7 +6444,8 @@
           "tags": [
             "block",
             "react",
-            "magic"
+            "magic",
+            "prismatic"
           ]
         },
         "target": "self",

@@ -1859,7 +1859,7 @@ export const personnageSheet = [
             "Petrification (Each hit applies a petrification stack)"
         ],
         abilities: [
-            { name: "Petrify", type: "mono", desc: "Roll 1d20 + stacks: chance to petrify." },
+            { name: "Petrify", type: "mono", desc: "Roll 1d20 + stacks: 20 or more turns the target to stone (stunned 3 turns) and clears the stacks." },
             { name: "Quartz Thrust", type: "mono", dice: "1d12+8", cooldown: "2T" },
             { name: "Crystal Resonance", type: "aoe", dice: "1d8+4", cooldown: "3T" },
             { name: "Prismatic Guard", type: "react block", dice: "-20", cooldown: "1T", desc: "React: -20 flat magic damage." },

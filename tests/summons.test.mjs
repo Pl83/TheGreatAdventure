@@ -359,3 +359,88 @@ test('Phoenix Hug heals the Prince and his ally, and both again when his next tu
   toTurn('Phoenix Prince');
   assert.ok(prince.currentHp > p1 && arya.currentHp > a1, 'and again next turn');
 });
+
+// ── Gem knights ────────────────────────────────────────────────────────────
+
+const settle = () => { for (let i = 0; i < 6 && S.awaitingReact; i++) L.handleReactNo(); };   // nobody reacts: the pending blow lands
+const near = (a, b) => { if (S.currentMap) { b.x = a.x + 1; b.y = a.y; } };
+
+test('Retribution Shard: a gem knight that is hit sometimes cuts the foes around it for 1d6', async () => {
+  await newFight({ teamA: ['Diamant Dunmara'], teamB: ['Rox'], seed: 3 });
+  const gem = byName('Diamant Dunmara'), rox = byName('Rox');
+  near(gem, rox);
+  gem.maxHp = rox.maxHp = 100000; gem.currentHp = rox.currentHp = 100000;
+  for (let i = 0; i < 60; i++) L.applyDamage(gem, 1, 'physical', ['physical']);
+  const lost = 100000 - rox.currentHp;
+  assert.ok(lost > 0, 'the shard burst at least once in 60 hits');
+  assert.ok(lost <= 60 * 6, 'at most 1d6 a hit');
+});
+
+test('Rubis counts the hits he takes; Retribution Shard gives back 0.8 per hit and resets the count', async () => {
+  await newFight({ teamA: ['Rubis Ignir'], teamB: ['Rox'], seed: 3 });
+  const rubis = byName('Rubis Ignir'), rox = byName('Rox');
+  const shard = rubis.abilities.find(a => a.name === 'Retribution Shard');
+  toTurn('Rubis Ignir');
+  assert.equal(L.abilityAvailable(rubis, shard), false, 'no hit, nothing to give back');
+  for (let i = 0; i < 10; i++) L.applyDamage(rubis, 1, 'physical', ['physical']);
+  assert.equal(rubis.hitCount, 10);
+  near(rubis, rox);
+  rox.maxHp = rox.currentHp = 1000;
+  L.handleCastAbility(rubis.id, 'Retribution Shard', [rox.id]);
+  settle();
+  assert.equal(rubis.hitCount, 0, 'the count resets');
+  assert.ok(rox.currentHp < 1000, 'the foe is hurt');
+});
+
+test('Emeraud: Petrify turns a target with enough stacks to stone', async () => {
+  await newFight({ teamA: ['Emeraud Brannoc'], teamB: ['Rox'], seed: 3 });
+  const em = byName('Emeraud Brannoc'), rox = byName('Rox');
+  toTurn('Emeraud Brannoc');
+  near(em, rox);
+  rox.petrifyStacks = 20;   // 1d20 + 20 always reaches 20
+  L.handleCastAbility(em.id, 'Petrify', [rox.id]);
+  assert.ok(rox.statusEffects.some(e => e.name.toLowerCase() === 'stun'), 'turned to stone');
+  assert.equal(rox.petrifyStacks, 0);
+});
+
+test('Emeraud: a blow that lands leaves a petrification stack', async () => {
+  await newFight({ teamA: ['Emeraud Brannoc'], teamB: ['Rox'], seed: 3 });
+  const em = byName('Emeraud Brannoc'), rox = byName('Rox');
+  rox.maxHp = rox.currentHp = 100000;
+  for (let i = 0; i < 12 && !rox.petrifyStacks; i++) {
+    toTurn('Emeraud Brannoc');
+    near(em, rox);
+    L.handleAttack(em.id, rox.id);
+    settle();
+  }
+  assert.ok(rox.petrifyStacks > 0);
+});
+
+test('Prismatic Guard cuts a spell by 20, once, and is only offered against a spell', async () => {
+  await newFight({ teamA: ['Diamant Dunmara'], teamB: ['Rox'], seed: 3 });
+  const gem = byName('Diamant Dunmara');
+  const spell = { source: 'spell', tags: ['magic'] }, blow = { source: 'technique', tags: ['physical'] };
+  assert.ok(L.getReacts(gem, spell).some(a => a.name === 'Prismatic Guard'));
+  assert.ok(!L.getReacts(gem, blow).some(a => a.name === 'Prismatic Guard'));
+  gem.statusEffects.push({ name: 'prismatic_guard', turnsLeft: 1, amount: 20, dice: null, damType: null, notes: '' });
+  const hp = gem.currentHp;
+  L.applyDamage(gem, 30, 'magic', ['magic']);
+  assert.equal(gem.currentHp, hp - 10);
+  L.applyDamage(gem, 30, 'magic', ['magic']);
+  assert.equal(gem.currentHp, hp - 40, 'the cut was spent');
+});
+
+test('Amethyst: Crystal Resonance leaves the targets it hits under her control', async () => {
+  let controlled = 0;
+  for (let seed = 1; seed <= 8 && !controlled; seed++) {
+    await newFight({ teamA: ['Amethyst Ysmar'], teamB: ['Rox'], seed });
+    const am = byName('Amethyst Ysmar'), rox = byName('Rox');
+    toTurn('Amethyst Ysmar');
+    near(am, rox);
+    rox.maxHp = rox.currentHp = 100000;
+    L.handleCastAbility(am.id, 'Crystal Resonance', [rox.id], { x: am.x, y: am.y });
+    settle();
+    if (rox.statusEffects.some(e => e.name === 'puppeteered')) controlled++;
+  }
+  assert.ok(controlled > 0);
+});
