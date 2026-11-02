@@ -299,3 +299,19 @@ test('Holy Duel: Arthur gains twice the adversary max HP and rolls with advantag
   assert.equal(arthur.duelId, rox.id);
   assert.ok(arthur.currentHp > hp);
 });
+
+test('Demon Pact: 10 HP buys 1 spell slot, as an instant, never her last HP', async () => {
+  await newFight({ teamA: ['Annastasia'], teamB: ['Rox'], seed: 3 });
+  const ann = byName('Annastasia');
+  const pact = ann.abilities.find(a => a.name === 'Demon Pact');
+  toTurn('Annastasia');
+  assert.equal(L.abilityAvailable(ann, pact), false, 'full slots: nothing to buy');
+  ann.spellSlots = 2;
+  const hp = ann.currentHp;
+  L.handleCastAbility(ann.id, 'Demon Pact', [ann.id]);
+  assert.equal(ann.currentHp, hp - 10);
+  assert.equal(ann.spellSlots, 3);
+  assert.equal(S.hasActed, false, 'it costs no action');
+  ann.currentHp = 10;
+  assert.equal(L.abilityAvailable(ann, pact), false, 'she cannot pay her last HP');
+});

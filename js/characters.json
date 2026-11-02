@@ -7736,7 +7736,7 @@
         "applyOn": [
           "hpPerHit"
         ],
-        "description": "-10 HP = 1 spell slot. Heals 1d10 when dealing damage."
+        "description": "Heals 1d10 when dealing damage. The pact also lets her buy spell slots: see the Demon Pact move (10 HP for 1 slot)."
       },
       {
         "nom": "Sacrifice Mark",
@@ -7797,6 +7797,20 @@
         "radius": 3,
         "description": "Gives +1d8 bonus damage for 2 turns.",
         "spellCost": 1
+      },
+      {
+        "category": "spell",
+        "base": {
+          "nom": "Demon Pact",
+          "tags": [
+            "buff",
+            "pact",
+            "instant"
+          ]
+        },
+        "target": "self",
+        "range": 0,
+        "description": "Pays 10 HP for 1 spell slot. An instant, as often as she can pay (never her last HP)."
       },
       {
         "category": "spell",

@@ -799,7 +799,7 @@
       "who": "Annastasia",
       "detail": "Demon Pact: -10 HP buys 1 spell slot, and she heals 1d10 when dealing damage. Sacrifice Mark picks a random enemy and summons one or two demons when it dies. Taboo halves her current HP and triggers the mark at once. Descriptions only.",
       "where": "characters.json · Google Doc import",
-      "resolution": "Done. Demon Pact heals her 1d10 whenever she deals damage. Sacrifice Mark: at the start of the battle (and again after each spring) a random enemy carries the mark; its death calls one Demon (max HP under 70) or two, and the mark passes to another enemy. Taboo halves her current HP and a slot to spring the mark at once. Not modelled: Demon Pact's -10 HP for 1 spell slot."
+      "resolution": "Done. Demon Pact heals her 1d10 whenever she deals damage. Sacrifice Mark: at the start of the battle (and again after each spring) a random enemy carries the mark; its death calls one Demon (max HP under 70) or two, and the mark passes to another enemy. Taboo halves her current HP and a slot to spring the mark at once. Demon Pact's slot purchase is a move of its own, an instant: 10 HP for 1 spell slot, as often as she can pay, never her last HP, and not above her maximum slots. The AI does not use it."
     },
     {
       "id": "mech-rox-aura",

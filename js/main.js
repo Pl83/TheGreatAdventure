@@ -2130,13 +2130,14 @@ export const personnageSheet = [
         hp: 60,
         spellSlots: 8,
         passives: [
-            "Demon Pact (-10 HP = 1 spell slot. Heals 1d10 when dealing damage)",
+            "Demon Pact (Heals 1d10 when dealing damage; the Demon Pact move buys 1 spell slot for 10 HP)",
             "Sacrifice Mark (At the start of the battle marks a random enemy. There is always one marked: on its death, or when Taboo springs the mark, another enemy takes it. Its death summons one Demon if its max HP is under 70, two otherwise)"
         ],
         spells: [
             { name: "Eldritch Blast", type: "mono", dice: "2d8", effect: "1d2 fear" },
             { name: "Cry of Agony", type: "aoe", dice: "1d6", desc: "1d2 fear, 1d2 stun, 1d2 root." },
             { name: "Berserk", type: "aoe", dice: "1d4+2", desc: "Gives +1d8 bonus damage for 2 turns." },
+            { name: "Demon Pact", type: "instant", desc: "Pays 10 HP for 1 spell slot, as often as she can pay (never her last HP)." },
             { name: "Taboo", type: "instant", desc: "Loses half current HP but instantly triggers the Sacrifice Mark; the mark then passes to another enemy." }
         ],
         attack: "Butcher Knife 1d4"

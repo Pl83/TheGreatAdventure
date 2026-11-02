@@ -283,6 +283,7 @@ export function resolveAbilitiesFromList(moveList) {
       isRemnant:  tags.includes('remnant'),   // Krux & Acronix's Summoning Portal: calls a whole roster character, its cost set by that character's HP
       isDuel:     tags.includes('duel'),   // Arthur's Holy Duel: binds him to one adversary for the rest of the fight
       wetAdvantage: move.wetAdvantage ?? false,   // Runik Sea Bound: its 1d2 chances roll with advantage against a wet target
+      isPact:     tags.includes('pact'),   // Annastasia's Demon Pact: pays 10 HP for 1 spell slot
       isTaboo:    tags.includes('taboo'),   // Annastasia: pays half her current HP to spring the Sacrifice Mark now
       isDetonate: tags.includes('detonate'),   // bursts every living unit the caster owns, on its own spot
     });
@@ -697,6 +698,7 @@ export function abilityAvailable(c, ab) {
   if (ab.isOncePerFight && c.usedThisFight.includes(ab.name)) return false;
   if ((ab.tags?.includes('chain_grab') || ab.tags?.includes('chain_guard')) && !freeChains(c).length) return false;   // no free chain, no grab and no guard
   if (ab.isRemnant && remnantsOf(c).length >= REMNANT_CAP) return false;   // the rift holds two remnants at most
+  if (ab.isPact && (c.currentHp <= PACT_HP || c.spellSlots >= c.maxSpellSlots)) return false;   // she cannot pay her last HP, nor hold more slots than she has
   if (ab.isTaboo && !markedByYou(c)) return false;   // no mark to spring
   if (ab.isDetonate && !ownedBy(c).some(u => !u.isKO && u.name === 'Fire Spirit')) return false;   // nothing to burst
   if (ab.tags?.includes('sleeping') && c.statusEffects.some(e => e.name === 'relic_awake')) return false;
@@ -2305,6 +2307,15 @@ function springMark(marker, victim, why) {
 
 const markedByYou = c => c.sacMarkId != null && !!getCombatant(c.sacMarkId) && !getCombatant(c.sacMarkId).isKO;
 
+// Annastasia's Demon Pact: 10 HP buys 1 spell slot (an instant, as often as she can pay)
+const PACT_HP = 10;
+function castPact(caster) {
+  caster.currentHp -= PACT_HP;
+  caster.spellSlots = Math.min(caster.maxSpellSlots, caster.spellSlots + 1);
+  addLog(`  🩸 ${caster.name} pays ${PACT_HP} HP to the pact: +1 spell slot (${caster.spellSlots}/${caster.maxSpellSlots}).`, 'spell');
+  updateCombatantCardDOM(caster);
+}
+
 // Annastasia's Taboo: she loses half her current HP (never her last) and the mark is sprung at once, the victim still standing
 function castTaboo(caster) {
   const loss = Math.floor(caster.currentHp / 2);
@@ -3187,8 +3198,8 @@ export function handleCastAbility(casterId, abilityName, targetIds, center = nul
 
   addLog(`${caster.name} uses ${ability.name}!`, ability.source === 'spell' ? 'spell' : 'tech');
   if (ability.isDuel && targets[0]) startDuel(caster, targets[0]);
-  if (ability.summon || ability.isDetonate || ability.isTaboo || ability.isRemnant) {
-    if (ability.summon) castSummon(caster, ability); else if (ability.isRemnant) castRemnant(caster, remnantSheet); else if (ability.isTaboo) castTaboo(caster); else castDetonate(caster, ability);
+  if (ability.summon || ability.isDetonate || ability.isTaboo || ability.isRemnant || ability.isPact) {
+    if (ability.summon) castSummon(caster, ability); else if (ability.isPact) castPact(caster); else if (ability.isRemnant) castRemnant(caster, remnantSheet); else if (ability.isTaboo) castTaboo(caster); else castDetonate(caster, ability);
     concludeAction(!!ability.isInstant);
     return;
   }
@@ -3228,7 +3239,7 @@ export function handleCastAbility(casterId, abilityName, targetIds, center = nul
 
   // Effects that never prompt a react: friendly buffs, unblockable moves, and moves that deal no damage or status
   const noReacts = ability.targetKind === 'ally' || !!ability.tags?.some(t => t === 'unblockabled' || t === 'taunt');
-  const hasMechanics = ability.summon || ability.isTaboo || ability.isRemnant || ability.isDetonate || ability.dice || ability.effect || ability.precastDice || ability.slotRegen > 0 || ability.isRevive
+  const hasMechanics = ability.summon || ability.isTaboo || ability.isPact || ability.isRemnant || ability.isDetonate || ability.dice || ability.effect || ability.precastDice || ability.slotRegen > 0 || ability.isRevive
     || ability.isBlock || ability.targetKind === 'self' || ability.field
     || ability.isContest || ability.tags?.some(t => ['dash', 'fly', 'teleportation', 'cleans', 'pull', 'taunt', 'smoke', 'adv_next', 'orders', 'ward', 'dry'].includes(t));
   if (!hasMechanics) addLog(`  ⚠ ${ability.name} has no mechanical effect in the simulator yet.`, 'info');
