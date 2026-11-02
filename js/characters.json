@@ -7801,12 +7801,14 @@
           "nom": "Taboo",
           "tags": [
             "magic",
-            "buff"
+            "buff",
+            "taboo",
+            "instant"
           ]
         },
         "target": "self",
         "range": 0,
-        "description": "Loses half current HP but instantly triggers the Sacrifice Mark.",
+        "description": "Loses half current HP but instantly triggers the Sacrifice Mark: the Demons come now (one or two by the marked enemy's max HP) and the mark is spent. Needs a living mark.",
         "spellCost": 1
       }
     ]

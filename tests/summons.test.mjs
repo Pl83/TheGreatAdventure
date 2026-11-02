@@ -168,3 +168,17 @@ test('Irina is immune to burn', async () => {
   L.applyStatus(irina, 'burn');
   assert.ok(!irina.statusEffects.some(e => e.name.toLowerCase() === 'burn'));
 });
+
+test('Taboo costs half her current HP and springs the mark at once, the victim still standing', async () => {
+  await newFight({ teamA: ['Annastasia'], teamB: ['Rox'], seed: 3 });
+  const ann = byName('Annastasia'), rox = byName('Rox');
+  const hp = ann.currentHp, slots = ann.spellSlots;
+  assert.ok(L.getAbilities?.(ann) ?? true);
+  toTurn('Annastasia');
+  L.handleCastAbility(ann.id, 'Taboo', [ann.id]);
+  assert.equal(ann.currentHp, hp - Math.floor(hp / 2));
+  assert.equal(ann.spellSlots, slots - 1);
+  assert.ok(!rox.isKO);
+  assert.equal(ann.sacMarkId, null, 'the mark is spent');
+  assert.equal(S.combatants.filter(c => c.name === 'Demon' && c.ownerId === ann.id).length, rox.maxHp < 70 ? 1 : 2);
+});

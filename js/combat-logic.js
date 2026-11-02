@@ -280,6 +280,7 @@ export function resolveAbilitiesFromList(moveList) {
       isTransform: move.category === 'transformation',
       duration:   move.duration ?? null,
       summon:     move.summon ?? null,   // { unit, count }: calls `count` (dice or number) units of that sheet beside the caster
+      isTaboo:    tags.includes('taboo'),   // Annastasia: pays half her current HP to spring the Sacrifice Mark now
       isDetonate: tags.includes('detonate'),   // bursts every living unit the caster owns, on its own spot
     });
   }
@@ -650,6 +651,7 @@ export function abilityAvailable(c, ab) {
   }
   if (ab.isOncePerFight && c.usedThisFight.includes(ab.name)) return false;
   if ((ab.tags?.includes('chain_grab') || ab.tags?.includes('chain_guard')) && !freeChains(c).length) return false;   // no free chain, no grab and no guard
+  if (ab.isTaboo && !markedByYou(c)) return false;   // no mark to spring
   if (ab.isDetonate && !ownedBy(c).some(u => !u.isKO && u.name === 'Fire Spirit')) return false;   // nothing to burst
   if (ab.tags?.includes('sleeping') && c.statusEffects.some(e => e.name === 'relic_awake')) return false;
   if (ab.maxCharges > 0 && (c.remainingCharges[ab.name] ?? ab.maxCharges) <= 0) return false;
@@ -2221,14 +2223,30 @@ function markSacrifices() {
 // The marked enemy fell: a weak one (max HP under 70) calls one Demon for the marker, a strong one calls two
 const SACRIFICE_STRONG_HP = 70;
 function reapSacrifice(fallen) {
-  for (const o of livingCombatants(1 - fallen.teamIndex)) {
-    if (o.sacMarkId !== fallen.id) continue;
-    o.sacMarkId = null;
-    const n = fallen.maxHp < SACRIFICE_STRONG_HP ? 1 : 2;
-    let made = 0;
-    for (let i = 0; i < n; i++) if (spawnSummon(o, 'Demon')) made++;
-    addLog(`🩸 ${fallen.name} was the sacrifice: ${made} Demon${made === 1 ? '' : 's'} rise${made === 1 ? 's' : ''} beside ${o.name}.`, 'crit');
+  for (const o of livingCombatants(1 - fallen.teamIndex)) if (o.sacMarkId === fallen.id) springMark(o, fallen, `${fallen.name} was the sacrifice`);
+}
+
+// Calls the Demons of the marker's Sacrifice Mark; the mark is spent
+function springMark(marker, victim, why) {
+  marker.sacMarkId = null;
+  const n = victim.maxHp < SACRIFICE_STRONG_HP ? 1 : 2;
+  let made = 0;
+  for (let i = 0; i < n; i++) if (spawnSummon(marker, 'Demon')) made++;
+  addLog(`🩸 ${why}: ${made} Demon${made === 1 ? '' : 's'} rise${made === 1 ? 's' : ''} beside ${marker.name}.`, 'crit');
+}
+
+const markedByYou = c => c.sacMarkId != null && !!getCombatant(c.sacMarkId) && !getCombatant(c.sacMarkId).isKO;
+
+// Annastasia's Taboo: she loses half her current HP (never her last) and the mark is sprung at once, the victim still standing
+function castTaboo(caster) {
+  const loss = Math.floor(caster.currentHp / 2);
+  if (loss > 0) {
+    caster.currentHp -= loss;
+    addLog(`  ${caster.name} pays ${loss} HP for the Taboo.`, 'hit');
+    updateCombatantCardDOM(caster);
   }
+  const victim = getCombatant(caster.sacMarkId);
+  if (victim) springMark(caster, victim, `The Taboo springs the Sacrifice Mark on ${victim.name}`);
 }
 
 // An ally falling feeds the stacking passives of the fighters still standing (Relentless Warrior)
@@ -3090,8 +3108,8 @@ export function handleCastAbility(casterId, abilityName, targetIds, center = nul
   if (!ability.isInstant) spendAction(caster, ability.name, ability.steamMode ? 'steamMode' : ability.source);
 
   addLog(`${caster.name} uses ${ability.name}!`, ability.source === 'spell' ? 'spell' : 'tech');
-  if (ability.summon || ability.isDetonate) {
-    if (ability.summon) castSummon(caster, ability); else castDetonate(caster, ability);
+  if (ability.summon || ability.isDetonate || ability.isTaboo) {
+    if (ability.summon) castSummon(caster, ability); else if (ability.isTaboo) castTaboo(caster); else castDetonate(caster, ability);
     concludeAction(!!ability.isInstant);
     return;
   }
@@ -3131,7 +3149,7 @@ export function handleCastAbility(casterId, abilityName, targetIds, center = nul
 
   // Effects that never prompt a react: friendly buffs, unblockable moves, and moves that deal no damage or status
   const noReacts = ability.targetKind === 'ally' || !!ability.tags?.some(t => t === 'unblockabled' || t === 'taunt');
-  const hasMechanics = ability.summon || ability.isDetonate || ability.dice || ability.effect || ability.precastDice || ability.slotRegen > 0 || ability.isRevive
+  const hasMechanics = ability.summon || ability.isTaboo || ability.isDetonate || ability.dice || ability.effect || ability.precastDice || ability.slotRegen > 0 || ability.isRevive
     || ability.isBlock || ability.targetKind === 'self' || ability.field
     || ability.isContest || ability.tags?.some(t => ['dash', 'fly', 'teleportation', 'cleans', 'pull', 'taunt', 'smoke', 'adv_next', 'orders', 'ward', 'dry'].includes(t));
   if (!hasMechanics) addLog(`  ⚠ ${ability.name} has no mechanical effect in the simulator yet.`, 'info');
