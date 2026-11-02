@@ -35,12 +35,12 @@ test('no Nexo knight keeps a copy of Alicia\'s Fire Dragon Breath', () => {
   }
 });
 
-test('Lance flies like any flier, with no Nexo Power; the others have theirs', () => {
+test('Lance flies like any flier, with no Nexo Power of his own; the others have theirs', () => {
   const lance = sheetOf('Lance');
-  assert.deepEqual(lance.moveSet, []);
+  assert.deepEqual(lance.moveSet.map(m => m.base.nom), ['Combined Nexo Power']);   // the team synergy only
   assert.deepEqual(lance.passif.find(p => p.nom === 'Fly'), { nom: 'Fly', dices: '18', tags: ['buff', 'fly'], applyOn: ['speed'] });
-  assert.deepEqual(sheetOf('Aron').moveSet.map(m => m.base.nom), ['Nexo Power: Arrow Rain']);
-  assert.deepEqual(sheetOf('Axel').moveSet.map(m => m.base.nom), ['Nexo Power: Tremor']);
+  assert.deepEqual(sheetOf('Aron').moveSet.map(m => m.base.nom), ['Nexo Power: Arrow Rain', 'Combined Nexo Power']);
+  assert.deepEqual(sheetOf('Axel').moveSet.map(m => m.base.nom), ['Nexo Power: Tremor', 'Combined Nexo Power']);
   assert.ok(sheetOf('Clay').moveSet.some(m => m.base.nom === 'Nexo Power: Energy Cuts' && m.base.dices === '4d6+8' && m.target === 'cone'));
 });
 
@@ -174,4 +174,37 @@ test('Tremor is a 3d6+4 area that can root and hinder', () => {
   assert.equal(m.target, 'aoe');
   assert.equal(m.effect, '1d2 root');
   assert.deepEqual(m.inflicts, { status: 'hindered', turns: 1, chance: 0.5 });
+});
+
+// ── Synergy: all five Nexo Knights on one team ─────────────────────────────
+
+const FIVE = ['Alicia', 'Aron', 'Lance', 'Axel', 'Clay'];
+const combined = c => c.abilities.find(a => a.name === 'Combined Nexo Power');
+const logText = () => S.log.map(l => l.text ?? l.msg ?? String(l)).join('\n');
+
+test('Combined Nexo Power: only a team of all five can use it', async () => {
+  await newFight({ teamA: FIVE, teamB: ['Kadgar'], seed: 2 });
+  for (const n of FIVE) assert.ok(L.abilityAvailable(byName(n), combined(byName(n))), n);
+  await newFight({ teamA: FIVE.slice(0, 4), teamB: ['Kadgar'], seed: 2 });
+  for (const n of FIVE.slice(0, 4)) assert.ok(!L.abilityAvailable(byName(n), combined(byName(n))), n);
+});
+
+test('Combined Nexo Power: one d12 per knight standing, and the team has one shot', async () => {
+  await newFight({ teamA: FIVE, teamB: ['Kadgar'], seed: 2 });
+  const foe = byName('Kadgar');
+  foe.currentHp = foe.maxHp = 2000;
+  byName('Lance').isKO = true;
+  const clay = toTurn('Clay');
+  forceD20(19, 2);
+  L.handleCastAbility(clay.id, 'Combined Nexo Power', [foe.id], { x: foe.x, y: foe.y });
+  settle();
+  assert.match(logText(), /4 of five still stand \(4d12\)/);
+  assert.ok(foe.currentHp < foe.maxHp, 'the foe is hurt');
+  for (const n of ['Alicia', 'Aron', 'Axel', 'Clay']) assert.ok(!L.abilityAvailable(byName(n), combined(byName(n))), `${n} cannot fire it again`);
+});
+
+test('Combined Nexo Power: the team keeps it when one knight falls before it is used', async () => {
+  await newFight({ teamA: FIVE, teamB: ['Kadgar'], seed: 2 });
+  byName('Axel').isKO = true;
+  assert.ok(L.abilityAvailable(byName('Aron'), combined(byName('Aron'))));
 });

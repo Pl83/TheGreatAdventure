@@ -908,6 +908,22 @@
         "authority": 5,
         "description": "Authority 5.",
         "cooldown": 0
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Combined Nexo Power",
+          "dices": "5d12",
+          "tags": [
+            "magic",
+            "nexoCombined"
+          ]
+        },
+        "target": "aoe",
+        "range": 10,
+        "radius": 6,
+        "cooldown": 99,
+        "description": "Synergy: only when all five Nexo Knights are on the team. Once per fight for the whole team, fired by any of them: 1d12 for every knight still standing, on every foe in the area."
       }
     ]
   },
@@ -7149,6 +7165,22 @@
         "range": 10,
         "radius": 2,
         "cooldown": 3
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Combined Nexo Power",
+          "dices": "5d12",
+          "tags": [
+            "magic",
+            "nexoCombined"
+          ]
+        },
+        "target": "aoe",
+        "range": 10,
+        "radius": 6,
+        "cooldown": 99,
+        "description": "Synergy: only when all five Nexo Knights are on the team. Once per fight for the whole team, fired by any of them: 1d12 for every knight still standing, on every foe in the area."
       }
     ]
   },
@@ -7245,7 +7277,23 @@
         }
       }
     ],
-    "moveSet": []
+    "moveSet": [
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Combined Nexo Power",
+          "dices": "5d12",
+          "tags": [
+            "magic",
+            "nexoCombined"
+          ]
+        },
+        "target": "aoe",
+        "range": 10,
+        "radius": 6,
+        "cooldown": 99,
+        "description": "Synergy: only when all five Nexo Knights are on the team. Once per fight for the whole team, fired by any of them: 1d12 for every knight still standing, on every foe in the area."
+      }]
   },
   {
     "nom": "Axel",
@@ -7338,6 +7386,22 @@
         "radius": 3,
         "cooldown": 3,
         "description": "3d6+4 to every foe in the area. Each has a 1d2 chance of disadvantage and a 1d2 chance of being rooted for one turn."
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Combined Nexo Power",
+          "dices": "5d12",
+          "tags": [
+            "magic",
+            "nexoCombined"
+          ]
+        },
+        "target": "aoe",
+        "range": 10,
+        "radius": 6,
+        "cooldown": 99,
+        "description": "Synergy: only when all five Nexo Knights are on the team. Once per fight for the whole team, fired by any of them: 1d12 for every knight still standing, on every foe in the area."
       }
     ]
   },
@@ -7428,6 +7492,22 @@
         "target": "cone",
         "range": 5,
         "cooldown": 3
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Combined Nexo Power",
+          "dices": "5d12",
+          "tags": [
+            "magic",
+            "nexoCombined"
+          ]
+        },
+        "target": "aoe",
+        "range": 10,
+        "radius": 6,
+        "cooldown": 99,
+        "description": "Synergy: only when all five Nexo Knights are on the team. Once per fight for the whole team, fired by any of them: 1d12 for every knight still standing, on every foe in the area."
       }
     ]
   },

@@ -1171,6 +1171,16 @@
       "detail": "Audit found statusEmoji (unused), the deceased key (read by nothing), the 2,060-line personnageSheet mirror in main.js (read only by one test) and two AI hot spots: bfsReachable (9.7% of a 5v5 fight) and bestArea (8.6%).",
       "where": "combat-render.js, characters.json, main.js, combat-logic.js · bfsReachable, ai/greedy.js · bestArea",
       "resolution": "Done. statusEmoji, deceased and personnageSheet removed (the mirror rule is retired; characters.json is the only source). bfsReachable now caches per map and door state and returns a copy; bestArea skips blast centres out of reach of every target. Same results, tests unchanged."
+    },
+    {
+      "id": "syn-nexo-five",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "Nexo Knights synergy: Combined Nexo Power",
+      "who": "Alicia, Aron, Lance, Axel, Clay",
+      "detail": "A team that fields all five Nexo Knights gets a team strike. Only Divine Beast synergy existed before; there is still no faction bonus.",
+      "where": "characters.json · the five sheets; combat-logic.js · nexoTeam, abilityAvailable, handleCastAbility",
+      "resolution": "Done. Every knight has Combined Nexo Power (aoe, range 10, radius 6, magic), usable only when the team holds all five, once per fight for the whole team, by whichever knight fires it. It deals 1d12 for each knight still standing (fallen ones included in the five do not count). Damage, shape and the once-per-team rule are my proposal: confirm or change them."
     }
   ]
 }

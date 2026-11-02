@@ -696,7 +696,13 @@ export function getDomainEffects(combatant, context = {}) {
   });
 }
 
+// Nexo Knights synergy: a team that fields all five holds the Combined Nexo Power, fired once a fight by any of them
+const NEXO_KNIGHTS = ['Alicia', 'Aron', 'Lance', 'Axel', 'Clay'];
+const nexoTeam = c => NEXO_KNIGHTS.every(n => S.combatants.some(u => u.teamIndex === c.teamIndex && u.name === n));
+const nexoSurvivors = c => NEXO_KNIGHTS.filter(n => S.combatants.some(u => u.teamIndex === c.teamIndex && u.name === n && !u.isKO)).length;
+
 export function abilityAvailable(c, ab) {
+  if (ab.tags?.includes('nexoCombined') && !nexoTeam(c)) return false;
   if ((c.cooldowns[ab.name] ?? 0) > 0) {
     // Domain: no cooldown on matching abilities
     const domainNoCD = getDomainEffects(c, { applyOn: 'cooldown', ability: ab });
@@ -3380,6 +3386,11 @@ export function handleCastAbility(casterId, abilityName, targetIds, center = nul
   const caster  = getCombatant(casterId);
   let ability = caster?.abilities.find(a => a.name === abilityName);
   if (!ability || !abilityAvailable(caster, ability)) return;
+  if (ability.tags?.includes('nexoCombined')) {   // one d12 for every knight still standing
+    const standing = nexoSurvivors(caster);
+    ability = { ...ability, dice: `${standing}d12` };
+    addLog(`  ⚔ The Nexo Knights combine their powers: ${standing} of five still stand (${standing}d12).`, 'spell');
+  }
   if (ability.allSlots) ability = { ...ability, dice: `${caster.spellSlots}d20+10`, cost: { type: 'slots', amount: caster.spellSlots } };
   if (ability.reactOnly) { addLog(`⚠ ${ability.name} can only be used as a reaction.`, 'info'); return; }
   if (ability.hitCountMult > 0) {
@@ -3442,6 +3453,9 @@ export function handleCastAbility(casterId, abilityName, targetIds, center = nul
   if (ability.cooldownTurns > 0) caster.cooldowns[ability.name] = ability.cooldownTurns + 1;
   else if (ability.oncePerTurn) caster.cooldowns[ability.name] = 1;   // lifts when its owner's next turn starts
   if (ability.isOncePerFight) caster.usedThisFight.push(ability.name);
+  if (ability.tags?.includes('nexoCombined')) {   // the team has one shot, whoever fires it
+    for (const u of S.combatants) if (u.teamIndex === caster.teamIndex && !u.usedThisFight.includes(ability.name)) u.usedThisFight.push(ability.name);
+  }
   if (ability.maxCharges > 0) {
     if (caster.remainingCharges[ability.name] == null) caster.remainingCharges[ability.name] = ability.maxCharges;
     caster.remainingCharges[ability.name]--;
