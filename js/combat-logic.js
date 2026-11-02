@@ -2207,17 +2207,19 @@ function markHunters() {
   }
 }
 
-// Annastasia's Sacrifice Mark: at the start of the battle she marks one random enemy (never a summon)
+// Annastasia's Sacrifice Mark: there is always a marked enemy. She marks a random one (never a summon, never `except`)
+// at the start of the battle, and again each time the mark is spent.
+function markSacrifice(c, except = null) {
+  c.sacMarkId = null;
+  const prey = livingCombatants(1 - c.teamIndex).filter(f => !f.ownerId && f.id !== except?.id);
+  if (!prey.length) return;
+  const mark = prey[Math.floor(random() * prey.length)];
+  c.sacMarkId = mark.id;
+  addLog(`🩸 ${c.name} marks ${mark.name} for sacrifice: its death will call demons.`, 'spell');
+}
+
 function markSacrifices() {
-  for (const c of S.combatants) {
-    c.sacMarkId = null;
-    if (c.isKO || !c.sourceChar.passif?.some(p => p.tags?.includes('sacrificeMark'))) continue;
-    const prey = livingCombatants(1 - c.teamIndex).filter(f => !f.ownerId);
-    if (!prey.length) continue;
-    const mark = prey[Math.floor(random() * prey.length)];
-    c.sacMarkId = mark.id;
-    addLog(`🩸 ${c.name} marks ${mark.name} for sacrifice: its death will call demons.`, 'spell');
-  }
+  for (const c of S.combatants) if (!c.isKO && c.sourceChar.passif?.some(p => p.tags?.includes('sacrificeMark'))) markSacrifice(c);
 }
 
 // The marked enemy fell: a weak one (max HP under 70) calls one Demon for the marker, a strong one calls two
@@ -2228,11 +2230,11 @@ function reapSacrifice(fallen) {
 
 // Calls the Demons of the marker's Sacrifice Mark; the mark is spent
 function springMark(marker, victim, why) {
-  marker.sacMarkId = null;
   const n = victim.maxHp < SACRIFICE_STRONG_HP ? 1 : 2;
   let made = 0;
   for (let i = 0; i < n; i++) if (spawnSummon(marker, 'Demon')) made++;
   addLog(`🩸 ${why}: ${made} Demon${made === 1 ? '' : 's'} rise${made === 1 ? 's' : ''} beside ${marker.name}.`, 'crit');
+  markSacrifice(marker, victim);   // the mark passes to another enemy
 }
 
 const markedByYou = c => c.sacMarkId != null && !!getCombatant(c.sacMarkId) && !getCombatant(c.sacMarkId).isKO;

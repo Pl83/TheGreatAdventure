@@ -179,6 +179,20 @@ test('Taboo costs half her current HP and springs the mark at once, the victim s
   assert.equal(ann.currentHp, hp - Math.floor(hp / 2));
   assert.equal(ann.spellSlots, slots - 1);
   assert.ok(!rox.isKO);
-  assert.equal(ann.sacMarkId, null, 'the mark is spent');
+  assert.equal(ann.sacMarkId, null, 'no other enemy to carry the mark');
   assert.equal(S.combatants.filter(c => c.name === 'Demon' && c.ownerId === ann.id).length, rox.maxHp < 70 ? 1 : 2);
+});
+
+test('the Sacrifice Mark always passes to another enemy: after a death and after a Taboo', async () => {
+  await newFight({ teamA: ['Annastasia'], teamB: ['Rox', 'Irina', 'Ray'], seed: 3 });
+  const ann = byName('Annastasia');
+  const first = L.getCombatant(ann.sacMarkId);
+  L.applyDamage(first, 999, 'physical', ['physical']);
+  const second = L.getCombatant(ann.sacMarkId);
+  assert.ok(second && !second.isKO && second.id !== first.id, 'a new living enemy is marked');
+  toTurn('Annastasia');
+  L.handleCastAbility(ann.id, 'Taboo', [ann.id]);
+  const third = L.getCombatant(ann.sacMarkId);
+  assert.ok(third && !third.isKO && third.id !== second.id, 'Taboo moves the mark to another enemy');
+  assert.ok(!second.isKO, 'the Taboo victim lives');
 });

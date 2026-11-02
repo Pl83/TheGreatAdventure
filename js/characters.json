@@ -7742,7 +7742,7 @@
           "sacrificeMark"
         ],
         "applyOn": [],
-        "description": "At the start of the battle marks a random enemy. On its death, summons one Demon (max HP under 70) or two (70 and above)."
+        "description": "At the start of the battle marks a random enemy; there is always one marked: when it dies, or when Taboo springs the mark, another enemy takes the mark. On its death, summons one Demon (max HP under 70) or two (70 and above)."
       }
     ],
     "moveSet": [
@@ -7808,7 +7808,7 @@
         },
         "target": "self",
         "range": 0,
-        "description": "Loses half current HP but instantly triggers the Sacrifice Mark: the Demons come now (one or two by the marked enemy's max HP) and the mark is spent. Needs a living mark.",
+        "description": "Loses half current HP but instantly triggers the Sacrifice Mark: the Demons come now (one or two by the marked enemy's max HP) and the mark passes to another enemy. Needs a living mark.",
         "spellCost": 1
       }
     ]
