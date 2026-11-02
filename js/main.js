@@ -1520,7 +1520,7 @@ export const personnageSheet = [
         ki: 9,
         kiRegen: 2,
         passives: [
-            "Child of the Phoenix (Immune to burn. Shares the vision of her fire spirits. Immunity handled in immunities[])",
+            "Child of the Phoenix (Immune to burn. Immunity handled in immunities[])",
             "Immunities (burn)"
         ],
         abilities: [
@@ -2131,7 +2131,7 @@ export const personnageSheet = [
         spellSlots: 8,
         passives: [
             "Demon Pact (-10 HP = 1 spell slot. Heals 1d10 when dealing damage)",
-            "Sacrifice Mark (Marks a random enemy. On its death, summons one or two demons depending on its strength)"
+            "Sacrifice Mark (At the start of the battle marks a random enemy. On its death, summons one Demon if its max HP is under 70, two otherwise)"
         ],
         spells: [
             { name: "Eldritch Blast", type: "mono", dice: "2d8", effect: "1d2 fear" },
@@ -2140,6 +2140,18 @@ export const personnageSheet = [
             { name: "Taboo", type: "instant", desc: "Loses half current HP but instantly triggers the Sacrifice Mark." }
         ],
         attack: "Butcher Knife 1d4"
+    },
+    {
+        name: "Demon",
+        faction: "Covenant",
+        hp: 30,
+        passives: [
+            "Dragon Slayer (+1d8+4 attack roll vs dragon)"
+        ],
+        techniques: [
+            { name: "Oni Beam", type: "splash", dice: "1d12", desc: "1d12 on the target, 1d8 on those around it." }
+        ],
+        attack: "Claws 2d8+2"
     },
     {
         name: "Vampire Sienna",

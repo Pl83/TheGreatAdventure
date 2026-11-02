@@ -4226,7 +4226,7 @@
           "buff"
         ],
         "applyOn": [],
-        "description": "Immune to burn. Shares the vision of her fire spirits. Immunity handled in immunities[]."
+        "description": "Immune to burn (in immunities[])."
       }
     ],
     "moveSet": [
@@ -7738,10 +7738,11 @@
       {
         "nom": "Sacrifice Mark",
         "tags": [
-          "buff"
+          "buff",
+          "sacrificeMark"
         ],
         "applyOn": [],
-        "description": "Marks a random enemy. On its death, summons one or two demons depending on its strength."
+        "description": "At the start of the battle marks a random enemy. On its death, summons one Demon (max HP under 70) or two (70 and above)."
       }
     ],
     "moveSet": [
@@ -7809,6 +7810,43 @@
         "spellCost": 1
       }
     ]
+  },
+  {
+    "nom": "Demon",
+    "faction": "Covenant",
+    "hp": 30,
+    "spellSlot": 0,
+    "ki": 0,
+    "kiRegen": 0,
+    "speed": 6,
+    "autority": 0,
+    "immunities": [],
+    "baseAtk": {
+      "nom": "Claws",
+      "dices": "2d8+2",
+      "tags": ["physical"]
+    },
+    "passif": [
+      {
+        "nom": "Dragon Slayer",
+        "dices": "+1d8+4",
+        "tags": ["buff"],
+        "applyOn": ["atkRoll"],
+        "condition": { "targetHasTag": "dragon" }
+      }
+    ],
+    "moveSet": [
+      {
+        "category": "technique",
+        "base": { "nom": "Oni Beam", "dices": "1d12", "tags": ["magic", "oni"] },
+        "target": "splash",
+        "range": 10,
+        "radius": 2,
+        "splashDice": "1d8",
+        "description": "1d12 on the target, 1d8 on those around it."
+      }
+    ],
+    "tags": ["summon", "monster", "oni"]
   },
   {
     "nom": "Vampire Sienna",

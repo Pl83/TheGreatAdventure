@@ -334,6 +334,7 @@ export function buildCombatant(char, teamIndex, id) {
     chains: chainsFor(char),   // Vorrakan's Left and Right Chain: [{ name, hp, maxHp, holdingId, freed }] (they are not units)
     lastKind: null,   // what its last action was: 'attack', 'technique', 'spell'... (Sienna's SteamGun reads the one before)
     prevKind: null,
+    sacMarkId: null,    // Annastasia's Sacrifice Mark: id of the enemy marked at the start of the battle (its death calls demons)
     huntMarkId: null,   // Sienna's Huntress / Apex Predator: id of the enemy marked at the start of the battle (x2 damage against it, advantage on defense against it)
     ownerId: null,   // a summon or companion: id of the unit that called it (it acts right after, and falls with, that unit)
     x: 0,
@@ -2204,11 +2205,38 @@ function markHunters() {
   }
 }
 
+// Annastasia's Sacrifice Mark: at the start of the battle she marks one random enemy (never a summon)
+function markSacrifices() {
+  for (const c of S.combatants) {
+    c.sacMarkId = null;
+    if (c.isKO || !c.sourceChar.passif?.some(p => p.tags?.includes('sacrificeMark'))) continue;
+    const prey = livingCombatants(1 - c.teamIndex).filter(f => !f.ownerId);
+    if (!prey.length) continue;
+    const mark = prey[Math.floor(random() * prey.length)];
+    c.sacMarkId = mark.id;
+    addLog(`🩸 ${c.name} marks ${mark.name} for sacrifice: its death will call demons.`, 'spell');
+  }
+}
+
+// The marked enemy fell: a weak one (max HP under 70) calls one Demon for the marker, a strong one calls two
+const SACRIFICE_STRONG_HP = 70;
+function reapSacrifice(fallen) {
+  for (const o of livingCombatants(1 - fallen.teamIndex)) {
+    if (o.sacMarkId !== fallen.id) continue;
+    o.sacMarkId = null;
+    const n = fallen.maxHp < SACRIFICE_STRONG_HP ? 1 : 2;
+    let made = 0;
+    for (let i = 0; i < n; i++) if (spawnSummon(o, 'Demon')) made++;
+    addLog(`🩸 ${fallen.name} was the sacrifice: ${made} Demon${made === 1 ? '' : 's'} rise${made === 1 ? 's' : ''} beside ${o.name}.`, 'crit');
+  }
+}
+
 // An ally falling feeds the stacking passives of the fighters still standing (Relentless Warrior)
 function noteFallen(fallen) {
   dismissOwned(fallen);
   releaseAllChains(fallen);
   feastOnMark(fallen);
+  reapSacrifice(fallen);
   if (isSummonUnit(fallen)) return;   // a summon's fall is no ally's death
   for (const o of livingCombatants(fallen.teamIndex)) {
     for (const p of o.sourceChar.passif ?? []) {
@@ -4171,6 +4199,7 @@ export function startCombat() {
   S.hasMoved = false;
   addRoundDivider();
   markHunters();
+  markSacrifices();
   R.render();
   beginTurn(activeCombatant());
 }

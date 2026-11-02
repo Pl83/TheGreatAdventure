@@ -55,7 +55,7 @@ test('the three summon sheets carry the summon tag, which keeps them off the tea
   const { readFileSync } = await import('node:fs');
   const roster = JSON.parse(readFileSync(new URL('../js/characters.json', import.meta.url), 'utf8'));
   const summons = roster.filter(c => c.tags?.includes('summon')).map(c => c.nom).sort();
-  assert.deepEqual(summons, ['Fire Spirit', 'Floating Head', 'Golem']);
+  assert.deepEqual(summons, ['Demon', 'Fire Spirit', 'Floating Head', 'Golem']);
 });
 
 // ── Called summons: Irina and Leonidas ─────────────────────────────────────
@@ -145,4 +145,26 @@ test('restoring a snapshot removes units summoned since, and the order with them
   assert.equal(S.combatants.length, before.n);
   assert.deepEqual(S.initiativeOrder, before.order);
   assert.ok(S.combatants.every(c => c.ownerId == null));
+});
+
+// ── Annastasia's Sacrifice Mark ────────────────────────────────────────────
+
+test('the Sacrifice Mark calls one Demon for a weak victim and two for a strong one', async () => {
+  for (const [maxHp, expected] of [[60, 1], [69, 1], [70, 2], [120, 2]]) {
+    await newFight({ teamA: ['Annastasia'], teamB: ['Rox'], seed: 3 });
+    const ann = byName('Annastasia'), rox = byName('Rox');
+    assert.equal(ann.sacMarkId, rox.id, 'the lone enemy is marked');
+    rox.maxHp = maxHp; rox.currentHp = 1;
+    L.applyDamage(rox, 500, 'physical', ['physical']);
+    const demons = S.combatants.filter(c => c.name === 'Demon' && c.ownerId === ann.id);
+    assert.equal(demons.length, expected, `max HP ${maxHp}`);
+    assert.equal(demons[0].teamIndex, ann.teamIndex);
+  }
+});
+
+test('Irina is immune to burn', async () => {
+  await newFight({ teamA: ['Irina'], teamB: ['Rox'], seed: 3 });
+  const irina = byName('Irina');
+  L.applyStatus(irina, 'burn');
+  assert.ok(!irina.statusEffects.some(e => e.name.toLowerCase() === 'burn'));
 });
