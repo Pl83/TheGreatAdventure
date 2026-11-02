@@ -703,9 +703,9 @@ const nexoSurvivors = c => NEXO_KNIGHTS.filter(n => S.combatants.some(u => u.tea
 const NEXO_MIN = 2;   // it takes two knights standing to combine anything
 // What each knight adds to the shared strike (Lance needs nothing: his Faster already hits slower foes harder; Clay orders the team after the cast)
 const NEXO_TWISTS = {
-  Alicia: ab => ({ tags: [...ab.tags, 'fire'], effect: '1d2 burn' }),
+  Alicia: ab => ({ tags: [...ab.tags, 'fire'], effect: 'burn' }),
   Aron:   ab => ({ tags: [...ab.tags, 'unreactable'] }),
-  Axel:   ab => ({ tags: [...ab.tags, 'root'], effect: '1d2 root' }),
+  Axel:   ab => ({ tags: [...ab.tags, 'root'], effect: 'root' }),
 };
 
 export function abilityAvailable(c, ab) {

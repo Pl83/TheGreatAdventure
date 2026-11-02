@@ -227,10 +227,10 @@ async function fire(who, foeName = 'Kadgar') {
   return { me, foe };
 }
 
-test('Twist, Alicia: the strike burns', async () => {
+test('Twist, Alicia: the strike always burns', async () => {
   const { foe } = await fire('Alicia');
   settle();
-  assert.ok(foe.statusEffects.some(e => /burn/i.test(e.name)) || /burn/i.test(logText()), 'a burn is rolled');
+  assert.ok(foe.statusEffects.some(e => /burn/i.test(e.name)), 'the burn is certain');
 });
 
 test('Twist, Aron: the foe is given no chance to react', async () => {
@@ -239,12 +239,12 @@ test('Twist, Aron: the foe is given no chance to react', async () => {
   assert.ok(foe.currentHp < foe.maxHp);
 });
 
-test('Twist, Axel: the strike can root', async () => {
+test('Twist, Axel: the strike always roots', async () => {
   forceD20(19, 2);
   const { foe } = await fire('Axel');
   settle();
   assert.ok(foe.currentHp < foe.maxHp);
-  assert.ok(foe.statusEffects.some(e => /root/i.test(e.name)) || /root/i.test(logText()), 'a root is rolled');
+  assert.ok(foe.statusEffects.some(e => /root/i.test(e.name)), 'the root is certain');
 });
 
 test('Twist, Clay: the whole team follows his orders', async () => {

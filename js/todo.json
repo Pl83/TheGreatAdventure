@@ -1180,7 +1180,7 @@
       "who": "Alicia, Aron, Lance, Axel, Clay",
       "detail": "A team that fields all five Nexo Knights gets a team strike. Only Divine Beast synergy existed before; there is still no faction bonus.",
       "where": "characters.json · the five sheets; combat-logic.js · nexoTeam, abilityAvailable, handleCastAbility",
-      "resolution": "Done. Every knight has Combined Nexo Power (aoe, range 10, radius 6, magic), usable only by a team that fielded all five and only while at least two of them stand. Once per fight for the whole team. It deals 1d12 per knight still standing. Twists by user: Alicia fire and a 1d2 burn; Aron cannot be reacted to; Lance hits slower foes 1.5x (Faster); Axel a 1d2 root; Clay gives the whole team Orders (+2 on attack rolls). Damage, shape, minimum of two and the twists are agreed, except the radius and range, which are mine."
+      "resolution": "Done. Every knight has Combined Nexo Power (aoe, range 10, radius 6, magic), usable only by a team that fielded all five and only while at least two of them stand. Once per fight for the whole team. It deals 1d12 per knight still standing. Twists by user: Alicia fire and a certain burn; Aron cannot be reacted to; Lance hits slower foes 1.5x (Faster); Axel a certain root; Clay gives the whole team Orders (+2 on attack rolls). Damage, shape, minimum of two and the twists are agreed, except the radius and range, which are mine."
     }
   ]
 }
