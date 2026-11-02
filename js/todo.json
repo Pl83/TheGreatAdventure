@@ -658,9 +658,10 @@
       "cat": "mechanics",
       "sev": "med",
       "title": "Summoning",
-      "who": "Krux & Acronix, nobody (Irina, Leonidas, the Sorcerer Master, Annastasia and Krux & Acronix are done)",
+      "who": "Irina, Leonidas, the Sorcerer Master, Annastasia, Krux & Acronix",
       "detail": "The engine now creates units mid-fight (spawnSummon in combat-logic.js): a move with a summon field {unit, count} calls units beside the caster, which join its team and act right after it; a sheet with a companion field (Sorcerer Master: Floating Head) has it from round 1. Done: Flaming Bird (1 ki, one Fire Spirit), Living Bomb (bursts every Fire Spirit on its own spot, radius 3), Golem Creation (1d4 Golems), Floating Head. Rules: a summon never counts toward victory, falls with its caster, and is not a roster pick. Sacrifice Mark (Annastasia): at the start of the battle she marks a random enemy; when it falls she calls one Demon (its max HP under 70) or two (70 and above), and the mark always passes to another enemy (after a death or a Taboo). The Demon sheet (tags summon, monster, oni; 70 HP) has Dragon Slayer, Claws 2d8+2 and Oni Beam (1d12 + 1d8 splash). Taboo: half her current HP and a spell slot spring the mark at once (the victim lives); it needs a living mark, and the AI does not cast it. Summoning Portal (Krux & Acronix) calls a Time Remnant: any roster character (not a summon), named \"Time Remnant X\", picked in a list under the ability. Cost in spell slots by its max HP: round(1 + 4 x ((HP - 50) / 70)^2), at least 1 (50 HP = 1, 95 = 3, 120 = 5, 180 = 15). At most 2 stand at once; each plays 2 turns then fades, or falls with Krux & Acronix. The AI never casts it. The AI casts a summon while fewer than 3 of that kind stand, and bursts the spirits once a foe is within reach of one. Vorrakan's chains are a separate unique case (see decide-chains-units). Irina's Child of the Phoenix is her burn immunity, done. Flaming Bird is a normal action, not the instant the Google Doc names, so that the greedy policy can cast it.",
-      "where": "characters.json · Google Doc import"
+      "where": "characters.json · Google Doc import",
+      "resolution": "Done. Every summon of the sheets is modelled: Flaming Bird, Living Bomb, Golem Creation, Floating Head, the Demons of Sacrifice Mark (with Taboo) and the Time Remnants of Summoning Portal. Left aside on purpose: the AI never casts Taboo, Demon Pact or the Summoning Portal."
     },
     {
       "id": "mech-hunter-mark",
