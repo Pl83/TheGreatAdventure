@@ -669,7 +669,7 @@
       "who": "Vampire Sienna, Sienna",
       "detail": "Apex Predator / Huntress: at the start of the battle a random enemy is marked. The marked target takes x2 damage, the owner has advantage on every defense throw against it. Vampire Sienna also restores 100% HP and spell slots when the target dies. Descriptions only.",
       "where": "characters.json · Google Doc import",
-      "resolution": "Done. At the start of the battle each hunter (passive tag huntMark) marks one random living enemy, never a summon. Damage rolled by her attacks and spells against it is doubled (before a mutual-fumble halving); she defends against it with advantage. Apex Predator (huntFeast) restores Vampire Sienna to full HP and spell slots when the mark dies. Not doubled: damage over time and the splash around a main target. See tests/hunter-mark.test.mjs."
+      "resolution": "Done. At the start of the battle each hunter (passive tag huntMark) marks one random living enemy, never a summon. Damage rolled by her attacks and spells against it is doubled (before a mutual-fumble halving); she defends against it with advantage. Apex Predator (huntFeast) restores Vampire Sienna to full HP and spell slots when the mark dies. Not doubled: damage over time and the splash around a main target. See tests/hunter-mark.test.mjs. Easter egg: when Sienna falls she has a 1 in 100 chance to rise whole as Vampire Sienna (sheet field reborn)."
     },
     {
       "id": "mech-blood-magic",
