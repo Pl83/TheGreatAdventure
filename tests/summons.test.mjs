@@ -315,3 +315,47 @@ test('Demon Pact: 10 HP buys 1 spell slot, as an instant, never her last HP', as
   ann.currentHp = 10;
   assert.equal(L.abilityAvailable(ann, pact), false, 'she cannot pay her last HP');
 });
+
+// ── Phoenix King and Prince ────────────────────────────────────────────────
+
+test('Phoenix Feathers revive a fallen ally with all its spell slots, four times at most', async () => {
+  await newFight({ teamA: ['Phoenix King', 'Arya'], teamB: ['Rox'], seed: 3 });
+  const king = byName('Phoenix King'), arya = byName('Arya');
+  arya.isKO = true; arya.currentHp = 0; arya.spellSlots = 0;
+  toTurn('Phoenix King');
+  if (S.currentMap) { arya.x = king.x + 1; arya.y = king.y; }
+  L.handleCastAbility(king.id, 'Phoenix Feathers', [arya.id]);
+  assert.ok(!arya.isKO, 'revived');
+  assert.equal(arya.spellSlots, arya.maxSpellSlots, 'with every slot back');
+  assert.equal(king.remainingCharges['Phoenix Feathers'], 3);
+});
+
+test('Grow Spurt is a timed form: the Prince grows for 4 turns, then shrinks back', async () => {
+  await newFight({ teamA: ['Phoenix Prince'], teamB: ['Rox'], seed: 3 });
+  const prince = byName('Phoenix Prince');
+  const hp = prince.maxHp;
+  toTurn('Phoenix Prince');
+  L.handleTransform(prince.id);
+  assert.ok(prince.isTransformed);
+  assert.equal(prince.maxHp, hp + 20);
+  assert.ok(prince.abilities.some(a => a.name === 'Phoenix Hug'));
+  for (let i = 0; i < 6 && prince.isTransformed; i++) { toTurn('Phoenix Prince'); L.handlePass(); }
+  assert.ok(!prince.isTransformed, 'the form ended');
+  assert.equal(prince.maxHp, hp);
+});
+
+test('Phoenix Hug heals the Prince and his ally, and both again when his next turn starts', async () => {
+  await newFight({ teamA: ['Phoenix Prince', 'Arya'], teamB: ['Rox'], seed: 3 });
+  const prince = byName('Phoenix Prince'), arya = byName('Arya');
+  toTurn('Phoenix Prince');
+  L.handleTransform(prince.id);
+  toTurn('Phoenix Prince');
+  if (S.currentMap) { arya.x = prince.x + 1; arya.y = prince.y; }
+  prince.currentHp = 10; arya.currentHp = 10;
+  L.handleCastAbility(prince.id, 'Phoenix Hug', [arya.id]);
+  const p1 = prince.currentHp, a1 = arya.currentHp;
+  assert.ok(p1 > 10 && a1 > 10, 'both healed at once');
+  L.handlePass();
+  toTurn('Phoenix Prince');
+  assert.ok(prince.currentHp > p1 && arya.currentHp > a1, 'and again next turn');
+});

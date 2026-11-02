@@ -6852,7 +6852,7 @@
     ],
     "moveSet": [
       {
-        "category": "technique",
+        "category": "transformation",
         "base": {
           "nom": "Grow Spurt",
           "tags": [
@@ -6911,7 +6911,8 @@
             "tags": [
               "magic",
               "fire",
-              "heal"
+              "heal",
+              "hug"
             ]
           },
           "target": "mono",

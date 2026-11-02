@@ -2307,6 +2307,22 @@ function springMark(marker, victim, why) {
 
 const markedByYou = c => c.sacMarkId != null && !!getCombatant(c.sacMarkId) && !getCombatant(c.sacMarkId).isKO;
 
+// Phoenix Hug: the Prince heals with his target, and both are healed again when his next turn starts
+function phoenixHug(caster, target, ability) {
+  if (target.id !== caster.id) applyHeal(caster, healDice(caster, caster, ability));
+  caster.hugEcho = { targetId: target.id, dice: ability.dice, name: ability.name };
+}
+
+function hugEcho(c) {
+  const echo = c.hugEcho;
+  if (!echo) return;
+  c.hugEcho = null;
+  addLog(`🔥 ${echo.name} warms again.`, 'heal');
+  applyHeal(c, echo.dice);
+  const t = getCombatant(echo.targetId);
+  if (t && t.id !== c.id && !t.isKO) applyHeal(t, echo.dice);
+}
+
 // Annastasia's Demon Pact: 10 HP buys 1 spell slot (an instant, as often as she can pay)
 const PACT_HP = 10;
 function castPact(caster) {
@@ -3992,6 +4008,7 @@ function settlePendingAction(reactAbility) {
             target.currentHp = Math.floor(target.maxHp * 0.5);
             addLog(`${caster.name} revives ${target.name} with ${target.currentHp}/${target.maxHp} HP!`, 'heal');
             reviveBeside(caster, target);
+            if (ability.slotRegen > 0) restoreSlots(target, ability.slotRegen, ability.name);   // Phoenix Feathers: back with all its spell slots
             // KO clears every status, so give back innate flight
             if (target.sourceChar.passif?.some(p => p.tags?.includes('fly'))
                 || (target.isTransformed && target.sourceChar.transformation?.passif?.some(p => p.tags?.includes('fly'))))
@@ -4005,6 +4022,7 @@ function settlePendingAction(reactAbility) {
               addLog(`${target.name} regenerates ${ability.dice}/turn!`, 'heal');
             } else {
               applyHeal(target, healDice(caster, target, ability), null, !!ability.tags?.includes("repair"));
+              if (ability.tags?.includes('hug')) phoenixHug(caster, target, ability);
             }
           }
           applyMoveEffect(ability, target);
@@ -4353,6 +4371,8 @@ export function beginTurn(c) {
     if (w !== null) { endCombat(w); return; }
     advanceTurn(); return;   // died to damage-over-time: no turn to play
   }
+
+  hugEcho(c);
 
   // A boomerang comes back: the blow queued by last turn's move lands now, on each target that was hit
   if (c.followUps?.length) {
