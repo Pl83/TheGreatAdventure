@@ -251,6 +251,7 @@ export function resolveAbilitiesFromList(moveList) {
       steamMode:     move.steamMode ?? false,   // Sienna's Range Mode and Rodent Mode: the techniques her SteamGun reads
       drainSlots:    move.drainSlots ?? null,   // spell slots taken from the target and given to the caster (Vampire Sienna's Bite)
       drainKi:       move.drainKi ?? null,
+      drainDestroy:  move.drainDestroy ?? false,   // the drained slots are lost, not given to the caster (Krux & Acronix's Forward)
       groundChance:  move.groundChance ?? 1,   // the odds that a 'grounded' move brings a flier down
       followUp:      move.followUp ?? null,   // dice of a second blow that lands on each target the move hit, at the start of the caster's next turn (GunRang)
       excludeSelf:   move.excludeSelf ?? false,   // an area boon the caster does not share (Arcane Canal)
@@ -332,6 +333,7 @@ export function buildCombatant(char, teamIndex, id) {
       ? [{ name: 'fly', turnsLeft: 999, dice: null, damType: null, notes: '' }]
       : [],
     luckSpent: false,         // Djinn's Luck: the reroll of this turn is gone
+    hurtSinceTurn: 0,         // HP lost since this unit's last turn began (what Krux & Acronix's Backward gives back)
     freeActionTarget: null,   // id of the foe this unit may now answer with a free action
     isTransformed:    false,
     transformedBaseAtk: null,
@@ -741,7 +743,7 @@ const isSpellLabel = (c, label) => c.abilities.some(a => a.name === label && (a.
 const twoSpells = c => !!c.sourceChar.passif?.some(p => p.tags?.includes('twoSpells') && !passiveLost(c, p));
 const spellOnlyNow = c => c === activeCombatant() && twoSpells(c) && !hasDivinity(c) && S.actionsDone.length > 0;
 export const actionBudget = c => {
-  let n = hasDivinity(c) ? 2 : 1;
+  let n = hasDivinity(c) || hasPassiveTag(c, 'geminy') ? 2 : 1;   // Geminy's two actions may repeat; a divinity's may not
   if (twoSpells(c) && S.actionsDone.every(l => isSpellLabel(c, l))) n = Math.max(n, 2);
   return n + (c.statusEffects.some(e => e.name === 'final_reckoning') ? 1 : 0) + S.bonusActions;
 };
@@ -1890,6 +1892,7 @@ function applyDamageCore(combatant, amount, damType = null, atkTags = [], ignore
   const dmg = Math.max(0, amount);
   const hpBefore = combatant.currentHp;
   combatant.currentHp = Math.max(0, hpBefore - dmg);
+  combatant.hurtSinceTurn = (combatant.hurtSinceTurn ?? 0) + (hpBefore - combatant.currentHp);
   if (dmg > 0) addLog(`  ${combatant.name}: ${hpBefore} → ${combatant.currentHp}`, 'hit');
   if (dmg > 0 && combatant.currentHp > 0) onHitTaken(combatant);
   if (combatant.currentHp <= 0 && !combatant.isKO) {
@@ -1963,6 +1966,15 @@ function rewindTime(c, ab) {
   c.statusEffects = [];
   if (then && !isOccupied(then.x, then.y, c.id)) { c.x = then.x; c.y = then.y; }
   addLog(`⏳✨ ${c.name} REWINDS — time unwinds and he stands again with ${c.currentHp} HP!`, 'crit');
+}
+
+// Krux & Acronix's Backward: all the HP the target lost since its last turn began comes back
+function rewindHurt(caster, target) {
+  const lost = target.hurtSinceTurn ?? 0;
+  target.hurtSinceTurn = 0;
+  if (lost <= 0) { addLog(`⏪ ${caster.name}'s Backward finds nothing to undo on ${target.name}.`, 'info'); return; }
+  addLog(`⏪ ${caster.name} rewinds ${target.name}: ${lost} damage undone.`, 'heal');
+  applyHeal(target, String(lost), 'Backward');
 }
 
 // Where each unit stood at the start of the last two rounds (Rewind goes back to the older one)
@@ -2321,13 +2333,14 @@ function drainResources(caster, target, ability) {
   const ki    = ability.drainKi    ? Math.min(target.ki, parseDice(ability.drainKi).total) : 0;
   if (slots > 0) {
     target.spellSlots -= slots;
-    caster.spellSlots = Math.min(caster.maxSpellSlots, caster.spellSlots + slots);
+    if (!ability.drainDestroy) caster.spellSlots = Math.min(caster.maxSpellSlots, caster.spellSlots + slots);
   }
   if (ki > 0) {
     target.ki -= ki;
     caster.ki = Math.min(caster.maxKi, caster.ki + ki);
   }
-  if (slots > 0 || ki > 0) addLog(`  🩸 ${caster.name} drains ${slots} spell slot${slots === 1 ? '' : 's'} and ${ki} ki from ${target.name}.`, 'spell');
+  if (slots > 0 && ability.drainDestroy) addLog(`  ⏩ ${caster.name}'s ${ability.name} burns ${slots} of ${target.name}'s spell slot${slots === 1 ? '' : 's'} away.`, 'spell');
+  else if (slots > 0 || ki > 0) addLog(`  🩸 ${caster.name} drains ${slots} spell slot${slots === 1 ? '' : 's'} and ${ki} ki from ${target.name}.`, 'spell');
   updateCombatantCardDOM(target);
 }
 
@@ -2783,6 +2796,12 @@ function pushStatus(c, eff, beneficial = false) {
 // Gravity's one-shot statuses are spent by the roll, Smoke Screen's disadvantage lasts.
 export function rollD20For(c, baseAdv = false, baseDis = false, role = null) {
   const roll = rollD20Raw(c, baseAdv, baseDis, role);
+  // Vision of Time (Krux & Acronix): a natural 1 never happens, it is a plain 2, and no fumble rule can touch the roll
+  if (hasPassiveTag(c, 'visionOfTime')) {
+    if (!roll.isNat1) return roll;
+    addLog(`  ⏳ ${c.name}'s Vision of Time sees the 1 coming — it becomes a 2.`, 'spell');
+    return { value: 2, isNat20: false, isNat1: false };
+  }
   // Djinn's Luck: a 1 is rolled again, once per turn
   if (roll.isNat1 && !c.luckSpent && c.sourceChar.passif?.some(p => p.tags?.includes('rerollOne') && !passiveLost(c, p))) {
     c.luckSpent = true;
@@ -2804,9 +2823,10 @@ function rollD20Raw(c, baseAdv, baseDis, role) {
   const adv = baseAdv || !!advEff;
   // Hindrances from disv moves: every roll, attack rolls only, or the next defense roll only
   const nextDef = role === 'def' ? c.statusEffects.find(e => e.name === 'hindered_def') : null;
-  const dis = baseDis || !!disEff || !!nextDef
+  // Vision of Time: no disadvantage ever (the statuses are still spent by the roll)
+  const dis = !hasPassiveTag(c, 'visionOfTime') && (baseDis || !!disEff || !!nextDef
     || c.statusEffects.some(e => e.name.toLowerCase() === 'prone')   // knocked prone: every d20 at disadvantage, for now
-    || c.statusEffects.some(e => e.name === 'smoke_screen' || e.name === 'hindered' || (role === 'atk' && e.name === 'hindered_atk'));
+    || c.statusEffects.some(e => e.name === 'smoke_screen' || e.name === 'hindered' || (role === 'atk' && e.name === 'hindered_atk')));
   for (const e of [advEff, disEff]) {
     if (e && --e.uses <= 0) c.statusEffects = c.statusEffects.filter(x => x !== e);
   }
@@ -3538,7 +3558,7 @@ export function handleCastAbility(casterId, abilityName, targetIds, center = nul
 
   // Effects that never prompt a react: friendly buffs, unblockable moves, and moves that deal no damage or status
   const noReacts = ability.targetKind === 'ally' || !!ability.tags?.some(t => t === 'unblockabled' || t === 'taunt' || t === 'unreactable');
-  const hasMechanics = ability.summon || ability.isCage || ability.isTaboo || ability.isPetrify || ability.isPact || ability.isRemnant || ability.isDetonate || ability.dice || ability.effect || ability.precastDice || ability.slotRegen > 0 || ability.isRevive
+  const hasMechanics = ability.drainSlots || ability.tags?.includes('rewind') || ability.summon || ability.isCage || ability.isTaboo || ability.isPetrify || ability.isPact || ability.isRemnant || ability.isDetonate || ability.dice || ability.effect || ability.precastDice || ability.slotRegen > 0 || ability.isRevive
     || ability.isBlock || ability.targetKind === 'self' || ability.field
     || ability.isContest || ability.tags?.some(t => ['dash', 'fly', 'teleportation', 'cleans', 'pull', 'taunt', 'smoke', 'adv_next', 'orders', 'ward', 'dry'].includes(t));
   if (!hasMechanics) addLog(`  ⚠ ${ability.name} has no mechanical effect in the simulator yet.`, 'info');
@@ -4117,6 +4137,7 @@ function settlePendingAction(reactAbility) {
           addLog(`  🎭 ${target.name} fails the psy save — ${caster.name} chooses what it does next turn!`, 'spell');   // the target failed its defense roll against the blast: it did not save
         }
         applyMoveEffect(ability, target, clash.diceMult > 1);
+        if (!isPureHeal && (ability.drainSlots || ability.drainKi)) drainResources(caster, target, ability);
         if (isPureHeal && ability.slotRegen > 0 && !(ability.excludeSelf && target.id === caster.id)) restoreSlots(target, ability.slotRegen, ability.name);
       }
       blastDoors(caster, ability, action.center);
@@ -4284,6 +4305,7 @@ function settlePendingAction(reactAbility) {
             }
           }
           if (ability.tags?.includes('cleans')) applyCleanse(target);
+          if (ability.tags?.includes('rewind')) rewindHurt(caster, target);
           applyWard(ability, target);
           if (isSelf && ability.tags?.includes('team')) teamBoon(caster, ability);
           if (ability.tags?.includes('orders') && pushStatus(target, { name: 'orders', turnsLeft: 2 }, true)) {
@@ -4657,6 +4679,7 @@ export function advanceTurn() {
 export function beginTurn(c) {
   if (!c) return;
   c.luckSpent = false;
+  c.hurtSinceTurn = 0;
   addLog(c.name, 'turn', { team: c.teamIndex });   // start-of-turn ticks belong to this turn
 
   chainTick(c);

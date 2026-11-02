@@ -685,11 +685,13 @@
     },
     {
       "id": "mech-geminy",
+      "resolution": "Done. Geminy: two actions a turn that may repeat (passive tag geminy; a divinity's must differ). Vision of Time: a natural 1 becomes a plain 2 and disadvantage never applies (tag visionOfTime). Pause already worked as a block react. Play cleanses an ally and gives advantage on the next d20. Forward burns 1d4 spell slots from each foe in the blast (drainSlots + drainDestroy, the caster gains none). Backward heals the target for the HP lost since its last turn began (hurtSinceTurn, reset in beginTurn).",
       "cat": "mechanics",
       "sev": "med",
       "title": "Geminy, Vision of Time, time moves",
       "who": "Krux & Acronix",
       "detail": "Two actions a turn (Geminy), immunity to natural 1 and to disadvantage, and Pause / Play / Forward (drain 1d4 slots from an area) / Backward (heal all damage since last turn). The engine now has two actions a turn (the divinity tag, see mech-divinity), but it forces the two to differ: decide whether Geminy's do. The rest is descriptions only.",
+      "evidence": "tests/geminy.test.mjs",
       "where": "characters.json · Google Doc import"
     },
     {

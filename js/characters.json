@@ -7895,18 +7895,19 @@
         "nom": "Geminy",
         "tags": [
           "buff",
-          "extraAction"
+          "geminy"
         ],
         "applyOn": [],
-        "description": "Can make two actions per turn."
+        "description": "Can make two actions per turn, and they may repeat: two attacks, two casts of the same spell."
       },
       {
         "nom": "Vision of Time",
         "tags": [
-          "buff"
+          "buff",
+          "visionOfTime"
         ],
         "applyOn": [],
-        "description": "Immune to natural 1; cannot be at disadvantage."
+        "description": "Immune to natural 1 (it becomes a plain 2); cannot be at disadvantage."
       }
     ],
     "moveSet": [
@@ -7947,12 +7948,14 @@
           "nom": "Play",
           "tags": [
             "magic",
-            "buff"
+            "buff",
+            "cleans",
+            "adv_next"
           ]
         },
         "target": "mono",
         "range": 12,
-        "description": "Unpause.",
+        "description": "Unpause: one ally in range sheds every hindrance and rolls their next d20 with advantage.",
         "spellCost": 1
       },
       {
@@ -7967,7 +7970,9 @@
         "target": "aoe",
         "range": 8,
         "radius": 4,
-        "description": "Drains 1d4 spell slots from the area.",
+        "drainSlots": "1d4",
+        "drainDestroy": true,
+        "description": "Drains 1d4 spell slots from every foe in the area (rolled for each). The slots are lost, not gained.",
         "spellCost": 1
       },
       {
@@ -7976,12 +7981,13 @@
           "nom": "Backward",
           "tags": [
             "magic",
-            "heal"
+            "heal",
+            "rewind"
           ]
         },
         "target": "mono",
         "range": 12,
-        "description": "Rewinds time: heals all damage since the last turn.",
+        "description": "Rewinds time: heals all damage the target took since the start of their last turn.",
         "spellCost": 1
       },
       {
