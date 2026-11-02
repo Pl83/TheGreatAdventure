@@ -355,6 +355,37 @@
         "category": "spell",
         "base": { "nom": "Fire Shield", "tags": ["magic", "block", "instant", "react", "fire"] },
         "target": "self", "range": 0, "spellCost": 1
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Climber Spinjitzu",
+          "dices": "4d12",
+          "tags": [
+            "physical",
+            "climberSpinjitzu"
+          ]
+        },
+        "target": "aoe",
+        "range": 8,
+        "radius": 5,
+        "cooldown": 99,
+        "description": "Synergy: a team that fielded Kay, Jay, Zane and Cole (Nya joins if she is there), usable while two of them stand. Once per fight for the whole team: 1d12 per member standing on every foe in the area. Twist by user: Kay a burn; Jay a 1d2 paralysis and lightning; Zane a 1d2 freeze and ice; Cole prone and earth; Nya wet and water."
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Dragon Masters Fury",
+          "dices": "8d10",
+          "tags": [
+            "magic",
+            "dragonMasters"
+          ]
+        },
+        "target": "cone",
+        "range": 6,
+        "cooldown": 99,
+        "description": "Synergy: a team with two or more Climbers, usable while two of them stand. Once per fight for the whole team: a cone of 2d10 per Climber standing, in the element of whoever fires it (Kay fire, Jay lightning, Zane ice, Cole earth)."
       }
     ],
     "transformation": {
@@ -419,6 +450,37 @@
         "category": "spell",
         "base": { "nom": "Ice Cone", "dices": "1d12+4", "tags": ["magic", "ice"] },
         "target": "cone", "range": 5, "spellCost": 1
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Climber Spinjitzu",
+          "dices": "4d12",
+          "tags": [
+            "physical",
+            "climberSpinjitzu"
+          ]
+        },
+        "target": "aoe",
+        "range": 8,
+        "radius": 5,
+        "cooldown": 99,
+        "description": "Synergy: a team that fielded Kay, Jay, Zane and Cole (Nya joins if she is there), usable while two of them stand. Once per fight for the whole team: 1d12 per member standing on every foe in the area. Twist by user: Kay a burn; Jay a 1d2 paralysis and lightning; Zane a 1d2 freeze and ice; Cole prone and earth; Nya wet and water."
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Dragon Masters Fury",
+          "dices": "8d10",
+          "tags": [
+            "magic",
+            "dragonMasters"
+          ]
+        },
+        "target": "cone",
+        "range": 6,
+        "cooldown": 99,
+        "description": "Synergy: a team with two or more Climbers, usable while two of them stand. Once per fight for the whole team: a cone of 2d10 per Climber standing, in the element of whoever fires it (Kay fire, Jay lightning, Zane ice, Cole earth)."
       }
     ],
     "transformation": {
@@ -483,6 +545,37 @@
         "category": "spell",
         "base": { "nom": "Thunder", "dices": "1d20", "tags": ["magic", "lightning"] },
         "target": "mono", "range": 12, "spellCost": 1
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Climber Spinjitzu",
+          "dices": "4d12",
+          "tags": [
+            "physical",
+            "climberSpinjitzu"
+          ]
+        },
+        "target": "aoe",
+        "range": 8,
+        "radius": 5,
+        "cooldown": 99,
+        "description": "Synergy: a team that fielded Kay, Jay, Zane and Cole (Nya joins if she is there), usable while two of them stand. Once per fight for the whole team: 1d12 per member standing on every foe in the area. Twist by user: Kay a burn; Jay a 1d2 paralysis and lightning; Zane a 1d2 freeze and ice; Cole prone and earth; Nya wet and water."
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Dragon Masters Fury",
+          "dices": "8d10",
+          "tags": [
+            "magic",
+            "dragonMasters"
+          ]
+        },
+        "target": "cone",
+        "range": 6,
+        "cooldown": 99,
+        "description": "Synergy: a team with two or more Climbers, usable while two of them stand. Once per fight for the whole team: a cone of 2d10 per Climber standing, in the element of whoever fires it (Kay fire, Jay lightning, Zane ice, Cole earth)."
       }
     ],
     "transformation": {
@@ -558,6 +651,22 @@
         "target": "self",
         "range": 0,
         "spellCost": 1
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Climber Spinjitzu",
+          "dices": "4d12",
+          "tags": [
+            "physical",
+            "climberSpinjitzu"
+          ]
+        },
+        "target": "aoe",
+        "range": 8,
+        "radius": 5,
+        "cooldown": 99,
+        "description": "Synergy: a team that fielded Kay, Jay, Zane and Cole (Nya joins if she is there), usable while two of them stand. Once per fight for the whole team: 1d12 per member standing on every foe in the area. Twist by user: Kay a burn; Jay a 1d2 paralysis and lightning; Zane a 1d2 freeze and ice; Cole prone and earth; Nya wet and water."
       }
     ]
   },
@@ -648,6 +757,21 @@
         "base": { "nom": "Remake", "dices": "1d20+20", "tags": ["magic", "heal", "repair"] },
         "target": "mono", "range": 8, "spellCost": 1,
         "description": "Repair: mends only allied machines (tag mecha). No other heal can."
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Imperium Strike",
+          "dices": "3d12",
+          "tags": [
+            "physical",
+            "imperiumStrike"
+          ]
+        },
+        "target": "cone",
+        "range": 6,
+        "cooldown": 99,
+        "description": "Synergy: a team that fielded Sora, Arin and Wyldfire, usable while two of them stand. Once per fight for the whole team: a cone of 1d12 per member standing. Twist by user: Sora mends every ally for 1d8; Arin knocks the foes prone; Wyldfire adds fire and ice and a 1d2 freeze."
       }
     ]
   },
@@ -676,6 +800,21 @@
         "category": "technique",
         "base": { "nom": "Object Spinzutsu", "dices": "1d12", "tags": ["physical"] },
         "target": "mono", "range": 4, "cooldown": 1
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Imperium Strike",
+          "dices": "3d12",
+          "tags": [
+            "physical",
+            "imperiumStrike"
+          ]
+        },
+        "target": "cone",
+        "range": 6,
+        "cooldown": 99,
+        "description": "Synergy: a team that fielded Sora, Arin and Wyldfire, usable while two of them stand. Once per fight for the whole team: a cone of 1d12 per member standing. Twist by user: Sora mends every ally for 1d8; Arin knocks the foes prone; Wyldfire adds fire and ice and a 1d2 freeze."
       }
     ]
   },
@@ -724,6 +863,21 @@
         "category": "spell",
         "base": { "nom": "Heat Projectile (Ice)", "dices": "2d8+2", "tags": ["ice", "magic"] },
         "target": "mono", "range": 10, "spellCost": 1
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Imperium Strike",
+          "dices": "3d12",
+          "tags": [
+            "physical",
+            "imperiumStrike"
+          ]
+        },
+        "target": "cone",
+        "range": 6,
+        "cooldown": 99,
+        "description": "Synergy: a team that fielded Sora, Arin and Wyldfire, usable while two of them stand. Once per fight for the whole team: a cone of 1d12 per member standing. Twist by user: Sora mends every ally for 1d8; Arin knocks the foes prone; Wyldfire adds fire and ice and a 1d2 freeze."
       }
     ]
   },
@@ -2104,6 +2258,37 @@
         "base": { "nom": "Quake Wave", "dices": "2d8+5", "tags": ["magic", "earth", "disv"] },
         "inflicts": { "status": "hindered", "turns": 1 },
         "target": "aoe", "range": 8, "radius": 5, "spellCost": 1
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Climber Spinjitzu",
+          "dices": "4d12",
+          "tags": [
+            "physical",
+            "climberSpinjitzu"
+          ]
+        },
+        "target": "aoe",
+        "range": 8,
+        "radius": 5,
+        "cooldown": 99,
+        "description": "Synergy: a team that fielded Kay, Jay, Zane and Cole (Nya joins if she is there), usable while two of them stand. Once per fight for the whole team: 1d12 per member standing on every foe in the area. Twist by user: Kay a burn; Jay a 1d2 paralysis and lightning; Zane a 1d2 freeze and ice; Cole prone and earth; Nya wet and water."
+      },
+      {
+        "category": "technique",
+        "base": {
+          "nom": "Dragon Masters Fury",
+          "dices": "8d10",
+          "tags": [
+            "magic",
+            "dragonMasters"
+          ]
+        },
+        "target": "cone",
+        "range": 6,
+        "cooldown": 99,
+        "description": "Synergy: a team with two or more Climbers, usable while two of them stand. Once per fight for the whole team: a cone of 2d10 per Climber standing, in the element of whoever fires it (Kay fire, Jay lightning, Zane ice, Cole earth)."
       }
     ],
     "transformation": {

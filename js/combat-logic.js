@@ -7,6 +7,7 @@ import { EFFECTS } from './main.js';
 import { loadManifest, loadMap, cellPxOf, isWalkableG, seesThroughG, indexDoors } from './dungeon-loader.js';
 import { loadRandomMapOrManor } from './random-map.js';
 import { random } from './rng.js';
+import { TECHNIQUES, techniqueOf, techniqueFielded, techniqueStanding, buffEffects, siblingOf, stormPaired } from './synergies.js';
 
 // Render functions registered by combat-render.js to break the circular dep.
 export const _R = {
@@ -696,20 +697,16 @@ export function getDomainEffects(combatant, context = {}) {
   });
 }
 
-// Nexo Knights synergy: a team that fields all five holds the Combined Nexo Power, fired once a fight by any of them
-const NEXO_KNIGHTS = ['Alicia', 'Aron', 'Lance', 'Axel', 'Clay'];
-const nexoTeam = c => NEXO_KNIGHTS.every(n => S.combatants.some(u => u.teamIndex === c.teamIndex && u.name === n));
-const nexoSurvivors = c => NEXO_KNIGHTS.filter(n => S.combatants.some(u => u.teamIndex === c.teamIndex && u.name === n && !u.isKO)).length;
-const NEXO_MIN = 2;   // it takes two knights standing to combine anything
-// What each knight adds to the shared strike (Lance needs nothing: his Faster already hits slower foes harder; Clay orders the team after the cast)
-const NEXO_TWISTS = {
-  Alicia: ab => ({ tags: [...ab.tags, 'fire'], effect: 'burn' }),
-  Aron:   ab => ({ tags: [...ab.tags, 'unreactable'] }),
-  Axel:   ab => ({ tags: [...ab.tags, 'root'], effect: 'root' }),
+// Team synergies (js/synergies.js). A technique is usable by a team that fielded its members, while enough of them stand
+const teamFielded = c => S.combatants.filter(u => u.teamIndex === c.teamIndex && !u.ownerId);
+const techniqueReady = (c, key) => {
+  const tech = TECHNIQUES[key];
+  return techniqueFielded(tech, teamFielded(c)) && techniqueStanding(tech, livingCombatants(c.teamIndex)) >= tech.min;
 };
 
 export function abilityAvailable(c, ab) {
-  if (ab.tags?.includes('nexoCombined') && !(nexoTeam(c) && nexoSurvivors(c) >= NEXO_MIN)) return false;
+  const techKey = techniqueOf(ab);
+  if (techKey && !techniqueReady(c, techKey)) return false;
   if ((c.cooldowns[ab.name] ?? 0) > 0) {
     // Domain: no cooldown on matching abilities
     const domainNoCD = getDomainEffects(c, { applyOn: 'cooldown', ability: ab });
@@ -2484,6 +2481,8 @@ let inShard = false;   // a Retribution Shard that hits another gem knight does 
 
 // Called when a unit has taken damage and still stands: Rubis counts the hit; Retribution Shard may lash out around the unit
 function onHitTaken(c) {
+  const sibling = siblingOf(c, livingCombatants(c.teamIndex));   // Siblings: the other one braces
+  if (sibling && pushStatus(sibling, { name: 'sibling_guard', turnsLeft: 4 }, true)) addLog(`  🤝 ${sibling.name} braces for ${c.name}: +2 on the next defense roll.`, 'status');
   if (hasPassiveTag(c, 'hitCount')) c.hitCount = (c.hitCount ?? 0) + 1;
   const p = (c.sourceChar.passif ?? []).find(q => q.tags?.includes('retribution') && !passiveLost(c, q));
   if (!p || inShard || random() >= 0.5) return;   // 1d2: it triggers on the 2
@@ -2564,7 +2563,7 @@ export function divineSyncActive(c) {
 
 // The synergy effects of c's team that reach c for one kind of roll or tick. 'self' effects are the owner's own;
 // 'allies' effects reach the owner's teammates, never the owner.
-function divineEffects(c, applyOn) {
+function divineEffects(c, applyOn, ability = null) {
   const out = [];
   for (const owner of livingCombatants(c.teamIndex)) {
     if (!divineSyncActive(owner)) continue;
@@ -2572,6 +2571,12 @@ function divineEffects(c, applyOn) {
       if (!e.applyOn?.includes(applyOn)) continue;
       if (e.target === 'self' ? owner.id === c.id : e.target === 'allies' && owner.id !== c.id) out.push(e);
     }
+  }
+  // Team synergies: ninjas and the like (js/synergies.js), restricted to a kind of move when the effect names a tag
+  for (const e of buffEffects(c, livingCombatants(c.teamIndex))) {
+    if (!(e.applyOn.includes(applyOn) || (e.applyOn.includes('allRolls') && ALL_ROLLS.includes(applyOn)))) continue;
+    if (e.ifTag && !ability?.tags?.includes(e.ifTag)) continue;
+    out.push(e);
   }
   return out;
 }
@@ -2696,6 +2701,9 @@ export function applyMoveEffect(ability, target, guaranteed = false) {
   if (source && source.teamIndex !== target.teamIndex && hasPassiveTag(source, 'theroxian')) {
     for (const e of target.statusEffects) if (!known.has(e) && isDebuff(e)) e.sticky = true;
   }
+  if (source && ability.tags?.includes('lightning') && source.teamIndex !== target.teamIndex && stormPaired(source, livingCombatants(source.teamIndex))) {
+    applyStatus(target, guaranteed ? 'para' : '1d2 para');   // Storm Pair
+  }
   if (ability.inflicts) inflict(ability, target, guaranteed);
   if (soaked && bitesIce(ability) && !target.isKO) dropWetStatus(target);
 }
@@ -2748,7 +2756,7 @@ export function rollBonuses(owner, applyOn, other, ability) {
       out.push({ nom: p.nom, dices: p.dices });
     }
   }
-  for (const e of divineEffects(owner, applyOn)) if (e.dices) out.push({ nom: e.nom, dices: e.dices });
+  for (const e of divineEffects(owner, applyOn, ability)) if (e.dices) out.push({ nom: e.nom, dices: e.dices });
   if (applyOn === 'atkRoll' && owner.statusEffects.some(e => e.name === 'orders')) out.push({ nom: 'Orders', dices: '+2' });
   return out;
 }
@@ -3054,9 +3062,15 @@ function strengthenDefense(action, defender) {
   }
 }
 
+// The Siblings' guard covers one defense roll
+function spendSiblingGuard(c) {
+  if (c.statusEffects.some(e => e.name === 'sibling_guard')) c.statusEffects = c.statusEffects.filter(e => e.name !== 'sibling_guard');
+}
+
 export function defenseBonus(defender, attacker, ability) {
   const guard = defender.statusEffects.find(e => e.name === 'ranged_guard');
-  const windBonus = guard && isRangedAttack(attacker, defender, ability) ? guard.amount : 0;
+  const windBonus = (guard && isRangedAttack(attacker, defender, ability) ? guard.amount : 0)
+    + (defender.statusEffects.some(e => e.name === 'sibling_guard') ? 2 : 0);
   if (ability?.tags?.includes('arPen')) return windBonus;   // armour piercing: defense-roll passives (armour) do not count
   let bonus = windBonus;
   for (const b of rollBonuses(defender, 'defRoll', attacker, ability)) bonus += parseDice(b.dices).total;
@@ -3107,6 +3121,7 @@ function areaDefense(atk, target, caster, ability) {
   const defD20  = rollD20For(target, passiveAdvantage(target, 'defRoll', caster, ability), false, 'def');
   const defRoll = defD20.value;
   const bonus   = defenseBonus(target, caster, ability);
+  spendSiblingGuard(target);
   const def     = defRoll + bonus;
   const defStr  = bonus ? `${defRoll}+${bonus}=${def}` : String(defRoll);
   const vs      = `${defStr} vs ${atk.roll.value}`;
@@ -3169,6 +3184,7 @@ export function resolveAttack(attacker, defender, diceExpr, ability = null) {
 
   let defRoll = rollD20For(defender, passiveAdvantage(defender, 'defRoll', attacker, ability), false, 'def');
   const defBonus = defenseBonus(defender, attacker, ability);
+  spendSiblingGuard(defender);
   let effectiveDefRoll = defRoll.value + defBonus;
 
   const domainForcesHit = domainSureHit && !atkRoll.isNat1;
@@ -3393,10 +3409,12 @@ export function handleCastAbility(casterId, abilityName, targetIds, center = nul
   const caster  = getCombatant(casterId);
   let ability = caster?.abilities.find(a => a.name === abilityName);
   if (!ability || !abilityAvailable(caster, ability)) return;
-  if (ability.tags?.includes('nexoCombined')) {   // one d12 for every knight still standing
-    const standing = nexoSurvivors(caster);
-    ability = { ...ability, dice: `${standing}d12`, ...NEXO_TWISTS[caster.name]?.(ability) };
-    addLog(`  ⚔ The Nexo Knights combine their powers: ${standing} of five still stand (${standing}d12).`, 'spell');
+  const techKey = techniqueOf(ability);
+  if (techKey) {   // the strike grows with the members still standing, and takes a twist from whoever fires it
+    const tech = TECHNIQUES[techKey], twist = tech.twists[caster.name] ?? {};
+    const standing = techniqueStanding(tech, livingCombatants(caster.teamIndex));
+    ability = { ...ability, dice: tech.dice(standing), tags: [...ability.tags, ...(twist.tags ?? [])], ...(twist.effect ? { effect: twist.effect } : {}) };
+    addLog(`  ⚔ ${caster.name} unleashes ${ability.name}: ${standing} of ${tech.members.length} still stand (${ability.dice}).`, 'spell');
   }
   if (ability.allSlots) ability = { ...ability, dice: `${caster.spellSlots}d20+10`, cost: { type: 'slots', amount: caster.spellSlots } };
   if (ability.reactOnly) { addLog(`⚠ ${ability.name} can only be used as a reaction.`, 'info'); return; }
@@ -3460,10 +3478,13 @@ export function handleCastAbility(casterId, abilityName, targetIds, center = nul
   if (ability.cooldownTurns > 0) caster.cooldowns[ability.name] = ability.cooldownTurns + 1;
   else if (ability.oncePerTurn) caster.cooldowns[ability.name] = 1;   // lifts when its owner's next turn starts
   if (ability.isOncePerFight) caster.usedThisFight.push(ability.name);
-  if (ability.tags?.includes('nexoCombined')) {   // the team has one shot, whoever fires it
+  if (techKey) {   // the team has one shot, whoever fires it
     for (const u of S.combatants) if (u.teamIndex === caster.teamIndex && !u.usedThisFight.includes(ability.name)) u.usedThisFight.push(ability.name);
-    if (caster.name === 'Clay') {   // his twist: the whole team gets his Orders
-      for (const a of allies(caster)) if (!a.isKO && pushStatus(a, { name: 'orders', turnsLeft: 2 }, true)) addLog(`  📣 ${a.name} follows Clay's orders: +2 on attack rolls.`, 'status');
+    const after = TECHNIQUES[techKey].twists[caster.name]?.after;
+    for (const a of after ? allies(caster) : []) {
+      if (a.isKO) continue;
+      if (after === 'orders' && pushStatus(a, { name: 'orders', turnsLeft: 2 }, true)) addLog(`  📣 ${a.name} follows ${caster.name}'s orders: +2 on attack rolls.`, 'status');
+      if (after === 'mend') applyHeal(a, '1d8', `${caster.name}'s Remake`);
     }
   }
   if (ability.maxCharges > 0) {
@@ -4559,6 +4580,7 @@ export async function startInitiative() {
     for (const p of c.sourceChar.passif ?? []) {
       if (p.applyOn?.includes('initRoll') && p.dices) initBonus += parseDice(p.dices).total;
     }
+    for (const e of divineEffects(c, 'initRoll')) initBonus += parseDice(e.dices).total;   // Ninja Teamwork
     c.initiativeRoll = Math.max(1, rollDie(20) + speedMod + initBonus);
   }
   S.initiativeOrder = [...S.combatants]

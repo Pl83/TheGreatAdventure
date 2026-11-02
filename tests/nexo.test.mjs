@@ -198,7 +198,7 @@ test('Combined Nexo Power: one d12 per knight standing, and the team has one sho
   forceD20(19, 2);
   L.handleCastAbility(clay.id, 'Combined Nexo Power', [foe.id], { x: foe.x, y: foe.y });
   settle();
-  assert.match(logText(), /4 of five still stand \(4d12\)/);
+  assert.match(logText(), /4 of 5 still stand \(4d12\)/);
   assert.ok(foe.currentHp < foe.maxHp, 'the foe is hurt');
   for (const n of ['Alicia', 'Aron', 'Axel', 'Clay']) assert.ok(!L.abilityAvailable(byName(n), combined(byName(n))), `${n} cannot fire it again`);
 });
