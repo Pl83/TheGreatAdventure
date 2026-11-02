@@ -2113,7 +2113,7 @@ export const personnageSheet = [
             "Vision of Time (Immune to natural 1; cannot be at disadvantage)"
         ],
         spells: [
-            { name: "Summoning Portal", type: "instant", desc: "A rift in time summons a time remnant to fight for them; cost at the DM's discretion." },
+            { name: "Summoning Portal", type: "instant", desc: "A rift in time calls a Time Remnant: a whole roster character, fighting for them for 2 turns (at most 2 at once). Cost in spell slots by its max HP: 1 up to 50 HP, 5 at 120 HP, 15 at 180 HP." },
             { name: "Pause", type: "react block", desc: "React: stops an attack." },
             { name: "Play", type: "mono", desc: "Unpause." },
             { name: "Forward", type: "aoe", desc: "Drains 1d4 spell slots from the area." },

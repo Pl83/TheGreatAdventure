@@ -5,7 +5,7 @@
 import {
   _R, S, SPELL_RANGE, allChars,
   activeCombatant, livingCombatants, koAllies, getCombatant,
-  enemies, targetPool, abilityAvailable, hasSilence, hasValidTarget, hasControlEffect,
+  enemies, targetPool, remnantRoster, abilityAvailable, hasSilence, hasValidTarget, hasControlEffect,
   chebyshev, targetInRange, moveSpeed, isWet, freeActionOptions, doorsInReach, doorLabel,
   drawMap, setupCanvasClickHandler,
   clearAimState, startCombat, goToMapChoice, confirmMap, activeAllyDomain, domainChargesOf, hasDivinity, repeatsAction, actionBudget, healsTarget,
@@ -305,6 +305,7 @@ export function actionPanelHTML(c) {
       <legend class="action-label">Abilities <span class="label-aside">${silence ? '<span class="range-warn">Silenced</span>' : resources}</span></legend>
       <div class="ability-list" id="ability-list">${abilityList.map(abOption).join('')}</div>
       <div id="ability-preview" class="ability-preview-wrap"></div>
+      ${abilityList.some(a => a.isRemnant) ? `<label class="sr-only" for="remnant-pick">Who the rift calls</label><select id="remnant-pick" class="target-select" style="display:none">${remnantRoster().map(r => `<option value="${r.nom}">${r.nom} · ${r.hp} HP · ${r.cost} slot${r.cost === 1 ? '' : 's'}${r.cost > c.spellSlots ? ' (too costly)' : ''}</option>`).join('')}</select>` : ''}
       ${!hasMap && nomapTargetOpts() ? `<label class="sr-only" for="ability-target-nomap">Ability target</label><select id="ability-target-nomap" class="target-select nomap-target">${nomapTargetOpts()}</select>` : ''}
       <div class="aim-row">
         <button class="action-btn aim-btn" id="btn-ability-fire" ${abNoTarget || (acted && !firstAbility?.isInstant) || (firstAbility && !firstAbility.isInstant && repeatsAction(c, firstAbility.name)) ? 'disabled' : ''}>

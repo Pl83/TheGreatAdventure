@@ -280,6 +280,7 @@ export function resolveAbilitiesFromList(moveList) {
       isTransform: move.category === 'transformation',
       duration:   move.duration ?? null,
       summon:     move.summon ?? null,   // { unit, count }: calls `count` (dice or number) units of that sheet beside the caster
+      isRemnant:  tags.includes('remnant'),   // Krux & Acronix's Summoning Portal: calls a whole roster character, its cost set by that character's HP
       isTaboo:    tags.includes('taboo'),   // Annastasia: pays half her current HP to spring the Sacrifice Mark now
       isDetonate: tags.includes('detonate'),   // bursts every living unit the caster owns, on its own spot
     });
@@ -514,12 +515,14 @@ function turnCorrupted(hunter, target) {
  * the owner (the first ring with room; none left on the map means it is lost) and slots into the initiative order
  * right after the owner and the units the owner already called. Returns the new unit, or null.
  */
-export function spawnSummon(owner, unitName, { place = true } = {}) {
+export function spawnSummon(owner, unitName, { place = true, prefix = null, turns = null } = {}) {
   const sheet = allChars.find(c => c.nom === unitName);
   if (!sheet) return null;
   const id = S.combatants.reduce((m, c) => Math.max(m, c.id), -1) + 1;
   const unit = buildCombatant(sheet, owner.teamIndex, id);
   unit.ownerId = owner.id;
+  if (prefix) unit.name = `${prefix} ${unit.name}`;
+  if (turns != null) unit.remnantTurns = turns;   // a Time Remnant fades after this many of its own turns
   unit.initiativeRoll = owner.initiativeRoll;
   if (place && S.currentMap) {
     const cell = freeCellNear(owner, owner, 4, id);
@@ -553,6 +556,35 @@ function castSummon(caster, ability) {
   let made = 0;
   for (let i = 0; i < n; i++) if (spawnSummon(caster, unit)) made++;
   addLog(`  ✦ ${made} ${unit}${made === 1 ? '' : 's'} join${made === 1 ? 's' : ''} ${caster.name}'s side — they act right after ${caster.name}.`, 'spell');
+}
+
+// ── Time Remnants (Krux & Acronix's Summoning Portal) ──
+export const REMNANT_CAP = 2;     // at most this many stand at once
+export const REMNANT_TURNS = 2;   // each plays this many turns, then fades
+/** Spell slots to call a character: 1 up to 50 HP, climbing with the square of the HP above that (120 HP costs 5, 180 HP 15). */
+export const remnantCost = hp => Math.max(1, Math.round(1 + 4 * ((hp - 50) / 70) ** 2));
+/** Who the rift can call: every roster character but the summons and the callers themselves, cheapest first. */
+export const remnantRoster = () => allChars
+  .filter(c => !c.tags?.includes('summon') && c.nom !== 'Krux & Acronix')
+  .map(c => ({ nom: c.nom, hp: c.hp, cost: remnantCost(c.hp) }))
+  .sort((a, b) => a.cost - b.cost || a.nom.localeCompare(b.nom));
+const remnantsOf = owner => ownedBy(owner).filter(u => !u.isKO && u.remnantTurns != null);
+
+function castRemnant(caster, sheet) {
+  const unit = spawnSummon(caster, sheet.nom, { prefix: 'Time Remnant', turns: REMNANT_TURNS });
+  if (unit) addLog(`  ⏳ A rift opens: ${unit.name} (${unit.maxHp} HP) fights for ${caster.name} for ${REMNANT_TURNS} turns.`, 'spell');
+}
+
+// After each of its turns a remnant's clock runs down; at zero it fades back into the rift
+function tickRemnant(c) {
+  if (!c || c.isKO || c.remnantTurns == null) return;
+  if (--c.remnantTurns > 0) return;
+  c.currentHp = 0;
+  c.isKO = true;
+  noteFallen(c);
+  c.statusEffects = [];
+  addLog(`⏳ ${c.name} fades back into the rift.`, 'death');
+  updateCombatantCardDOM(c);
 }
 
 // Irina's Living Bomb: every Fire Spirit she owns bursts where it stands, and is spent
@@ -651,6 +683,7 @@ export function abilityAvailable(c, ab) {
   }
   if (ab.isOncePerFight && c.usedThisFight.includes(ab.name)) return false;
   if ((ab.tags?.includes('chain_grab') || ab.tags?.includes('chain_guard')) && !freeChains(c).length) return false;   // no free chain, no grab and no guard
+  if (ab.isRemnant && remnantsOf(c).length >= REMNANT_CAP) return false;   // the rift holds two remnants at most
   if (ab.isTaboo && !markedByYou(c)) return false;   // no mark to spring
   if (ab.isDetonate && !ownedBy(c).some(u => !u.isKO && u.name === 'Fire Spirit')) return false;   // nothing to burst
   if (ab.tags?.includes('sleeping') && c.statusEffects.some(e => e.name === 'relic_awake')) return false;
@@ -3069,12 +3102,20 @@ export function handleAttack(attackerId, defenderId) {
   resumePendingAction(null);
 }
 
-export function handleCastAbility(casterId, abilityName, targetIds, center = null) {
+export function handleCastAbility(casterId, abilityName, targetIds, center = null, choice = null) {
   const caster  = getCombatant(casterId);
   let ability = caster?.abilities.find(a => a.name === abilityName);
   if (!ability || !abilityAvailable(caster, ability)) return;
   if (ability.allSlots) ability = { ...ability, dice: `${caster.spellSlots}d20+10`, cost: { type: 'slots', amount: caster.spellSlots } };
   if (ability.reactOnly) { addLog(`⚠ ${ability.name} can only be used as a reaction.`, 'info'); return; }
+  let remnantSheet = null;
+  if (ability.isRemnant) {
+    remnantSheet = remnantRoster().find(r => r.nom === choice) && allChars.find(c => c.nom === choice);
+    if (!remnantSheet) { addLog(`⚠ ${ability.name}: choose who the rift calls.`, 'info'); return; }
+    const amount = remnantCost(remnantSheet.hp);
+    if (caster.spellSlots < amount) { addLog(`⚠ ${remnantSheet.nom} costs ${amount} spell slots (${caster.spellSlots} left).`, 'info'); return; }
+    ability = { ...ability, cost: { type: 'slots', amount } };
+  }
   if (S.hasActed && !ability.isInstant) { addLog('You have already acted this turn!', 'info'); return; }
   if (!ability.isInstant && refuseRepeat(caster, ability.name)) return;
 
@@ -3129,8 +3170,8 @@ export function handleCastAbility(casterId, abilityName, targetIds, center = nul
   if (!ability.isInstant) spendAction(caster, ability.name, ability.steamMode ? 'steamMode' : ability.source);
 
   addLog(`${caster.name} uses ${ability.name}!`, ability.source === 'spell' ? 'spell' : 'tech');
-  if (ability.summon || ability.isDetonate || ability.isTaboo) {
-    if (ability.summon) castSummon(caster, ability); else if (ability.isTaboo) castTaboo(caster); else castDetonate(caster, ability);
+  if (ability.summon || ability.isDetonate || ability.isTaboo || ability.isRemnant) {
+    if (ability.summon) castSummon(caster, ability); else if (ability.isRemnant) castRemnant(caster, remnantSheet); else if (ability.isTaboo) castTaboo(caster); else castDetonate(caster, ability);
     concludeAction(!!ability.isInstant);
     return;
   }
@@ -3170,7 +3211,7 @@ export function handleCastAbility(casterId, abilityName, targetIds, center = nul
 
   // Effects that never prompt a react: friendly buffs, unblockable moves, and moves that deal no damage or status
   const noReacts = ability.targetKind === 'ally' || !!ability.tags?.some(t => t === 'unblockabled' || t === 'taunt');
-  const hasMechanics = ability.summon || ability.isTaboo || ability.isDetonate || ability.dice || ability.effect || ability.precastDice || ability.slotRegen > 0 || ability.isRevive
+  const hasMechanics = ability.summon || ability.isTaboo || ability.isRemnant || ability.isDetonate || ability.dice || ability.effect || ability.precastDice || ability.slotRegen > 0 || ability.isRevive
     || ability.isBlock || ability.targetKind === 'self' || ability.field
     || ability.isContest || ability.tags?.some(t => ['dash', 'fly', 'teleportation', 'cleans', 'pull', 'taunt', 'smoke', 'adv_next', 'orders', 'ward', 'dry'].includes(t));
   if (!hasMechanics) addLog(`  ⚠ ${ability.name} has no mechanical effect in the simulator yet.`, 'info');
@@ -4244,6 +4285,7 @@ export function startCombat() {
 }
 
 export function advanceTurn() {
+  tickRemnant(activeCombatant());
   const total = S.initiativeOrder.length;
   let curr = S.currentTurnIndex;
   let loops = 0;

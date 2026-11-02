@@ -23,7 +23,7 @@ export function avgDice(expr) {
 }
 
 // Instant abilities are skipped: they leave the turn open, so a loop asking the policy again could chain them
-const usable = (c, ab) => abilityAvailable(c, ab) && !repeatsAction(c, ab.name) && !ab.reactOnly && !ab.isReact && !ab.isBlock
+const usable = (c, ab) => abilityAvailable(c, ab) && !ab.isRemnant && !repeatsAction(c, ab.name) && !ab.reactOnly && !ab.isReact && !ab.isBlock
   && !ab.isGate && !ab.isTransform && !ab.isRevive && !ab.isInstant && !ab.tags?.includes('teleportation');
 
 // Cone cells depend only on the caster's cell, the aim, the range and the terrain: kept per map, the table

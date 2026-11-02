@@ -100,6 +100,10 @@ export function bindCombatEvents() {
       handleCastAbility(active.id, ability.name, [active.id]);
       return;
     }
+    if (ability.isRemnant) {
+      handleCastAbility(active.id, ability.name, [active.id], null, document.getElementById('remnant-pick')?.value);
+      return;
+    }
     if (ability.targetKind === 'self') {
       fireAbilityImmediate(ability);
       return;
@@ -157,6 +161,8 @@ export function bindCombatEvents() {
     const prev = document.getElementById('ability-preview');
     const hint = document.getElementById('aim-hint-ability');
     if (prev) prev.innerHTML = abilityPreviewHTML(ab);
+    const pick = document.getElementById('remnant-pick');
+    if (pick) pick.style.display = ab?.isRemnant ? '' : 'none';
 
     if (!ab || !btn) return;
     const isImmediate = ab.targetKind === 'self' && !ab.tags?.includes('teleportation');

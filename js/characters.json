@@ -7622,12 +7622,12 @@
             "magic",
             "buff",
             "summon",
-            "void"
+            "remnant"
           ]
         },
         "target": "self",
         "range": 0,
-        "description": "A rift in time summons a time remnant to fight for them; cost at the DM's discretion.",
+        "description": "A rift in time calls a Time Remnant: a whole roster character, fighting for them for 2 turns (at most 2 at once). Cost in spell slots by the character's max HP: 1 up to 50 HP, then 1 + 4 x ((HP - 50) / 70)^2 rounded (120 HP = 5, 180 HP = 15).",
         "spellCost": 1
       },
       {

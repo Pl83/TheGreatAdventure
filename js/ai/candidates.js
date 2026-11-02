@@ -22,7 +22,7 @@ const sign       = v => Math.sign(v);
 
 // Abilities fired on the unit's own turn (reacts, blocks, gates and the transformation have their own paths);
 // a silenced unit cannot spend spell slots, as on the action panel
-const castable = (c, ab, silenced) => abilityAvailable(c, ab) && !ab.reactOnly && !ab.isReact && !ab.isBlock
+const castable = (c, ab, silenced) => abilityAvailable(c, ab) && !ab.isRemnant && !ab.reactOnly && !ab.isReact && !ab.isBlock
   && !ab.isGate && !ab.isTransform && !(silenced && ab.cost?.type === 'slots');
 
 // c as if it stood on cell: the engine's range, sight and area helpers only read x and y

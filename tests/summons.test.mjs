@@ -219,3 +219,52 @@ test('Sienna usually just falls', async () => {
   assert.ok(sienna.isKO);
   assert.equal(sienna.name, 'Sienna');
 });
+
+// ── Krux & Acronix's Summoning Portal: Time Remnants ───────────────────────
+
+test('the Time Remnant cost climbs with the HP: 1 slot at 50, 5 at 120', () => {
+  assert.equal(L.remnantCost(50), 1);
+  assert.equal(L.remnantCost(70), 1);
+  assert.equal(L.remnantCost(95), 3);
+  assert.equal(L.remnantCost(120), 5);
+  assert.equal(L.remnantCost(180), 15);
+  assert.ok(L.remnantRoster().every(r => !['Fire Spirit', 'Golem', 'Floating Head', 'Demon', 'Krux & Acronix'].includes(r.nom)));
+});
+
+test('the Summoning Portal calls a whole character as a Time Remnant, pays its cost, fades after two turns', async () => {
+  await newFight({ teamA: ['Krux & Acronix'], teamB: ['Rox'], seed: 3 });
+  const kx = byName('Krux & Acronix');
+  const pick = L.remnantRoster().find(r => r.cost === 3);
+  toTurn('Krux & Acronix');
+  const slots = kx.spellSlots;
+  L.handleCastAbility(kx.id, 'Summoning Portal', [kx.id], null, pick.nom);
+  const rem = owned(kx).find(u => u.name === `Time Remnant ${pick.nom}`);
+  assert.ok(rem, 'the remnant stands');
+  assert.equal(rem.teamIndex, kx.teamIndex);
+  assert.equal(kx.spellSlots, slots - 3);
+  assert.equal(rem.maxHp, pick.hp);
+  toTurn(rem.name); L.handlePass();       // first turn
+  assert.ok(!rem.isKO);
+  toTurn(rem.name); L.handlePass();       // second turn
+  assert.ok(rem.isKO, 'it fades after its second turn');
+});
+
+test('at most two Time Remnants at once, and a wrong or unaffordable choice costs nothing', async () => {
+  await newFight({ teamA: ['Krux & Acronix'], teamB: ['Rox'], seed: 3 });
+  const kx = byName('Krux & Acronix');
+  const cheap = L.remnantRoster()[0].nom;
+  toTurn('Krux & Acronix');
+  const slots = kx.spellSlots;
+  L.handleCastAbility(kx.id, 'Summoning Portal', [kx.id], null, null);
+  L.handleCastAbility(kx.id, 'Summoning Portal', [kx.id], null, 'Golem');
+  assert.equal(kx.spellSlots, slots);
+  assert.equal(owned(kx).length, 0);
+  kx.spellSlots = 40;
+  for (let i = 0; i < 2; i++) {
+    S.hasActed = false; S.actionsDone = [];
+    L.handleCastAbility(kx.id, 'Summoning Portal', [kx.id], null, cheap);
+  }
+  assert.equal(owned(kx).filter(u => !u.isKO).length, 2);
+  const ab = kx.abilities.find(a => a.name === 'Summoning Portal');
+  assert.equal(L.abilityAvailable(kx, ab), false, 'a third cannot be called');
+});
