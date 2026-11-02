@@ -1204,6 +1204,17 @@
       "detail": "Nine team synergies, each a buff or a technique, never both. All rules and data live in js/synergies.js, read by combat-logic.js.",
       "where": "js/synergies.js; combat-logic.js · divineEffects, onHitTaken, defenseBonus, applyMoveEffect, handleCastAbility; characters.json · technique moves",
       "resolution": "Done. Buffs: 1 Ninja Teamwork (2 ninjas +2 initiative +1 speed, 3 add +1 on attack/defense/magic rolls, 4+ +2 instead); 2 Elemental Kin (two ninjas of an element add 1d4 to moves of that element); 5 Mecha Link (Pixal with a Zane: +3 on every roll); 6 Siblings (Kay Climber and Nya take 1d4 less, and the other braces +2 on its next defense roll when one is hit); 7 Sensei's Guidance (Lloyd with two more ninjas: +1d4 defense for allies within 6); 9 Storm Pair (Mira, Libber, Jay: +1d6 on lightning moves and a 1d2 paralysis, certain on a bonus hit). Techniques, once per fight for the team: 3 Climber Spinjitzu, 4 Dragon Masters Fury, 8 Imperium Strike, with the same rules as the Nexo power (fielded members required, usable while two stand, dice grow with the members standing, a twist per user). 10 Fallen Ninjas was scrapped. Dropped on the way: Mecha Link's free Scanner (Scanner does nothing yet and spends no action) and Sensei's longer Orders (Lloyd has no Orders). Mine to confirm: ranges and radii, the element lists, the Imperium and Climber twists, the 8d10 placeholder of Dragon Masters Fury (rewritten from the members standing at each cast). The Nexo power now runs on the same table."
+    },
+    {
+      "id": "bug-taboo-instant",
+      "resolution": "Fixed. Taboo carried the 'instant' tag, which the engine reads twice: an instant is offered as a reaction (getReacts) and never spends the turn's action (concludeAction). Tag removed: Taboo is a full action. Demon Pact keeps 'instant' on purpose (its sheet says it is one) but is still offered as a reaction: open question.",
+      "cat": "oddities",
+      "sev": "high",
+      "title": "Annastasia could cast Taboo as a reaction, for free",
+      "who": "Annastasia",
+      "detail": "Taboo was usable during an enemy's attack and did not use her turn.",
+      "evidence": "tests/summons.test.mjs",
+      "where": "characters.json"
     }
   ]
 }

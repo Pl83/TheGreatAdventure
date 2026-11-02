@@ -8122,13 +8122,12 @@
           "tags": [
             "magic",
             "buff",
-            "taboo",
-            "instant"
+            "taboo"
           ]
         },
         "target": "self",
         "range": 0,
-        "description": "Loses half current HP but instantly triggers the Sacrifice Mark: the Demons come now (one or two by the marked enemy's max HP) and the mark passes to another enemy. Needs a living mark.",
+        "description": "A full action, never a reaction. Loses half current HP but instantly triggers the Sacrifice Mark: the Demons come now (one or two by the marked enemy's max HP) and the mark passes to another enemy. Needs a living mark.",
         "spellCost": 1
       }
     ]

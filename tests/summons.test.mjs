@@ -183,6 +183,15 @@ test('Taboo costs half her current HP and springs the mark at once, the victim s
   assert.equal(S.combatants.filter(c => c.name === 'Demon' && c.ownerId === ann.id).length, rox.maxHp < 70 ? 1 : 2);
 });
 
+test('Taboo is a full action: never offered as a reaction, and it ends her turn', async () => {
+  await newFight({ teamA: ['Annastasia'], teamB: ['Rox', 'Irina'], seed: 3 });
+  const ann = byName('Annastasia'), rox = byName('Rox');
+  assert.ok(!L.getReacts(ann, null, rox).some(a => a.name === 'Taboo'), 'not a reaction');
+  toTurn('Annastasia');
+  L.handleCastAbility(ann.id, 'Taboo', [ann.id]);
+  assert.notEqual(L.activeCombatant().id, ann.id, 'the turn has moved on');
+});
+
 test('the Sacrifice Mark always passes to another enemy: after a death and after a Taboo', async () => {
   await newFight({ teamA: ['Annastasia'], teamB: ['Rox', 'Irina', 'Ray'], seed: 3 });
   const ann = byName('Annastasia');
