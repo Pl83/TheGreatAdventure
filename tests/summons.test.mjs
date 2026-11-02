@@ -517,3 +517,109 @@ test('Nokt cannot be immobilised: the root does not take', async () => {
   L.applyStatus(nokt, 'root');
   assert.ok(!nokt.statusEffects.some(e => e.name.toLowerCase() === 'root'));
 });
+
+test('Containment Spell: a 40 HP cage that stops the prisoner and breaks only from outside', async () => {
+  await newFight({ teamA: ['Rox'], teamB: ['Kadgar', 'Arya'], seed: 3 });
+  const rox = byName('Rox'), kadgar = byName('Kadgar');
+  toTurn('Rox');
+  if (S.currentMap) { kadgar.x = rox.x + 2; kadgar.y = rox.y; }
+  kadgar.maxHp = kadgar.currentHp = 500;
+  L.handleCastAbility(rox.id, 'Containment Spell', [kadgar.id]);
+  settle();
+  assert.ok(kadgar.cage, 'caged');
+  assert.ok(kadgar.statusEffects.some(e => e.name === 'stun') && kadgar.statusEffects.some(e => e.name === 'root'));
+  L.applyCleanse(kadgar);
+  assert.ok(kadgar.statusEffects.some(e => e.name === 'stun'), 'a cleanse does not lift the cage');
+  L.applyDamage(kadgar, 25, 'physical', ['physical']);
+  assert.equal(kadgar.currentHp, 500, 'the blow hit the cage, not the prisoner');
+  assert.equal(kadgar.cage.hp, 15);
+  L.applyDamage(kadgar, 20, 'physical', ['physical']);
+  assert.equal(kadgar.cage, null, 'broken');
+  assert.ok(!kadgar.statusEffects.some(e => e.name === 'stun'));
+  assert.equal(kadgar.currentHp, 500);
+});
+
+test('the cage goes with Rox when she falls', async () => {
+  await newFight({ teamA: ['Rox'], teamB: ['Kadgar'], seed: 3 });
+  const rox = byName('Rox'), kadgar = byName('Kadgar');
+  toTurn('Rox');
+  if (S.currentMap) { kadgar.x = rox.x + 2; kadgar.y = rox.y; }
+  L.handleCastAbility(rox.id, 'Containment Spell', [kadgar.id]);
+  settle();
+  assert.ok(kadgar.cage);
+  L.applyDamage(rox, 9999, 'physical', ['physical']);
+  assert.equal(kadgar.cage, null);
+});
+
+test('Theroxian Mastery: the debuffs Rox lays cannot be cleansed', async () => {
+  await newFight({ teamA: ['Rox'], teamB: ['Kadgar'], seed: 3 });
+  const kadgar = byName('Kadgar');
+  toTurn('Rox');
+  L.applyMoveEffect({ effect: 'stun', name: 'x', tags: [] }, kadgar);
+  assert.ok(kadgar.statusEffects.some(e => e.name.toLowerCase() === 'stun' && e.sticky));
+  L.applyCleanse(kadgar);
+  assert.ok(kadgar.statusEffects.some(e => e.name.toLowerCase() === 'stun'), 'still stunned');
+});
+
+test('Immobilization Seal stops a foe\'s blink once, then needs to recover', async () => {
+  await newFight({ teamA: ['Rox'], teamB: ['Kadgar'], seed: 3 });
+  const rox = byName('Rox'), kadgar = byName('Kadgar');
+  const slots = rox.spellSlots;
+  const seal = rox.abilities.find(a => a.name === 'Immobilization Seal');
+  assert.ok(!L.getReacts(rox, { tags: ['magic'], source: 'spell' }).some(a => a.name === 'Immobilization Seal'), 'not an ordinary react');
+  toTurn('Kadgar');
+  const blink = kadgar.abilities.find(a => a.tags?.includes('teleportation'));
+  assert.ok(blink, 'Kadgar can blink');
+  const x = kadgar.x, y = kadgar.y;
+  if (S.currentMap) { rox.x = x + 1; rox.y = y; }
+  L.handleCastAbility(kadgar.id, blink.name, [kadgar.id], { x: x + 3, y });
+  assert.equal(rox.spellSlots, slots - 1, 'the seal was spent');
+  assert.equal(kadgar.x, x, 'Kadgar did not move');
+  assert.equal(L.abilityAvailable(rox, seal), false, 'and it needs to recover');
+});
+
+// ── The Forbidden Five (Zarkt) ─────────────────────────────────────────────
+
+test('Tides of Misfortune: once a round a foe\'s landed blow is rolled again', async () => {
+  await newFight({ teamA: ['Zarkt'], teamB: ['Kadgar'], seed: 3 });
+  const zarkt = byName('Zarkt'), kadgar = byName('Kadgar');
+  toTurn('Kadgar');
+  if (S.currentMap) { kadgar.x = zarkt.x + 1; kadgar.y = zarkt.y; }
+  const logs = () => S.log.map(l => l.text ?? l.msg ?? '').filter(t => t.includes('Tides of Misfortune')).length;
+  let tries = 0;
+  while (!logs() && tries++ < 30) {
+    toTurn('Kadgar');
+    L.handleAttack(kadgar.id, zarkt.id);
+    settle();
+  }
+  assert.ok(logs() >= 1, 'a successful blow was rolled again');
+  assert.ok(zarkt.tidesRound >= 1, 'and it is spent for that round');
+});
+
+test('Curse Reflect: a hindrance aimed at Zarkt goes back to its source', async () => {
+  await newFight({ teamA: ['Zarkt'], teamB: ['Kadgar'], seed: 3 });
+  const zarkt = byName('Zarkt'), kadgar = byName('Kadgar');
+  toTurn('Kadgar');
+  L.applyMoveEffect({ effect: 'stun', name: 'x', tags: [] }, zarkt);
+  assert.ok(!zarkt.statusEffects.some(e => e.name.toLowerCase() === 'stun'), 'Zarkt is not stunned');
+  assert.ok(kadgar.statusEffects.some(e => e.name.toLowerCase() === 'stun'), 'the sender is');
+});
+
+test('Entropy Field: for the foes inside it a 2 or a 3 is a critical failure', async () => {
+  await newFight({ teamA: ['Zarkt'], teamB: ['Kadgar'], seed: 3 });
+  const zarkt = byName('Zarkt'), kadgar = byName('Kadgar');
+  toTurn('Zarkt');
+  if (S.currentMap) { kadgar.x = zarkt.x + 2; kadgar.y = zarkt.y; }
+  L.handleCastAbility(zarkt.id, 'Entropy Field', [kadgar.id], S.currentMap ? { x: kadgar.x, y: kadgar.y } : null);
+  settle();
+  if (!S.currentMap) return;
+  assert.ok(S.fields.some(f => f.ability.name === 'Entropy Field'), 'the field is up');
+  const { setRandom } = await import('../js/rng.js');
+  const before = S.log.length;
+  toTurn('Kadgar');
+  kadgar.x = zarkt.x + 1; kadgar.y = zarkt.y;   // adjacent, and still inside the field
+  setRandom(() => (2 - 0.5) / 20);   // every d20 comes out a 2
+  try { L.handleAttack(kadgar.id, zarkt.id); settle(); } finally { setRandom(Math.random); }
+  const lines = S.log.slice(before).map(l => l.text ?? l.msg ?? '');
+  assert.ok(lines.some(t => t.includes('Entropy Field: a critical failure')), 'a 2 inside the field fails critically');
+});

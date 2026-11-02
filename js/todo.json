@@ -810,7 +810,8 @@
       "title": "Aura of Terror, Psychic Link, Theroxian Mastery",
       "who": "Rox",
       "detail": "Done so far: auras are in the engine (a passive with a target and a radius), so Aura of Terror (enemies within 4 cells, -3) and Psychic Link (+2 to her team within 8) work, and allRolls now counts for attack, defense and magic rolls (it also turns on Jack of All Trade, Heavenly Champion and War Banner Carrier, which did nothing before). Left: Theroxian Mastery, Containment Spell, Immobilization Seal. Original text: Aura of Terror: -3 to the attack rolls of enemies around her. Psychic Link: +2 to all friendly rolls (the allRolls passive exists but is untested as an ally aura). Theroxian Mastery: her debuffs cannot be removed. Containment Spell: a 40 HP energy cage that only breaks from outside; Immobilization Seal stops a dash or blink as a react.",
-      "where": "characters.json · Google Doc import"
+      "where": "characters.json · Google Doc import",
+      "resolution": "Done. Aura of Terror: enemies within 4 cells of Rox get -3 on their attack rolls. Psychic Link: +2 to every attack, defense and magic roll of her team within 8 cells, herself included (the engine now reads auras and allRolls). Theroxian Mastery: the hindrances she lays on a foe are marked sticky and no cleanse lifts them. Containment Spell (1 slot): a 40 HP energy cage; the prisoner is stunned and rooted and cannot be freed by cleansing, every blow from outside lands on the cage, damage over time on its own turn still reaches the prisoner, and the cage goes when it breaks or when Rox falls. Immobilization Seal (1 slot, 2 round cooldown): when a foe within 10 cells dashes or blinks with a spell, a ready Seal stops the move automatically (the move is spent anyway); it is not offered as a normal react. The AI does not cast Containment Spell on purpose."
     },
     {
       "id": "mech-zarkt",
@@ -819,7 +820,8 @@
       "title": "Tides of Misfortune, Curse Reflect, Entropy Field",
       "who": "Zarkt",
       "detail": "Once a turn an enemy must reroll a die that succeeded. Any debuff aimed at him is sent back to its source. Entropy Field: a field where 2 and 3 count as critical fails for enemies. Descriptions only.",
-      "where": "characters.json · Google Doc import"
+      "where": "characters.json · Google Doc import",
+      "resolution": "Done. Tides of Misfortune: once a round, the first foe die that succeeds against Zarkt's side (a blow that lands, or a defense that holds against his side's blow) is rolled again and the new roll stands; automatic, no prompt. Curse Reflect: any hindrance a foe lays on Zarkt, by a move or by a basic attack rider, is applied to its sender instead. Entropy Field (1 slot): a 4 cell field for 3 rounds in which a 2 or a 3 rolled by a foe counts as a natural 1. The AI does not cast Entropy Field on purpose."
     },
     {
       "id": "mech-drix",

@@ -285,6 +285,8 @@ export function resolveAbilitiesFromList(moveList) {
       wetAdvantage: move.wetAdvantage ?? false,   // Runik Sea Bound: its 1d2 chances roll with advantage against a wet target
       isPetrify:  tags.includes('petrify'),   // Emeraud's Petrify: 1d20 + the target's petrification stacks
       hitCountMult: move.hitCountMult ?? 0,   // Rubis' Retribution Shard: damage is the hits taken times this, then the count resets
+      isCage:     tags.includes('cage'),   // Rox's Containment Spell: an energy cage of `cageHp` around the target
+      cageHp:     move.cageHp ?? 0,
       isPact:     tags.includes('pact'),   // Annastasia's Demon Pact: pays 10 HP for 1 spell slot
       isTaboo:    tags.includes('taboo'),   // Annastasia: pays half her current HP to spring the Sacrifice Mark now
       isDetonate: tags.includes('detonate'),   // bursts every living unit the caster owns, on its own spot
@@ -343,6 +345,7 @@ export function buildCombatant(char, teamIndex, id) {
     prevKind: null,
     hitCount: 0,        // Rubis: hits taken since his last Retribution Shard
     petrifyStacks: 0,   // Emeraud's Petrification: stacks on the unit he has struck
+    cage: null,         // Rox's Containment Spell: { ownerId, hp, maxHp } while this unit is caged
     duelId: null,       // Arthur's Holy Duel: id of the adversary he is bound to (advantage on every roll against it)
     sacMarkId: null,    // Annastasia's Sacrifice Mark: id of the enemy marked at the start of the battle (its death calls demons)
     huntMarkId: null,   // Sienna's Huntress / Apex Predator: id of the enemy marked at the start of the battle (x2 damage against it, advantage on defense against it)
@@ -1678,6 +1681,11 @@ export function applyDamage(combatant, amount, damType = null, atkTags = [], ign
 function applyDamageCore(combatant, amount, damType = null, atkTags = [], ignoreDR = false) {
   const done = () => { updateCombatantCardDOM(combatant); return 0; };
 
+  // Caged: every blow from outside lands on the cage; its prisoner's own turn (damage over time) and its own deeds do not
+  if (combatant.cage && amount > 0) {
+    const actor = activeCombatant();
+    if (actor && actor.id !== combatant.id) { cageTakes(combatant, amount); return done(); }
+  }
   // A prisoner of a chain: its allies' blows land on the chain, which is how they free it
   const hold = amount > 0 ? chainHolding(combatant) : null;
   if (hold) {
@@ -2093,7 +2101,7 @@ export function removeFlying(target) {
 const NEGATIVE_STATUSES = ['para','gel','freeze','burn','calcinated','bleed','hemoragie','stun','root','fear','silence','blind','toxic','poison'];
 const isDebuff = e => NEGATIVE_STATUSES.some(n => e.name.toLowerCase().includes(n));
 // A chain's hold is no ordinary status: Cleanse (Zhuqiao, Nya) cannot lift it, only damage to the chain does
-const cleansable = e => isDebuff(e) && e.chainOf == null;
+const cleansable = e => isDebuff(e) && e.chainOf == null && e.cageOf == null && !e.sticky;   // a chain, a cage and Rox's own debuffs (Theroxian Mastery) cannot be cleansed
 
 // Lifts one debuff (the first it finds), the way Phoenix Grace does
 function cleanseOne(target, source) {
@@ -2355,6 +2363,76 @@ function hugEcho(c) {
   if (t && t.id !== c.id && !t.isKO) applyHeal(t, echo.dice);
 }
 
+// ── Zarkt: Tides of Misfortune and Curse Reflect ──
+
+// Once a round a foe's die that succeeded is rolled again, and the new roll stands
+function tidesReroll(roller) {
+  const z = S.combatants.find(u => !u.isKO && u.teamIndex !== roller.teamIndex && hasPassiveTag(u, 'tides') && u.tidesRound !== S.roundNumber);
+  if (!z) return null;
+  z.tidesRound = S.roundNumber;
+  const again = rollD20();
+  addLog(`  🌊 ${z.name}'s Tides of Misfortune make ${roller.name} roll again: ${again.value}.`, 'spell');
+  return again;
+}
+
+// Curse Reflect: a debuff aimed at Zarkt goes back to whoever sent it. Returns true when it was sent back.
+let reflectingCurse = false;
+function reflectCurse(source, target, effect) {
+  if (!effect || !source || reflectingCurse || source.isKO || source.teamIndex === target.teamIndex || !hasPassiveTag(target, 'curseReflect')) return false;
+  const bad = String(effect).split(',').map(p => p.trim().replace(/^1d\d+(adv)?\s+/i, '').toLowerCase()).some(n => NEGATIVE_STATUSES.includes(n));
+  if (!bad) return false;
+  addLog(`🪞 ${target.name}'s Curse Reflect sends ${source.name}'s hindrance back at it!`, 'crit');
+  reflectingCurse = true;
+  try { applyStatus(source, effect); } finally { reflectingCurse = false; }
+  return true;
+}
+
+// ── Rox: Containment Spell and Immobilization Seal ──
+
+// An energy cage around the target: it can neither act nor move, and only a blow from outside breaks the cage
+function castCage(caster, target, ability) {
+  if (!target || target.isKO) return;
+  if (target.cage) { addLog(`  ${target.name} is already caged.`, 'info'); return; }
+  target.cage = { ownerId: caster.id, hp: ability.cageHp, maxHp: ability.cageHp };
+  for (const name of ['stun', 'root']) {
+    target.statusEffects = target.statusEffects.filter(e => e.name !== name);
+    target.statusEffects.push({ name, turnsLeft: 999, dice: null, damType: null, notes: '', cageOf: caster.id, sticky: true });
+  }
+  addLog(`🔒 ${caster.name} closes an energy cage (${ability.cageHp} HP) around ${target.name}: it cannot act or move until the cage is broken.`, 'spell');
+  updateCombatantCardDOM(target);
+}
+
+function cageTakes(prisoner, amount) {
+  const cage = prisoner.cage;
+  cage.hp -= amount;
+  addLog(`🔒 The blow lands on the cage around ${prisoner.name}: ${amount}. (${Math.max(0, cage.hp)}/${cage.maxHp})`, 'hit');
+  if (cage.hp <= 0) breakCage(prisoner, 'the cage is broken');
+}
+
+function breakCage(prisoner, why) {
+  prisoner.cage = null;
+  prisoner.statusEffects = prisoner.statusEffects.filter(e => e.cageOf == null);
+  addLog(`🔓 ${prisoner.name} is free of the cage (${why}).`, 'crit');
+  updateCombatantCardDOM(prisoner);
+}
+
+// Immobilization Seal: a unit with the seal ready, within its reach of a foe that dashes or blinks, stops the move.
+// The move is spent all the same.
+function sealStops(caster, ability) {
+  if (!ability.tags?.some(t => t === 'dash' || t === 'teleportation')) return false;
+  const holder = S.combatants.find(u => {
+    if (u.isKO || u.teamIndex === caster.teamIndex || hasControlEffect(u)) return false;
+    const seal = u.abilities.find(a => a.tags?.includes('seal'));
+    return seal && abilityAvailable(u, seal) && (!S.currentMap || chebyshev(u, caster) <= (seal.range ?? 10));
+  });
+  if (!holder) return false;
+  const seal = holder.abilities.find(a => a.tags?.includes('seal'));
+  spendResource(holder, seal);
+  if (seal.cooldownTurns > 0) holder.cooldowns[seal.name] = seal.cooldownTurns + 1;
+  addLog(`🔒 ${holder.name}'s ${seal.name} stops ${caster.name}'s ${ability.name}!`, 'crit');
+  return true;
+}
+
 // ── Gem knights ──
 const GEM_RADIUS = 2;
 let inShard = false;   // a Retribution Shard that hits another gem knight does not bounce back and forth
@@ -2419,6 +2497,7 @@ function castTaboo(caster) {
 
 // An ally falling feeds the stacking passives of the fighters still standing (Relentless Warrior)
 function noteFallen(fallen) {
+  for (const u of S.combatants) if (u.cage?.ownerId === fallen.id) breakCage(u, `${fallen.name} has fallen`);
   dismissOwned(fallen);
   releaseAllChains(fallen);
   feastOnMark(fallen);
@@ -2564,7 +2643,14 @@ function tickFields() {
 export function applyMoveEffect(ability, target, guaranteed = false) {
   const soaked = hasWetStatus(target);
   const effect = effectFor(ability, target);
+  const known = new Set(target.statusEffects);
+  const source = activeCombatant();
+  if (reflectCurse(source, target, effect)) return;
   applyStatus(target, guaranteed && effect ? effect.replace(/(^|,\s*)1d2(?:adv)?\s+/gi, '$1') : effect, ability.statusTurns != null ? ability.statusTurns + 1 : undefined);
+  // Theroxian Mastery: what Rox lays on a foe cannot be lifted
+  if (source && source.teamIndex !== target.teamIndex && hasPassiveTag(source, 'theroxian')) {
+    for (const e of target.statusEffects) if (!known.has(e) && isDebuff(e)) e.sticky = true;
+  }
   if (ability.inflicts) inflict(ability, target, guaranteed);
   if (soaked && bitesIce(ability) && !target.isKO) dropWetStatus(target);
 }
@@ -2650,6 +2736,11 @@ function rollD20For(c, baseAdv = false, baseDis = false, role = null) {
     const again = rollD20();
     addLog(`  🍀 ${c.name}'s Djinn's Luck rerolls the 1 — now ${again.value}.`, 'spell');
     return again;
+  }
+  // Zarkt's Entropy Field: for the foes inside it a 2 or a 3 is a critical failure like a 1
+  if ((roll.value === 2 || roll.value === 3) && S.fields.some(f => f.ability?.tags?.includes('entropy') && f.teamIndex !== c.teamIndex && inField(f, c))) {
+    addLog(`  🌀 ${c.name} rolls a ${roll.value} in the Entropy Field: a critical failure!`, 'miss');
+    return { ...roll, isNat1: true };
   }
   return roll;
 }
@@ -3028,15 +3119,26 @@ function clash(atk, def, effectiveDefRoll) {
 }
 
 export function resolveAttack(attacker, defender, diceExpr, ability = null) {
-  const { roll: atkRoll, sureHit: domainSureHit } = rollAttackD20(attacker, ability, defender);
+  let { roll: atkRoll, sureHit: domainSureHit } = rollAttackD20(attacker, ability, defender);
 
-  const defRoll = rollD20For(defender, passiveAdvantage(defender, 'defRoll', attacker, ability), false, 'def');
-  const effectiveDefRoll = defRoll.value + defenseBonus(defender, attacker, ability);
+  let defRoll = rollD20For(defender, passiveAdvantage(defender, 'defRoll', attacker, ability), false, 'def');
+  const defBonus = defenseBonus(defender, attacker, ability);
+  let effectiveDefRoll = defRoll.value + defBonus;
 
   const domainForcesHit = domainSureHit && !atkRoll.isNat1;
   if (domainForcesHit) addLog(`  🎯 Sure-Hit — attack cannot be dodged!`, 'spell');
 
-  const outcome = clash(atkRoll, defRoll, effectiveDefRoll);
+  let outcome = clash(atkRoll, defRoll, effectiveDefRoll);
+  // Zarkt's Tides of Misfortune: the die that succeeded (a blow that lands, or a defense that holds) is rolled again
+  if (!domainSureHit) {
+    if (outcome.hit) {
+      const again = tidesReroll(attacker);
+      if (again) { atkRoll = again; outcome = clash(atkRoll, defRoll, effectiveDefRoll); }
+    } else if (!atkRoll.isNat1 && !outcome.freeAction) {
+      const again = tidesReroll(defender);
+      if (again) { defRoll = again; effectiveDefRoll = again.value + defBonus; outcome = clash(atkRoll, defRoll, effectiveDefRoll); }
+    }
+  }
   const hit = outcome.hit || domainForcesHit;
   const { mutual, bonusMult } = outcome;
   const freeAction = outcome.freeAction && !hit;
@@ -3169,6 +3271,7 @@ export function getReacts(target, incoming = null) {
   return target.abilities.filter(ab => {
     if (!ab.isReact && !ab.isInstant && !ab.isBlock) return false;
     if (ab.tags?.includes('extraAction')) return false;   // Borrowed Time is spent on the caster's own turn
+    if (ab.tags?.includes('seal')) return false;          // Immobilization Seal answers a dash or blink by itself (sealStops)
     if (ab.tags?.includes('noReact')) return false;       // instant (no action used) but only on the caster's own turn: Blink, Hunter Instinct
     if (ab.isTransform) return false;
     // Guardbreak beats every block but not a dodge: teleports, dashes and the like still get away
@@ -3311,8 +3414,9 @@ export function handleCastAbility(casterId, abilityName, targetIds, center = nul
 
   addLog(`${caster.name} uses ${ability.name}!`, ability.source === 'spell' ? 'spell' : 'tech');
   if (ability.isDuel && targets[0]) startDuel(caster, targets[0]);
-  if (ability.summon || ability.isDetonate || ability.isTaboo || ability.isRemnant || ability.isPact || ability.isPetrify) {
-    if (ability.summon) castSummon(caster, ability); else if (ability.isPetrify) castPetrify(caster, targets[0]); else if (ability.isPact) castPact(caster); else if (ability.isRemnant) castRemnant(caster, remnantSheet); else if (ability.isTaboo) castTaboo(caster); else castDetonate(caster, ability);
+  if (sealStops(caster, ability)) { concludeAction(!!ability.isInstant); return; }
+  if (ability.summon || ability.isDetonate || ability.isTaboo || ability.isRemnant || ability.isPact || ability.isPetrify || ability.isCage) {
+    if (ability.summon) castSummon(caster, ability); else if (ability.isCage) castCage(caster, targets[0], ability); else if (ability.isPetrify) castPetrify(caster, targets[0]); else if (ability.isPact) castPact(caster); else if (ability.isRemnant) castRemnant(caster, remnantSheet); else if (ability.isTaboo) castTaboo(caster); else castDetonate(caster, ability);
     concludeAction(!!ability.isInstant);
     return;
   }
@@ -3352,7 +3456,7 @@ export function handleCastAbility(casterId, abilityName, targetIds, center = nul
 
   // Effects that never prompt a react: friendly buffs, unblockable moves, and moves that deal no damage or status
   const noReacts = ability.targetKind === 'ally' || !!ability.tags?.some(t => t === 'unblockabled' || t === 'taunt');
-  const hasMechanics = ability.summon || ability.isTaboo || ability.isPetrify || ability.isPact || ability.isRemnant || ability.isDetonate || ability.dice || ability.effect || ability.precastDice || ability.slotRegen > 0 || ability.isRevive
+  const hasMechanics = ability.summon || ability.isCage || ability.isTaboo || ability.isPetrify || ability.isPact || ability.isRemnant || ability.isDetonate || ability.dice || ability.effect || ability.precastDice || ability.slotRegen > 0 || ability.isRevive
     || ability.isBlock || ability.targetKind === 'self' || ability.field
     || ability.isContest || ability.tags?.some(t => ['dash', 'fly', 'teleportation', 'cleans', 'pull', 'taunt', 'smoke', 'adv_next', 'orders', 'ward', 'dry'].includes(t));
   if (!hasMechanics) addLog(`  ⚠ ${ability.name} has no mechanical effect in the simulator yet.`, 'info');
@@ -3832,7 +3936,7 @@ function settlePendingAction(reactAbility) {
           const dealt = applyDamage(def, action.result.damage, damType, atkTags, ignoreDR);
           drainOnHit(atk, dealt);
           const basic = atk.transformedBaseAtk ?? atk.sourceChar.baseAtk;
-          if (!poisonCombo(basic, def)) applyStatus(def, basic?.effect);   // a basic attack's rider (Cole's 1d2 stun)
+          if (!poisonCombo(basic, def) && !reflectCurse(atk, def, basic?.effect)) applyStatus(def, basic?.effect);   // a basic attack's rider (Cole's 1d2 stun)
           if (atk.prevKind === 'steamMode' && hasPassiveTag(atk, 'steamGun') && !def.isKO) {
             addLog(`  🔥 ${atk.name}'s SteamGun scorches ${def.name}!`, 'status');
             applyStatus(def, 'burn');

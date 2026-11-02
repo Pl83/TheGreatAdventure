@@ -8743,7 +8743,8 @@
       {
         "nom": "Theroxian Mastery",
         "tags": [
-          "buff"
+          "buff",
+          "theroxian"
         ],
         "applyOn": [],
         "description": "Her debuffs cannot be removed."
@@ -8767,15 +8768,16 @@
         "category": "spell",
         "base": {
           "nom": "Containment Spell",
-          "dices": "40",
           "tags": [
             "magic",
             "debuff",
-            "root"
+            "root",
+            "cage"
           ]
         },
         "target": "mono",
         "range": 10,
+        "cageHp": 40,
         "description": "Energy cage around a target with 40 HP; only destroyable from the outside.",
         "spellCost": 1
       },
@@ -8786,12 +8788,14 @@
           "tags": [
             "magic",
             "debuff",
-            "react"
+            "react",
+            "seal"
           ]
         },
         "target": "mono",
         "range": 10,
-        "description": "React: stops a dash or blink.",
+        "cooldown": 2,
+        "description": "React: stops a dash or blink of a foe within 10 cells (automatic when the seal is ready).",
         "spellCost": 1
       },
       {
@@ -8832,16 +8836,17 @@
       {
         "nom": "Tides of Misfortune",
         "tags": [
-          "buff"
+          "buff",
+          "tides"
         ],
         "applyOn": [],
-        "description": "Once per turn, forces an enemy to reroll a die that succeeded."
+        "description": "Once a round, forces an enemy to reroll a die that succeeded (a blow that lands, or a defense that holds); the new roll stands."
       },
       {
         "nom": "Curse Reflect",
         "tags": [
           "buff",
-          "reflect"
+          "curseReflect"
         ],
         "applyOn": [],
         "description": "Sends any debuff that targets him back to its source."
@@ -8855,12 +8860,14 @@
           "tags": [
             "magic",
             "debuff",
-            "field"
+            "field",
+            "entropy"
           ]
         },
         "target": "aoe",
         "range": 8,
         "radius": 4,
+        "field": { "turns": 3, "affects": "foes" },
         "description": "Field: for enemies, 2 and 3 become critical fails like 1.",
         "spellCost": 1
       },
