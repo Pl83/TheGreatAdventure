@@ -2,7 +2,7 @@
 // or attack. Baseline opponent and rollout policy; it never teleports and never throws.
 import {
   S, activeCombatant, bfsReachable, isOccupied, abilityAvailable, hasValidTarget, targetInRange,
-  aoeCenterValid, aoeCombatantHits, blastReaches, coneCells, enemies, tauntSource, targetPool,
+  aoeCenterValid, aoeCombatantHits, blastReaches, coneCells, enemies, livingCombatants, tauntSource, targetPool,
   allies, trappingDomainOwner, SPELL_RANGE, moveSpeed, isSummonUnit, chebyshev, hasControlEffect, repeatsAction, healsTarget,
 } from '../combat-logic.js';
 import { foeDistance } from './paths.js';
@@ -60,8 +60,11 @@ function bestArea(c, ab) {
   }
   const range = ab.range ?? SPELL_RANGE;
   const radius = ab.radius > 0 ? ab.radius : 1;
+  // A blast can only hit a foe within `radius` of its centre, so centres far from every foe are skipped
+  const pool = ab.targetKind === 'ally' ? livingCombatants(c.teamIndex) : enemies(c);
   for (let x = c.x - range; x <= c.x + range; x++) {
     for (let y = c.y - range; y <= c.y + range; y++) {
+      if (!pool.some(t => Math.max(Math.abs(t.x - x), Math.abs(t.y - y)) <= radius)) continue;
       if (!aoeCenterValid(c, ab, x, y)) continue;
       consider(aoeCombatantHits(ab, c, x, y), friends.filter(a => blastReaches(x, y, a.x, a.y, radius)).length);
     }

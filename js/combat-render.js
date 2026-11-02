@@ -20,33 +20,6 @@ export const root = document.getElementById('combat-root');
 
 // ── §12  Render helpers ────────────────────────────────────────────────────
 
-export function statusEmoji(name) {
-  const n = name.toLowerCase();
-  if (n.includes('burn') || n.includes('calcin'))                                      return '🔥';
-  if (n.includes('toxic') || n.includes('poison'))               return '🧪';
-  if (n.includes('bleed') || n.includes('hemo'))                 return '🩸';
-  if (['para','stun','cocoon','fear'].some(k => n.includes(k)))  return '⚡';
-  if (n.includes('gel') || n.includes('freeze'))                 return '❄️';
-  if (n.includes('silence'))                                      return '🔇';
-  if (n.includes('root'))                                         return '🌿';
-  if (n.includes('blind'))                                        return '🙈';
-  if (n.includes('regen') || n.includes('regenerat'))            return '💚';
-  if (n === 'fly')                                               return '🦅';
-  if (n === 'sure_hit')                                          return '🎯';
-  if (n.startsWith('lost:'))                                     return '🦴';
-  if (n === 'living_blade_armor')                                return '⚔';
-  if (n === 'final_reckoning')                                   return '💀';
-  if (n === 'runik_precast')                                     return '✦';
-  if (n === 'damage_reduction')                                  return '🪨';
-  if (n === 'ranged_guard')                                      return '🌬';
-  if (n === 'destiny_crit')                                      return '🌟';
-  if (n === 'gamble_bonus')                                      return '✨';
-  if (n === 'hindered' || n === 'hindered_atk' || n === 'hindered_def') return '⬇';
-  if (n.includes('damage_shield'))                               return '🛡';
-  if (n.includes('water_shield') || n.includes('shield'))       return '🛡';
-  return '◈';
-}
-
 export function statusCssClass(damType) {
   const t = (damType || '').toLowerCase();
   if (t === 'fire')     return 'status-fire';

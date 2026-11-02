@@ -3159,7 +3159,6 @@
   {
     "nom": "Black Turtle",
     "faction": "Murrim",
-    "deceased": true,
     "hp": 120,
     "spellSlot": 8,
     "ki": 0,

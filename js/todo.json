@@ -1011,7 +1011,7 @@
       "title": "Susano differs from the doc",
       "who": "Susano",
       "detail": "Settled case by case with the user.",
-      "where": "characters.json · Susano; main.js · personnageSheet"
+      "where": "characters.json · Susano"
     },
     {
       "id": "decide-kadgar-doc",
@@ -1021,7 +1021,7 @@
       "title": "Kadgar differs from the doc",
       "who": "Kadgar",
       "detail": "Settled case by case with the user.",
-      "where": "characters.json · Kadgar; main.js · personnageSheet"
+      "where": "characters.json · Kadgar"
     },
     {
       "id": "decide-sora-doc",
@@ -1041,7 +1041,7 @@
       "title": "Pixal, Arin and Wyldfire differ from the doc",
       "who": "Pixal, Arin, Wyldfire",
       "detail": "Settled case by case with the user. Open: the AI always picks Heat Projectile (Fire), the two spells being equal for it; give it a reason to pick the element the target is weak to.",
-      "where": "characters.json · Pixal, Arin, Wyldfire; main.js · personnageSheet"
+      "where": "characters.json · Pixal, Arin, Wyldfire"
     },
     {
       "id": "mech-map-traps",
@@ -1069,7 +1069,7 @@
       "title": "Hela differs from the doc",
       "who": "Hela",
       "detail": "Open: with Anti-Magic at Authority 9, Hela's own Balmung (Authority 8) no longer pierces another Hela's immunity; give the relic Authority 9 if that matters. The Sword Master and Sorcerer Master 'seal magic' still use passives_off, not silence.",
-      "where": "characters.json · Hela; main.js · personnageSheet; combat-logic.js · reflectSpell, tickTurn"
+      "where": "characters.json · Hela; combat-logic.js · reflectSpell, tickTurn"
     },
     {
       "id": "decide-climbers-doc",
@@ -1079,7 +1079,7 @@
       "title": "Climbers differ from the doc",
       "who": "Kay, Zane, Jay, Cole Climber",
       "detail": "Open: the AI does not weigh a form's remaining duration when choosing to transform. A form's passives with dice (not tags) are still not applied while transformed; only adv and fly are.",
-      "where": "characters.json · Climbers; main.js · personnageSheet; combat-logic.js · handleTransform, revertForm, passiveLost, applyDamage"
+      "where": "characters.json · Climbers; combat-logic.js · handleTransform, revertForm, passiveLost, applyDamage"
     },
     {
       "id": "decide-lloyd-nya-demon-doc",
@@ -1089,7 +1089,7 @@
       "title": "Sensei Lloyd, Nya and Kay Demon differ from the doc",
       "who": "Sensei Lloyd, Nya Léviathan, Kay Demon",
       "detail": "Settled case by case with the user.",
-      "where": "characters.json · Sensei Lloyd, Kay Demon; main.js · personnageSheet"
+      "where": "characters.json · Sensei Lloyd, Kay Demon"
     },
     {
       "id": "decide-ki-sun-oslo-eragon-doc",
@@ -1099,7 +1099,7 @@
       "title": "Ki, Sun, Oslo and Eragon differ from the doc",
       "who": "Meï, Krilin, Baal, Sun, Oslo, Eragon",
       "detail": "Thormak, Jeagen and Ras already carry beast, so Oslo's +1d6 works against them. Oslo's Bone Prison 'root for 1d2' is read as a 50% chance, like other 1d2 riders, not as a 1-2 turn duration. Bone Shatter keeps its cooldown of 2 although the doc gives none.",
-      "where": "characters.json · Meï, Krilin, Baal, Sun, Oslo, Eragon, Kadgar; main.js · personnageSheet; combat-logic.js · applyDamage, splash"
+      "where": "characters.json · Meï, Krilin, Baal, Sun, Oslo, Eragon, Kadgar; combat-logic.js · applyDamage, splash"
     },
     {
       "id": "decide-heracles-rig-glysain-zed-doc",
@@ -1109,7 +1109,7 @@
       "title": "Heracles, Rig, Glysain and Zed differ from the doc",
       "who": "Heracles, Rig, Glysain, Zed",
       "detail": "Open: Ice Flame carries the fire tag, so a second hit on a frozen target triggers thermal shock (+2d12) and thaws it. The AI does not plan around GunRang's returning blow. No prone state exists for Zed's Opportunist.",
-      "where": "characters.json · Rig, Glysain, Zed; main.js · personnageSheet; combat-logic.js · beginTurn, bounce"
+      "where": "characters.json · Rig, Glysain, Zed; combat-logic.js · beginTurn, bounce"
     },
     {
       "id": "decide-hui-morrow-astrid-sylvanas-doc",
@@ -1159,7 +1159,17 @@
       "who": "",
       "detail": "Sheet page was 109 cards in one grid with 107 tag buttons. Now a list on the left (search, kind and element chips, the rest of the tags folded away, arrow keys, #name in the URL) and one sheet on the right. Then grouped by faction (collapsible headers, closed by default except the selected sheet's group, a search or tag filter opens every group) and sortable by name, HP or spell slots. The faction field lives on each sheet in characters.json and personnageSheet (a string, or an array when a character belongs to two, like Alicia: Nexo-Knights Kingdom and Valarjar). Unlisted characters read Sans faction: Kaelgrym, Admiral Jaina, White, Vorrakan, Akir, Babacool, Maracacha, Vayl-Soran, Chronos, Kyros, Krux & Acronix.",
       "where": "sheet.html, js/sheet.js, css/main.css",
-      "resolution": "Done. Still to judge by eye: card layout itself (unchanged), mobile view, and whether to read personnageSheet instead of characters.json."
+      "resolution": "Done. Still to judge by eye: card layout itself (unchanged), mobile view, (it reads characters.json; personnageSheet is gone).",
+    {
+      "id": "code-audit-cleanup",
+      "cat": "oddities",
+      "sev": "low",
+      "title": "Code audit: dead code and AI hot spots",
+      "who": "",
+      "detail": "Audit found statusEmoji (unused), the deceased key (read by nothing), the 2,060-line personnageSheet mirror in main.js (read only by one test) and two AI hot spots: bfsReachable (9.7% of a 5v5 fight) and bestArea (8.6%).",
+      "where": "combat-render.js, characters.json, main.js, combat-logic.js · bfsReachable, ai/greedy.js · bestArea",
+      "resolution": "Done. statusEmoji, deceased and personnageSheet removed (the mirror rule is retired; characters.json is the only source). bfsReachable now caches per map and door state and returns a copy; bestArea skips blast centres out of reach of every target. Same results, tests unchanged."
+    }
     }
   ]
 }

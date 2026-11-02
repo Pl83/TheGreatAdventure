@@ -784,29 +784,38 @@ export function hasLos(ax, ay, bx, by) {
   }
 }
 
-export function bfsReachable(sx, sy, maxDist) {
-  const visited = new Map();
-  const queue   = [{ x: sx, y: sy, dist: 0 }];
-  visited.set(`${sx},${sy}`, 0);
-  const dirs = [
-    { dx: -1, dy: -1 }, { dx: 0, dy: -1 }, { dx: 1, dy: -1 },
-    { dx: -1, dy: 0  },                     { dx: 1, dy: 0  },
-    { dx: -1, dy: 1  }, { dx: 0, dy: 1  }, { dx: 1, dy: 1  },
-  ];
-  while (queue.length) {
-    const { x, y, dist } = queue.shift();
+const BFS_DIRS = [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]];
+// Reach depends only on the map, its open doors, the start cell and the distance, so it is cached
+// per map and reset whenever a door changes state.
+const bfsCache = new WeakMap();
+
+function bfsCompute(sx, sy, maxDist) {
+  const visited = new Map([[`${sx},${sy}`, 0]]);
+  const qx = [sx], qy = [sy], qd = [0];
+  for (let h = 0; h < qx.length; h++) {
+    const x = qx[h], y = qy[h], dist = qd[h];
     if (dist >= maxDist) continue;
-    for (const { dx, dy } of dirs) {
-      const nx = x + dx, ny = y + dy;
-      const key = `${nx},${ny}`;
+    for (const [dx, dy] of BFS_DIRS) {
+      const nx = x + dx, ny = y + dy, key = `${nx},${ny}`;
       if (!visited.has(key) && isWalkableG(S.currentMap, nx, ny)) {
         visited.set(key, dist + 1);
-        queue.push({ x: nx, y: ny, dist: dist + 1 });
+        qx.push(nx); qy.push(ny); qd.push(dist + 1);
       }
     }
   }
   visited.delete(`${sx},${sy}`);
   return visited;
+}
+
+export function bfsReachable(sx, sy, maxDist) {
+  const map = S.currentMap;
+  const sig = map.doors?.map(d => d.open ? 1 : 0).join('') ?? '';
+  let slot = bfsCache.get(map);
+  if (!slot || slot.sig !== sig) bfsCache.set(map, slot = { sig, byKey: new Map() });
+  const key = `${sx},${sy},${maxDist}`;
+  let hit = slot.byKey.get(key);
+  if (!hit) slot.byKey.set(key, hit = bfsCompute(sx, sy, maxDist));
+  return new Map(hit);   // callers (S.reachableCells) mutate their copy
 }
 
 export function isOccupied(x, y, excludeId = -1) {

@@ -1,7 +1,7 @@
 # Google Doc import: notes (to settle case by case)
 
 Source: the Google Doc, tabs 2 to 13 (the "orcs" tab is ignored). 51 sheets were added at the end of
-`js/characters.json`. No existing sheet was modified. `js/main.js` (`personnageSheet`) was NOT touched.
+`js/characters.json`. No existing sheet was modified.
 
 ## 1. Already on the site: untouched, waiting for instructions
 
