@@ -1159,7 +1159,8 @@
       "who": "",
       "detail": "Sheet page was 109 cards in one grid with 107 tag buttons. Now a list on the left (search, kind and element chips, the rest of the tags folded away, arrow keys, #name in the URL) and one sheet on the right. Then grouped by faction (collapsible headers, closed by default except the selected sheet's group, a search or tag filter opens every group) and sortable by name, HP or spell slots. The faction field lives on each sheet in characters.json and personnageSheet (a string, or an array when a character belongs to two, like Alicia: Nexo-Knights Kingdom and Valarjar). Unlisted characters read Sans faction: Kaelgrym, Admiral Jaina, White, Vorrakan, Akir, Babacool, Maracacha, Vayl-Soran, Chronos, Kyros, Krux & Acronix.",
       "where": "sheet.html, js/sheet.js, css/main.css",
-      "resolution": "Done. Still to judge by eye: card layout itself (unchanged), mobile view, (it reads characters.json; personnageSheet is gone).",
+      "resolution": "Done. Still to judge by eye: card layout itself (unchanged), mobile view, (it reads characters.json; personnageSheet is gone)."
+    },
     {
       "id": "code-audit-cleanup",
       "cat": "oddities",
@@ -1169,7 +1170,6 @@
       "detail": "Audit found statusEmoji (unused), the deceased key (read by nothing), the 2,060-line personnageSheet mirror in main.js (read only by one test) and two AI hot spots: bfsReachable (9.7% of a 5v5 fight) and bestArea (8.6%).",
       "where": "combat-render.js, characters.json, main.js, combat-logic.js · bfsReachable, ai/greedy.js · bestArea",
       "resolution": "Done. statusEmoji, deceased and personnageSheet removed (the mirror rule is retired; characters.json is the only source). bfsReachable now caches per map and door state and returns a copy; bestArea skips blast centres out of reach of every target. Same results, tests unchanged."
-    }
     }
   ]
 }
