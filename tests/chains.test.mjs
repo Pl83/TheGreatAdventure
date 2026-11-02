@@ -34,6 +34,7 @@ async function setup(seed = 1) {
   const vor = byName(VOR), foe = byName('Kadgar'), mate = byName('Eragon');
   vor.x = 10; vor.y = 10;
   foe.x = 11; foe.y = 10;
+  const rox = byName('Rox'); rox.x = 1; rox.y = 1;   // her Aura of Terror (-3 to the foes around her) is not part of these tests
   return { vor, foe, mate };
 }
 async function grab(vor, foe) {
@@ -207,7 +208,7 @@ test('answering a blow with Chain Guard sends it to the chains, and only that bl
   const { vor, foe } = await setup();
   const hp = vor.currentHp;
   toTurn('Kadgar');
-  forceD20(19, 19);
+  forceD20(19, 5);   // a hit even with the +3 Vorrakan now defends with (Jack of All Trade, Psychic Link)
   L.handleAttack(foe.id, vor.id);
   assert.ok(S.awaitingReact, 'Vorrakan is asked');
   const option = S.reactOptions.find(o => o.ability.name === 'Chain Guard');

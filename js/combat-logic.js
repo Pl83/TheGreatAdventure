@@ -1777,6 +1777,18 @@ function applyDamageCore(combatant, amount, damType = null, atkTags = [], ignore
     }
     if (amount <= 0) return done();
   }
+  // Conditional incoming damage increases (Chitin Armor: +10 from area blows, fire and lightning): a leading plus
+  for (const p of combatant.sourceChar.passif ?? []) {
+    if (ignoreDR || amount <= 0 || passiveLost(combatant, p)) continue;
+    if (!p.applyOn?.includes('incomingDam') || !p.dices || !p.condition?.incomingHasTag) continue;
+    const expr = String(p.dices).trim();
+    if (!expr.startsWith('+')) continue;
+    const condTag = p.condition.incomingHasTag.toLowerCase();
+    if (!(damType?.toLowerCase() === condTag || atkTags.some(t => t.toLowerCase() === condTag))) continue;
+    const add = parseDice(expr.slice(1).trim()).total;
+    amount += add;
+    addLog(`⚠ ${combatant.name}'s "${p.nom}" leaves it exposed: +${add} damage! (→ ${amount})`, 'hit');
+  }
   // Conditional incoming damage reduction passives (e.g. Magic Resist -10, Iron Pelt -1d6+2).
   // A leading minus marks the whole expression as a reduction: "-1d8+10" reduces by 1d8+10.
   for (const p of combatant.sourceChar.passif ?? []) {
@@ -1955,6 +1967,10 @@ export function applyStatus(combatant, effectStr, defaultTurns = 2) {
       if (immunities.includes(key) || (STATUS_ALIASES[key] && immunities.includes(STATUS_ALIASES[key]))
           || (DOTS[key] && immunities.includes(DOTS[key].base) && !combatant.sourceChar.dotDamage?.[key])) {   // `dotDamage` names an upgrade the basic immunity does not cover (Wyldfire's toxic)
         addLog(`🛡 ${combatant.name} is immune to ${effName}!`, 'info');
+        continue;
+      }
+      if (key === 'root' && isImmovable(combatant)) {
+        addLog(`⚓ ${combatant.name} cannot be immobilised.`, 'info');
         continue;
       }
       if (DOTS[key]?.base === 'bleed' && unitHasTag(combatant, 'mecha')) {
@@ -2174,7 +2190,7 @@ export function unitHasTag(c, tag) {
 function bonusVsFor(ability, target, diceMult = 1) {
   const b = ability?.bonusVs;
   if (!b || !target) return null;
-  const applies = b.vs === 'wet' ? isWet(target) : unitHasTag(target, b.vs);
+  const applies = b.vs === 'wet' ? isWet(target) : b.vs === 'living' ? !unitHasTag(target, 'mecha') && !unitHasTag(target, 'lifeless') : unitHasTag(target, b.vs);
   if (!applies) return null;
   const r = parseDice(b.dice, { diceMult });
   return { total: r.total, label: `${ability.name} vs ${b.vs}[${r.breakdown}]` };
@@ -2574,13 +2590,30 @@ const SPACE_SIGHT = 10;
 const attacksFromAnywhere = c => !!c.sourceChar.passif?.some(p => p.tags?.includes('anyRange'));
 
 // The dice that add to one of `owner`'s rolls: passives (a stacking one counts once per stack) and synergy effects
-function rollBonuses(owner, applyOn, other, ability) {
+const ALL_ROLLS = ['atkRoll', 'defRoll', 'magicRoll'];
+// "allRolls" passives (Jack of All Trade, Psychic Link, War Banner Carrier) count for the attack, defense and magic rolls
+const passiveHits = (p, applyOn) => !!p.applyOn?.includes(applyOn) || (!!p.applyOn?.includes('allRolls') && ALL_ROLLS.includes(applyOn));
+
+export function rollBonuses(owner, applyOn, other, ability) {
   const out = [];
   for (const p of owner.sourceChar.passif ?? []) {
-    if (!p.applyOn?.includes(applyOn) || !p.dices || passiveLost(owner, p)) continue;
+    if (!passiveHits(p, applyOn) || !p.dices || p.target || passiveLost(owner, p)) continue;   // an aura (`target`) is read from its source below
     if (p.maxStacks && p.condition?.allyKO) {
       for (let i = owner.stacks[p.nom] ?? 0; i > 0; i--) out.push({ nom: p.nom, dices: p.dices });
     } else if (passiveConditionMet(p, owner, other, ability)) {
+      // Hive Mind: the bonus comes once for each living ally, the owner counted
+      const n = p.perAlly ? livingCombatants(owner.teamIndex).length : 1;
+      for (let i = 0; i < n; i++) out.push({ nom: p.nom, dices: p.dices });
+    }
+  }
+  // Auras: a passive with a `target` ('allies' reaches the source's team, itself included; 'enemies' the other one) within its radius
+  for (const src of S.combatants) {
+    if (src.isKO) continue;
+    for (const p of src.sourceChar.passif ?? []) {
+      if (!p.target || !p.dices || !passiveHits(p, applyOn) || passiveLost(src, p)) continue;
+      const friendly = src.teamIndex === owner.teamIndex;
+      if (p.target === 'allies' ? !friendly : p.target === 'enemies' ? friendly : true) continue;
+      if (p.radius && S.currentMap && chebyshev(src, owner) > p.radius) continue;
       out.push({ nom: p.nom, dices: p.dices });
     }
   }
@@ -3886,7 +3919,7 @@ function settlePendingAction(reactAbility) {
             const arcane = spellRollBonus(caster, target, ability, clash.diceMult);
             const totalDmg = Math.floor((rd.total + precastBonus + (versus?.total ?? 0) + (arcane?.total ?? 0)) * mult);
             addLog(`  ${target.name} is hit for ${totalDmg} (${rd.breakdown}${precastBonus ? ` +precast${precastBonus}` : ''}${versus ? ` +${versus.label}` : ''}${arcane ? ` +${arcane.label}` : ''}${mult < 1 ? ' ×½' : ''})`, 'hit');
-            applyDamage(target, totalDmg, damType, ability.tags, aoeIgnoreDR);
+            applyDamage(target, totalDmg, damType, [...(ability.tags ?? []), 'area'], aoeIgnoreDR);
             if (clash.mutual) strikeBack(caster, { recoil: totalDmg }, damType, ability.tags);
             if (ability.isHeal) applyHeal(caster, String(totalDmg));
             if (grounds(ability)) removeFlying(target);

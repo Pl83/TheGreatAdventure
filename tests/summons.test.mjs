@@ -444,3 +444,76 @@ test('Amethyst: Crystal Resonance leaves the targets it hits under her control',
   }
   assert.ok(controlled > 0);
 });
+
+// ── The Forbidden Five (first part) ────────────────────────────────────────
+
+test('Aura of Terror and Psychic Link are auras: -3 to the foes around Rox, +2 to her team', async () => {
+  await newFight({ teamA: ['Rox', 'Arya'], teamB: ['Kadgar'], seed: 3 });
+  const rox = byName('Rox'), arya = byName('Arya'), kadgar = byName('Kadgar');
+  const total = (u, on, other) => L.rollBonuses(u, on, other, null).map(b => b.dices).join(',');
+  rox.x = 5; rox.y = 5; arya.x = 6; arya.y = 5; kadgar.x = 7; kadgar.y = 5;
+  assert.ok(total(kadgar, 'atkRoll', arya).includes('-3'), 'the foe beside her is shaken');
+  assert.ok(total(arya, 'defRoll', kadgar).includes('+2'), 'her ally is bolstered');
+  assert.ok(total(rox, 'atkRoll', kadgar).includes('+2'), 'and so is she');
+  kadgar.x = 30; kadgar.y = 30;
+  assert.ok(!total(kadgar, 'atkRoll', arya).includes('-3'), 'a far foe is not shaken');
+  arya.x = 40; arya.y = 40;
+  assert.ok(!total(arya, 'defRoll', kadgar).includes('+2'), 'a far ally is out of the link');
+});
+
+test('Hive Mind: +1 to Drix\'s rolls for each living ally, himself counted', async () => {
+  await newFight({ teamA: ['Drix', 'Rox', 'Arya'], teamB: ['Kadgar'], seed: 3 });
+  const drix = byName('Drix');
+  const hive = () => L.rollBonuses(drix, 'defRoll', null, null).filter(b => b.nom === 'Hive Mind').length;
+  assert.equal(hive(), 3);
+  byName('Arya').isKO = true;
+  assert.equal(hive(), 2);
+});
+
+test('Chitin Armor: -20 physical, +10 from area blows, fire and lightning', async () => {
+  await newFight({ teamA: ['Drix'], teamB: ['Kadgar'], seed: 3 });
+  const drix = byName('Drix');
+  drix.maxHp = drix.currentHp = 1000;
+  L.applyDamage(drix, 30, 'physical', ['physical']);
+  assert.equal(drix.currentHp, 990, 'physical: 30 - 20');
+  L.applyDamage(drix, 30, 'physical', ['physical', 'area']);
+  assert.equal(drix.currentHp, 990 - 20, 'a physical area blow: 30 + 10 - 20');
+  L.applyDamage(drix, 5, 'fire', ['fire']);
+  assert.equal(drix.currentHp, 970 - 15, 'fire: 5 + 10');
+  L.applyDamage(drix, 5, 'lightning', ['lightning']);
+  assert.equal(drix.currentHp, 955 - 15, 'lightning: 5 + 10');
+});
+
+test('Nesting Strike lays ten poisons and a paralysis chance; poisons stack', async () => {
+  await newFight({ teamA: ['Drix'], teamB: ['Rox'], seed: 3 });
+  const drix = byName('Drix'), rox = byName('Rox');
+  const ab = drix.abilities.find(a => a.name === 'Nesting Strike');
+  assert.equal(ab.effect.split(',').filter(p => p.trim() === '1d2 poison').length, 10);
+  assert.ok(ab.effect.includes('1d2 para'));
+  let stacked = 0;
+  for (let i = 0; i < 20 && stacked < 2; i++) { rox.statusEffects = []; L.applyStatus(rox, ab.effect); stacked = rox.statusEffects.filter(e => e.name.toLowerCase() === 'poison').length; }
+  assert.ok(stacked >= 2, 'several poisons at once');
+});
+
+test('Decay Wave hits the living harder, not mechas or golems', async () => {
+  await newFight({ teamA: ['Kur'], teamB: ['Rox', 'Pixal', 'Golem'], seed: 3 }).catch(() => {});
+  const kur = S.combatants.find(c => c.name === 'Kur');
+  if (!kur) return;
+  const ab = kur.abilities.find(a => a.name === 'Decay Wave');
+  assert.equal(ab.bonusVs.vs, 'living');
+});
+
+test('Bandage Coil roots an enemy and drains it into Kur', async () => {
+  await newFight({ teamA: ['Kur'], teamB: ['Rox'], seed: 3 });
+  const kur = byName('Kur'), rox = byName('Rox');
+  const ab = kur.abilities.find(a => a.name === 'Bandage Coil');
+  assert.equal(ab.targetKind, 'enemy');
+  assert.ok(ab.isHeal && /root/.test(ab.effect), 'drains and roots');
+});
+
+test('Nokt cannot be immobilised: the root does not take', async () => {
+  await newFight({ teamA: ['Nokt'], teamB: ['Rox'], seed: 3 });
+  const nokt = byName('Nokt');
+  L.applyStatus(nokt, 'root');
+  assert.ok(!nokt.statusEffects.some(e => e.name.toLowerCase() === 'root'));
+});

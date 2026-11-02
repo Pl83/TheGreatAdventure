@@ -4920,7 +4920,8 @@
     "moveSet": [],
     "tags": [
       "summon",
-      "monster"
+      "monster",
+      "lifeless"
     ]
   },
   {
@@ -8735,7 +8736,9 @@
         "applyOn": [
           "atkRoll"
         ],
-        "description": "-3 to all attack rolls of enemies around her."
+        "target": "enemies",
+        "radius": 4,
+        "description": "-3 to all attack rolls of enemies around her (within 4 cells)."
       },
       {
         "nom": "Theroxian Mastery",
@@ -8910,13 +8913,18 @@
         },
         "description": "-20 physical damage, +10 area damage, +10 fire/lightning damage."
       },
+      { "nom": "Chitin Armor (Area)", "dices": "+10", "tags": ["buff"], "applyOn": ["incomingDam"], "condition": { "incomingHasTag": "area" }, "description": "+10 damage from area blows." },
+      { "nom": "Chitin Armor (Fire)", "dices": "+10", "tags": ["buff"], "applyOn": ["incomingDam"], "condition": { "incomingHasTag": "fire" }, "description": "+10 fire damage." },
+      { "nom": "Chitin Armor (Lightning)", "dices": "+10", "tags": ["buff"], "applyOn": ["incomingDam"], "condition": { "incomingHasTag": "lightning" }, "description": "+10 lightning damage." },
       {
         "nom": "Hive Mind",
+        "dices": "+1",
+        "perAlly": true,
         "tags": [
           "buff"
         ],
-        "applyOn": [],
-        "description": "+x to each roll for each ally; Drix counts as one; poison can stack."
+        "applyOn": ["atkRoll", "defRoll"],
+        "description": "+1 to each roll for each living ally; Drix counts as one; poison stacks."
       }
     ],
     "moveSet": [
@@ -8950,7 +8958,7 @@
         },
         "target": "mono",
         "range": 3,
-        "effect": "1d2 poison",
+        "effect": "1d2 poison, 1d2 poison, 1d2 poison, 1d2 poison, 1d2 poison, 1d2 poison, 1d2 poison, 1d2 poison, 1d2 poison, 1d2 poison, 1d2 para",
         "description": "10d2 damage, 10×1d2 poison, 1d2 para.",
         "kiCost": 3
       },
@@ -9015,7 +9023,8 @@
         },
         "target": "cone",
         "range": 5,
-        "description": "1d10 necrotic, +1d10+5 vs energy/life/plant.",
+        "bonusVs": { "vs": "living", "dice": "1d10+5" },
+        "description": "1d10 necrotic, +1d10+5 vs energy/life/plant (every living target: not mechas or golems).",
         "spellCost": 1
       },
       {

@@ -809,7 +809,7 @@
       "sev": "med",
       "title": "Aura of Terror, Psychic Link, Theroxian Mastery",
       "who": "Rox",
-      "detail": "Aura of Terror: -3 to the attack rolls of enemies around her. Psychic Link: +2 to all friendly rolls (the allRolls passive exists but is untested as an ally aura). Theroxian Mastery: her debuffs cannot be removed. Containment Spell: a 40 HP energy cage that only breaks from outside; Immobilization Seal stops a dash or blink as a react.",
+      "detail": "Done so far: auras are in the engine (a passive with a target and a radius), so Aura of Terror (enemies within 4 cells, -3) and Psychic Link (+2 to her team within 8) work, and allRolls now counts for attack, defense and magic rolls (it also turns on Jack of All Trade, Heavenly Champion and War Banner Carrier, which did nothing before). Left: Theroxian Mastery, Containment Spell, Immobilization Seal. Original text: Aura of Terror: -3 to the attack rolls of enemies around her. Psychic Link: +2 to all friendly rolls (the allRolls passive exists but is untested as an ally aura). Theroxian Mastery: her debuffs cannot be removed. Containment Spell: a 40 HP energy cage that only breaks from outside; Immobilization Seal stops a dash or blink as a react.",
       "where": "characters.json · Google Doc import"
     },
     {
@@ -828,7 +828,8 @@
       "title": "Hive Mind and Chitin Armor",
       "who": "Drix",
       "detail": "Hive Mind: +x to each roll for each ally, Drix counts as one, poison stacks. Chitin Armor: -20 physical, +10 area damage, +10 fire and lightning damage taken (only the physical part is modelled). Nesting Strike's 10x1d2 poison is reduced to a 1d2 poison effect.",
-      "where": "characters.json · Google Doc import"
+      "where": "characters.json · Google Doc import",
+      "resolution": "Done. Hive Mind: +1 to Drix attack and defense rolls for each living ally, himself counted. Chitin Armor: -20 physical as before, and now +10 from area blows (aoe damage carries an area tag), +10 fire and +10 lightning, applied before the reduction. Nesting Strike lays ten 1d2 poison chances, which stack, and a 1d2 paralysis. Not done: the poison stack has no cap or special rule beyond stacking."
     },
     {
       "id": "mech-kur",
@@ -837,7 +838,8 @@
       "title": "Life Siphon and Decay Wave",
       "who": "Kur",
       "detail": "Life Siphon drains 1d6+4 HP on touch. Decay Wave deals an extra 1d10+5 against energy, life and plant targets. Bandage Coil roots the target to him while draining. Siphon is modelled as hpPerHit; the rest is descriptions only.",
-      "where": "characters.json · Google Doc import"
+      "where": "characters.json · Google Doc import",
+      "resolution": "Done. Life Siphon was already modelled (hpPerHit). Decay Wave now deals its extra 1d10+5 to every living target (anything but mechas and golems, which carry the lifeless tag; the roster has no energy, life or plant tags). Bandage Coil already worked: a necrotic hit that roots the target and heals Kur for the damage dealt."
     },
     {
       "id": "mech-banner-tracker",
@@ -927,7 +929,7 @@
       "sev": "low",
       "title": "Mountain's Weight and prone",
       "who": "Bentei, Nokt, Maya",
-      "detail": "Cannot be knocked prone or pushed back (immovable tag). Prone is not an engine status, so Earthquake Slam and Crushing Weight only have a text effect.",
+      "detail": "Immovable units are now immune to the root status as well as knockback and pulls (Nokt, Bentei, Maya). Cannot be knocked prone or pushed back (immovable tag). Prone is not an engine status, so Earthquake Slam and Crushing Weight only have a text effect.",
       "where": "characters.json · Google Doc import"
     },
     {
