@@ -1178,7 +1178,9 @@
         "category": "spell",
         "base": { "nom": "Runik Sea Bound", "tags": ["runik", "magic", "water", "stun", "root"] },
         "target": "mono", "range": 10,
-        "description": "1d2 stun + 1d2 root. Advantage if wet field.",
+        "effect": "1d2 stun, 1d2 root",
+        "wetAdvantage": true,
+        "description": "1d2 stun + 1d2 root. Advantage on both chances if the target is wet (soaked or standing in water).",
         "spellCost": 1
       },
       {
@@ -5678,7 +5680,8 @@
           "tags": [
             "magic",
             "radiant",
-            "adv"
+            "adv",
+            "duel"
           ]
         },
         "target": "mono",

@@ -268,3 +268,34 @@ test('at most two Time Remnants at once, and a wrong or unaffordable choice cost
   const ab = kx.abilities.find(a => a.name === 'Summoning Portal');
   assert.equal(L.abilityAvailable(kx, ab), false, 'a third cannot be called');
 });
+
+// ── Runik Sea Bound and Holy Duel ──────────────────────────────────────────
+
+test('Runik Sea Bound: 1d2 chances, better of two rolls against a wet target', async () => {
+  await newFight({ teamA: ['Admiral Jaina'], teamB: ['Rox'], seed: 3 });
+  const jaina = byName('Admiral Jaina'), rox = byName('Rox');
+  const ab = jaina.abilities.find(a => a.name === 'Runik Sea Bound');
+  assert.equal(ab.effect, '1d2 stun, 1d2 root');
+  assert.equal(L.effectFor(ab, rox), '1d2 stun, 1d2 root', 'dry: plain chances');
+  L.applyStatus(rox, 'wet');
+  assert.equal(L.effectFor(ab, rox), '1d2adv stun, 1d2adv root', 'wet: advantage on both');
+  let landed = 0;
+  for (let i = 0; i < 400; i++) {
+    rox.statusEffects = rox.statusEffects.filter(e => e.name === 'wet');
+    L.applyStatus(rox, L.effectFor(ab, rox));
+    if (rox.statusEffects.some(e => e.name.toLowerCase() === 'stun')) landed++;
+  }
+  assert.ok(landed > 400 * 0.65 && landed < 400 * 0.85, `about 75% with advantage, got ${landed / 4}%`);
+});
+
+test('Holy Duel: Arthur gains twice the adversary max HP and rolls with advantage against it', async () => {
+  await newFight({ teamA: ['Arthur'], teamB: ['Rox', 'Irina'], seed: 3 });
+  const arthur = byName('Arthur'), rox = byName('Rox'), irina = byName('Irina');
+  toTurn('Arthur');
+  if (S.currentMap) { rox.x = arthur.x + 1; rox.y = arthur.y; }
+  const hp = arthur.maxHp;
+  L.handleCastAbility(arthur.id, 'Holy Duel', [rox.id]);
+  assert.equal(arthur.maxHp, hp + rox.maxHp * 2);
+  assert.equal(arthur.duelId, rox.id);
+  assert.ok(arthur.currentHp > hp);
+});

@@ -249,7 +249,8 @@
       "sev": "low",
       "title": "Runik Sea Bound: advantage on a wet field",
       "who": "Admiral Jaina",
-      "detail": "Runik Sea Bound should roll with advantage when the field is wet, and its stun and root should each be a 1d2 chance. The spell has no attack roll in the engine (it deals no damage), so there is nothing to give advantage to, and both statuses always land."
+      "detail": "Runik Sea Bound should roll with advantage when the field is wet, and its stun and root should each be a 1d2 chance. The spell has no attack roll in the engine (it deals no damage), so there is nothing to give advantage to, and both statuses always land.",
+      "resolution": "Done. Runik Sea Bound now carries its real effect, 1d2 stun and 1d2 root, each a one in two chance. Against a wet target (soaked, or standing in the map's water) each chance rolls with advantage, the better of two rolls: 75%. A bonus hit still makes both certain. The AI test for the control-then-ally line now asks for 6 of 10 instead of 8, since the stun is no longer sure."
     },
     {
       "id": "bug-crit-rules",
@@ -697,7 +698,8 @@
       "title": "Holy Duel",
       "who": "Arthur",
       "detail": "Targets one adversary: Arthur gains 2x the target max HP, advantage on every roll against it and 4d20 damage against it. Only the 4d20 hit is modelled (once per fight); the HP gain and the advantage are not.",
-      "where": "characters.json · Google Doc import"
+      "where": "characters.json · Google Doc import",
+      "resolution": "Done. Casting Holy Duel binds Arthur to the target for the rest of the fight: he gains twice its max HP (max and current), and has advantage on every attack, spell and defense roll against it, besides the 4d20 hit (once per fight)."
     },
     {
       "id": "mech-ouroboros-stances",
@@ -796,7 +798,8 @@
       "title": "Demon Pact, Sacrifice Mark, Taboo",
       "who": "Annastasia",
       "detail": "Demon Pact: -10 HP buys 1 spell slot, and she heals 1d10 when dealing damage. Sacrifice Mark picks a random enemy and summons one or two demons when it dies. Taboo halves her current HP and triggers the mark at once. Descriptions only.",
-      "where": "characters.json · Google Doc import"
+      "where": "characters.json · Google Doc import",
+      "resolution": "Done. Demon Pact heals her 1d10 whenever she deals damage. Sacrifice Mark: at the start of the battle (and again after each spring) a random enemy carries the mark; its death calls one Demon (max HP under 70) or two, and the mark passes to another enemy. Taboo halves her current HP and a slot to spring the mark at once. Not modelled: Demon Pact's -10 HP for 1 spell slot."
     },
     {
       "id": "mech-rox-aura",

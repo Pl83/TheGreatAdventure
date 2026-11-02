@@ -281,6 +281,8 @@ export function resolveAbilitiesFromList(moveList) {
       duration:   move.duration ?? null,
       summon:     move.summon ?? null,   // { unit, count }: calls `count` (dice or number) units of that sheet beside the caster
       isRemnant:  tags.includes('remnant'),   // Krux & Acronix's Summoning Portal: calls a whole roster character, its cost set by that character's HP
+      isDuel:     tags.includes('duel'),   // Arthur's Holy Duel: binds him to one adversary for the rest of the fight
+      wetAdvantage: move.wetAdvantage ?? false,   // Runik Sea Bound: its 1d2 chances roll with advantage against a wet target
       isTaboo:    tags.includes('taboo'),   // Annastasia: pays half her current HP to spring the Sacrifice Mark now
       isDetonate: tags.includes('detonate'),   // bursts every living unit the caster owns, on its own spot
     });
@@ -336,6 +338,7 @@ export function buildCombatant(char, teamIndex, id) {
     chains: chainsFor(char),   // Vorrakan's Left and Right Chain: [{ name, hp, maxHp, holdingId, freed }] (they are not units)
     lastKind: null,   // what its last action was: 'attack', 'technique', 'spell'... (Sienna's SteamGun reads the one before)
     prevKind: null,
+    duelId: null,       // Arthur's Holy Duel: id of the adversary he is bound to (advantage on every roll against it)
     sacMarkId: null,    // Annastasia's Sacrifice Mark: id of the enemy marked at the start of the battle (its death calls demons)
     huntMarkId: null,   // Sienna's Huntress / Apex Predator: id of the enemy marked at the start of the battle (x2 damage against it, advantage on defense against it)
     ownerId: null,   // a summon or companion: id of the unit that called it (it acts right after, and falls with, that unit)
@@ -585,6 +588,16 @@ function tickRemnant(c) {
   c.statusEffects = [];
   addLog(`⏳ ${c.name} fades back into the rift.`, 'death');
   updateCombatantCardDOM(c);
+}
+
+// Arthur's Holy Duel: he gains twice the adversary's max HP and fights it with advantage on every roll
+function startDuel(caster, target) {
+  const gain = target.maxHp * 2;
+  caster.maxHp += gain;
+  caster.currentHp += gain;
+  caster.duelId = target.id;
+  addLog(`  ⚔ ${caster.name} binds ${target.name} to a duel: +${gain} HP, advantage on every roll against it.`, 'spell');
+  updateCombatantCardDOM(caster);
 }
 
 // Irina's Living Bomb: every Fire Spirit she owns bursts where it stands, and is spent
@@ -1902,8 +1915,8 @@ export function applyStatus(combatant, effectStr, defaultTurns = 2) {
     const p = part.trim();
     if (!p) continue;
     // "1dN effect" = 1/N probability check; succeed only on max roll (N)
-    const probMatch = p.match(/^1d(\d+)\s+(.+)$/i);
-    const effName   = probMatch ? probMatch[2].trim() : p;
+    const probMatch = p.match(/^1d(\d+)(adv)?\s+(.+)$/i);   // "1d2adv": the better of two rolls (Runik Sea Bound on a wet target)
+    const effName   = probMatch ? probMatch[3].trim() : p;
     const key       = effName.toLowerCase();
     const beneficial = BENEFICIAL_STATUSES.includes(key);
 
@@ -1933,7 +1946,8 @@ export function applyStatus(combatant, effectStr, defaultTurns = 2) {
     }
     if (probMatch) {
       const sides = parseInt(probMatch[1]);
-      const roll  = Math.floor(random() * sides) + 1;
+      let roll  = Math.floor(random() * sides) + 1;
+      if (probMatch[2]) roll = Math.max(roll, Math.floor(random() * sides) + 1);
       if (roll < sides) {
         addLog(`${combatant.name} resists ${effName}. (${roll}/${sides})`, 'info');
         continue;
@@ -2372,6 +2386,7 @@ const bitesIce = ability => !!ability.tags?.includes('ice') && !!ability.dice &&
 
 export function effectFor(ability, target) {
   const base = ability.effect;
+  if (ability.wetAdvantage && base && isWet(target)) return base.replace(/1d(\d+)\s+/gi, '1d$1adv ');   // advantage on each chance: the better of two rolls
   if (!isWet(target) || !bitesIce(ability)) return base;
   const parts = base ? base.split(',').map(p => p.trim()) : [];
   const freeze = parts.findIndex(p => /^(1d\d+\s+)?(gel|freeze)$/i.test(p));
@@ -2449,7 +2464,7 @@ function tickFields() {
 export function applyMoveEffect(ability, target, guaranteed = false) {
   const soaked = hasWetStatus(target);
   const effect = effectFor(ability, target);
-  applyStatus(target, guaranteed && effect ? effect.replace(/(^|,\s*)1d2\s+/gi, '$1') : effect, ability.statusTurns != null ? ability.statusTurns + 1 : undefined);
+  applyStatus(target, guaranteed && effect ? effect.replace(/(^|,\s*)1d2(?:adv)?\s+/gi, '$1') : effect, ability.statusTurns != null ? ability.statusTurns + 1 : undefined);
   if (ability.inflicts) inflict(ability, target, guaranteed);
   if (soaked && bitesIce(ability) && !target.isKO) dropWetStatus(target);
 }
@@ -2457,6 +2472,7 @@ export function applyMoveEffect(ability, target, guaranteed = false) {
 // Does a passive of `owner` grant advantage on this kind of roll? (tag "adv" on the passive; a weapon condition
 // looks at the move, anything else needs the opponent, so an area roll made against nobody in particular skips it)
 function passiveAdvantage(owner, applyOn, other, ability) {
+  if (other && owner.duelId === other.id && ['atkRoll', 'magicRoll', 'defRoll'].includes(applyOn)) return true;   // the duellist has advantage on every roll against his adversary
   if (applyOn === 'defRoll' && other && owner.huntMarkId === other.id) return true;   // the hunter defends with advantage against its mark
   const formPassives = owner.isTransformed ? owner.sourceChar.transformation?.passif ?? [] : [];   // a form's own passives (Jay's Dragon Reflexes)
   return [...(owner.sourceChar.passif ?? []), ...formPassives].some(p => {
@@ -3170,6 +3186,7 @@ export function handleCastAbility(casterId, abilityName, targetIds, center = nul
   if (!ability.isInstant) spendAction(caster, ability.name, ability.steamMode ? 'steamMode' : ability.source);
 
   addLog(`${caster.name} uses ${ability.name}!`, ability.source === 'spell' ? 'spell' : 'tech');
+  if (ability.isDuel && targets[0]) startDuel(caster, targets[0]);
   if (ability.summon || ability.isDetonate || ability.isTaboo || ability.isRemnant) {
     if (ability.summon) castSummon(caster, ability); else if (ability.isRemnant) castRemnant(caster, remnantSheet); else if (ability.isTaboo) castTaboo(caster); else castDetonate(caster, ability);
     concludeAction(!!ability.isInstant);

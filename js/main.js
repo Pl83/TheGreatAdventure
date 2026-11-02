@@ -697,7 +697,7 @@ export const personnageSheet = [
         spells: [
             { name: "Runik Water Shield", type: "block", desc: "Insta block + 1d20 heal + purge" },
             { name: "Runik Sea Dragon", dice: "1d20+1d12+8" },
-            { name: "Runik Sea Bound", desc: "If wet field adv", effect: "1d2 stun, 1d2 root" }
+            { name: "Runik Sea Bound", desc: "Advantage on both chances if the target is wet", effect: "1d2 stun, 1d2 root" }
         ],
         relics: [
             { name: "Dominion of the Seven Sea", type: "aoe", dice: "7d12", effects: ["Advantage"] }
