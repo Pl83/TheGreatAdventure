@@ -781,8 +781,9 @@
       "sev": "low",
       "title": "Nexo knights: Dead Eye, Faster, Sturdy, Leader",
       "who": "Aron, Lance, Axel, Clay",
-      "detail": "Aron: ranged attacks cannot be dodged. Lance: takes half damage from anything with a lower initiative than his. Axel: 1d4 chance to ignore damage. Clay: the first time an ally would die he takes the damage instead. Descriptions only.",
-      "where": "characters.json · Google Doc import"
+      "detail": "Aron: nobody can react to his ranged attacks. Lance: deals more and takes half from anything with a lower initiative than his. Axel: 1 in 3 chance to ignore a blow. Clay: the first time an ally would take a lethal blow he blocks it. Four of them carried a copy of Alicia's Fire Dragon Breath as a placeholder.",
+      "where": "characters.json · Aron, Lance, Axel, Clay; combat-logic.js · getReacts, applyDamageCore",
+      "resolution": "Done. Dead Eye: nobody can react to Aron's ranged blows, normal attack included (getReacts takes the attacker). Faster: against a lower initiative Lance deals 1.5x and takes half. Sturdy: 1 blow in 3 is ignored. Leader: Clay blocks the first lethal blow on an ally, once per fight. The Fire Dragon Breath copy is gone: Aron has Arrow Rain (aoe 4d6+6), Axel Tremor (aoe 3d6+4, 1d2 disadvantage, 1d2 root), Clay Energy Cuts (cone 4d6+8), and Lance has the Fly passive, no Nexo Power. Numbers not given by the sheet (ranges, cooldowns, Faster 1.5x, Energy Cuts name) are mine to confirm."
     },
     {
       "id": "mech-kyros-thresholds",

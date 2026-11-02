@@ -7116,10 +7116,11 @@
       {
         "nom": "Dead Eye",
         "tags": [
-          "buff"
+          "buff",
+          "deadEye"
         ],
         "applyOn": [],
-        "description": "Ranged attacks cannot be dodged."
+        "description": "Nobody can react to his ranged attacks, his normal attack included: no block, dodge or teleport."
       },
       {
         "nom": "Ranger",
@@ -7137,15 +7138,16 @@
       {
         "category": "technique",
         "base": {
-          "nom": "Nexo Power: Fire Dragon Breath",
-          "dices": "1d12+1d8",
+          "nom": "Nexo Power: Arrow Rain",
+          "dices": "4d6+6",
           "tags": [
-            "fire",
-            "magic"
+            "physical",
+            "ranged"
           ]
         },
-        "target": "cone",
-        "range": 5,
+        "target": "aoe",
+        "range": 10,
+        "radius": 2,
         "cooldown": 3
       }
     ]
@@ -7197,12 +7199,24 @@
         "nom": "Faster",
         "dices": "+5",
         "tags": [
-          "buff"
+          "buff",
+          "faster"
         ],
         "applyOn": [
           "initRoll"
         ],
-        "description": "Takes half damage from anything with a lower initiative than his."
+        "description": "Against anyone with a lower initiative than his he deals 1.5x damage and takes half damage."
+      },
+      {
+        "nom": "Fly",
+        "dices": "18",
+        "tags": [
+          "buff",
+          "fly"
+        ],
+        "applyOn": [
+          "speed"
+        ]
       },
       {
         "nom": "Dragon Slayer",
@@ -7231,22 +7245,7 @@
         }
       }
     ],
-    "moveSet": [
-      {
-        "category": "technique",
-        "base": {
-          "nom": "Nexo Power: Fire Dragon Breath",
-          "dices": "1d12+1d8",
-          "tags": [
-            "fire",
-            "magic"
-          ]
-        },
-        "target": "cone",
-        "range": 5,
-        "cooldown": 3
-      }
-    ]
+    "moveSet": []
   },
   {
     "nom": "Axel",
@@ -7294,11 +7293,12 @@
       {
         "nom": "Sturdy",
         "tags": [
-          "buff"
+          "buff",
+          "sturdy"
         ],
         "applyOn": [],
         "chance": 0.25,
-        "description": "1d4 chance to ignore damage."
+        "description": "One blow in three is ignored altogether."
       },
       {
         "nom": "Close Quarters Expert",
@@ -7318,16 +7318,26 @@
       {
         "category": "technique",
         "base": {
-          "nom": "Nexo Power: Fire Dragon Breath",
-          "dices": "1d12+1d8",
+          "nom": "Nexo Power: Tremor",
+          "dices": "3d6+4",
           "tags": [
-            "fire",
-            "magic"
+            "physical",
+            "earth",
+            "disv",
+            "root"
           ]
         },
-        "target": "cone",
-        "range": 5,
-        "cooldown": 3
+        "inflicts": {
+          "status": "hindered",
+          "turns": 1,
+          "chance": 0.5
+        },
+        "effect": "1d2 root",
+        "target": "aoe",
+        "range": 4,
+        "radius": 3,
+        "cooldown": 3,
+        "description": "3d6+4 to every foe in the area. Each has a 1d2 chance of disadvantage and a 1d2 chance of being rooted for one turn."
       }
     ]
   },
@@ -7377,10 +7387,11 @@
       {
         "nom": "Leader",
         "tags": [
-          "buff"
+          "buff",
+          "leader"
         ],
         "applyOn": [],
-        "description": "The first time an ally dies, he saves them and takes the damage instead."
+        "description": "The first time an ally would take a lethal blow, Clay blocks it."
       },
       {
         "nom": "Battle Tactician",
@@ -7408,10 +7419,9 @@
       {
         "category": "technique",
         "base": {
-          "nom": "Nexo Power: Fire Dragon Breath",
-          "dices": "1d12+1d8",
+          "nom": "Nexo Power: Energy Cuts",
+          "dices": "4d6+8",
           "tags": [
-            "fire",
             "magic"
           ]
         },

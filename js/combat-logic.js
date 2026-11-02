@@ -1731,6 +1731,18 @@ function applyDamageCore(combatant, amount, damType = null, atkTags = [], ignore
     addLog(`🛡 ${combatant.name} is immune to ${immuneTypes.join('/')} — only the rest of the hit lands (${before} → ${amount}).`, 'info');
   }
 
+  // Sturdy: one blow in three is ignored altogether
+  if (amount > 0 && hasPassiveTag(combatant, 'sturdy') && random() < 1 / 3) {
+    addLog(`🪨 ${combatant.name}'s Sturdy shrugs the blow off entirely!`, 'crit');
+    return done();
+  }
+  // Faster: whoever outpaces the other in initiative hits harder and is hit softer
+  if (amount > 0 && strikeSource && strikeSource !== combatant) {
+    const before = amount;
+    if (hasPassiveTag(strikeSource, 'faster') && strikeSource.initiativeRoll > combatant.initiativeRoll) amount = Math.floor(amount * 1.5);
+    if (hasPassiveTag(combatant, 'faster') && strikeSource.initiativeRoll < combatant.initiativeRoll) amount = Math.floor(amount / 2);
+    if (amount !== before) addLog(`💨 Faster: ${strikeSource.name} (initiative ${strikeSource.initiativeRoll}) against ${combatant.name} (${combatant.initiativeRoll}) — ${before} → ${amount}.`, 'info');
+  }
   // Lightning conducts through water (a mixed hit is raised in proportion to its lightning share)
   if (types.includes('lightning') && isWet(combatant)) {
     const before = amount;
@@ -1841,6 +1853,16 @@ function applyDamageCore(combatant, amount, damType = null, atkTags = [], ignore
   // Vorrakan's free chains take the hit in his stead once he has answered it with Chain Guard (a hit that cannot be blocked goes through)
   if (combatant.chains && !atkTags.includes('unblockabled') && combatant.statusEffects.some(e => e.name === 'chain_guard')) {
     amount = chainGuard(combatant, amount);
+  }
+  // Leader: the first time an ally would take a lethal blow, the leader's order turns it aside
+  if (amount > 0 && amount >= combatant.currentHp) {
+    const leader = S.combatants.find(u => !u.isKO && u.id !== combatant.id && u.teamIndex === combatant.teamIndex
+      && !u.leaderSpent && hasPassiveTag(u, 'leader'));
+    if (leader) {
+      leader.leaderSpent = true;
+      addLog(`🛡 ${leader.name}'s Leader blocks the lethal blow meant for ${combatant.name}!`, 'crit');
+      return done();
+    }
   }
   // Lethal-hit passives (Unkillable): a coin flip to survive, at the cost of dropping to 1 HP
   for (const p of combatant.sourceChar.passif ?? []) {
@@ -3270,8 +3292,12 @@ function noReactToCrit(result, atkName) {
   return true;
 }
 
-export function getReacts(target, incoming = null) {
-  if (hasControlEffect(target)) return [];   // gel, stun, cocoon and fear: it can neither act nor react
+// Dead Eye: a ranged blow from a marksman (a normal attack included) leaves no time to answer it
+const deadEyeStops = (attacker, target, incoming) =>
+  !!attacker && hasPassiveTag(attacker, 'deadEye') && isRangedAttack(attacker, target, incoming);
+
+export function getReacts(target, incoming = null, attacker = null) {
+  if (hasControlEffect(target) || deadEyeStops(attacker, target, incoming)) return [];   // gel, stun, cocoon and fear: it can neither act nor react
   const insideClosedDomain = S.activeDomains.some(d => {
     const owner = getCombatant(d.casterId);
     if (!owner || owner.isKO || owner.teamIndex === target.teamIndex) return false;
@@ -3340,7 +3366,7 @@ export function handleAttack(attackerId, defenderId) {
   const result = resolveAttack(atk, def, null);
   S.pendingAction = { type: 'attack', attackerId, defenderId, result };
 
-  const reacts = noReactToCrit(result, atk.name) ? [] : getReacts(def);
+  const reacts = noReactToCrit(result, atk.name) ? [] : getReacts(def, null, atk);
   if (reacts.length > 0) {
     S.awaitingReact = true;
     S.reactOptions  = reacts.map(ab => ({ combatantId: def.id, ability: ab }));
@@ -3478,12 +3504,12 @@ export function handleCastAbility(casterId, abilityName, targetIds, center = nul
 
   if (ability.isAoe) {
     S.pendingAction = { type: 'aoe', casterId, abilityName, targetIds, ability, center, reactorId: null, reactedIds: [], blockedIds: [], halvedIds: [], noReacts };
-    const firstReactor = noReacts ? null : targets.find(t => getReacts(t, ability).length > 0);
+    const firstReactor = noReacts ? null : targets.find(t => getReacts(t, ability, caster).length > 0);
     if (firstReactor) {
       S.pendingAction.reactorId = firstReactor.id;
       S.pendingAction.reactedIds.push(firstReactor.id);
       S.awaitingReact = true;
-      S.reactOptions  = getReacts(firstReactor, ability).map(ab => ({ combatantId: firstReactor.id, ability: ab }));
+      S.reactOptions  = getReacts(firstReactor, ability, caster).map(ab => ({ combatantId: firstReactor.id, ability: ab }));
       R.renderReactOverlay();
       return;
     }
@@ -3493,12 +3519,12 @@ export function handleCastAbility(casterId, abilityName, targetIds, center = nul
 
   if (ability.isCone) {
     S.pendingAction = { type: 'cone', casterId, abilityName, targetIds, ability, center, reactorId: null, reactedIds: [], blockedIds: [], halvedIds: [], noReacts };
-    const firstReactor = noReacts ? null : targets.find(t => getReacts(t, ability).length > 0);
+    const firstReactor = noReacts ? null : targets.find(t => getReacts(t, ability, caster).length > 0);
     if (firstReactor) {
       S.pendingAction.reactorId = firstReactor.id;
       S.pendingAction.reactedIds.push(firstReactor.id);
       S.awaitingReact = true;
-      S.reactOptions  = getReacts(firstReactor, ability).map(ab => ({ combatantId: firstReactor.id, ability: ab }));
+      S.reactOptions  = getReacts(firstReactor, ability, caster).map(ab => ({ combatantId: firstReactor.id, ability: ab }));
       R.renderReactOverlay();
       return;
     }
@@ -3513,7 +3539,7 @@ export function handleCastAbility(casterId, abilityName, targetIds, center = nul
       ? resolveAttack(caster, target, ability.dice, ability)
       : { hit: true, crit: false, fumble: false, damage: 0, atkRoll: '—', defRoll: '—', effectiveDefRoll: '—', breakdown: '—' };
     S.pendingAction = { type: 'splash', casterId, abilityName, targetIds: [target.id], result, ability };
-    const reacts = noReacts || noReactToCrit(result, caster.name) ? [] : getReacts(target, ability);
+    const reacts = noReacts || noReactToCrit(result, caster.name) ? [] : getReacts(target, ability, caster);
     if (reacts.length > 0) {
       S.awaitingReact = true;
       S.reactOptions  = reacts.map(ab => ({ combatantId: target.id, ability: ab }));
@@ -3570,7 +3596,7 @@ export function handleCastAbility(casterId, abilityName, targetIds, center = nul
   S.pendingAction = { type: 'ability', casterId, abilityName, targetIds: [target.id], result, ability };
 
   // A move with no damage and no status has nothing to block, so it never prompts a react
-  const reacts = (noReacts || !(ability.dice || ability.effect || ability.isContest) || noReactToCrit(result, caster.name)) ? [] : getReacts(target, ability);
+  const reacts = (noReacts || !(ability.dice || ability.effect || ability.isContest) || noReactToCrit(result, caster.name)) ? [] : getReacts(target, ability, caster);
   if (reacts.length > 0) {
     S.awaitingReact = true;
     S.reactOptions  = reacts.map(ab => ({ combatantId: target.id, ability: ab }));
@@ -3920,13 +3946,13 @@ function settlePendingAction(reactAbility) {
   // Asked after every answer, so one target taking the hit does not skip the others' reacts
   if ((action.type === 'aoe' || action.type === 'cone') && !action.noReacts) {
     const allT = action.targetIds.map(id => getCombatant(id)).filter(t => t && !t.isKO);
-    const next  = allT.find(t => !action.reactedIds.includes(t.id) && !action.blockedIds.includes(t.id) && getReacts(t, action.ability).length > 0);
+    const next  = allT.find(t => !action.reactedIds.includes(t.id) && !action.blockedIds.includes(t.id) && getReacts(t, action.ability, getCombatant(action.casterId)).length > 0);
     if (next) {
       action.reactorId = next.id;
       action.reactedIds.push(next.id);
       S.pendingAction = action;
       S.awaitingReact = true;
-      S.reactOptions  = getReacts(next, action.ability).map(ab => ({ combatantId: next.id, ability: ab }));
+      S.reactOptions  = getReacts(next, action.ability, getCombatant(action.casterId)).map(ab => ({ combatantId: next.id, ability: ab }));
       R.renderReactOverlay();
       return;
     }
@@ -4391,14 +4417,14 @@ function freeSpell(actor, foe, ab, instant) {
     S.pendingAction = { ...base, type: 'ability', targetIds: [foe.id], result: resolveAttack(actor, foe, ab.dice, ab) };
   }
 
-  const firstReactor = targets.find(t => getReacts(t, ab).length > 0);
+  const firstReactor = targets.find(t => getReacts(t, ab, actor).length > 0);
   if (firstReactor) {
     if (ab.isAoe) {
       S.pendingAction.reactorId = firstReactor.id;
       S.pendingAction.reactedIds.push(firstReactor.id);
     }
     S.awaitingReact = true;
-    S.reactOptions  = getReacts(firstReactor, ab).map(r => ({ combatantId: firstReactor.id, ability: r }));
+    S.reactOptions  = getReacts(firstReactor, ab, actor).map(r => ({ combatantId: firstReactor.id, ability: r }));
     R.renderReactOverlay();
     return true;
   }
