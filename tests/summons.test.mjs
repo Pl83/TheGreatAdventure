@@ -623,3 +623,39 @@ test('Entropy Field: for the foes inside it a 2 or a 3 is a critical failure', a
   const lines = S.log.slice(before).map(l => l.text ?? l.msg ?? '');
   assert.ok(lines.some(t => t.includes('Entropy Field: a critical failure')), 'a 2 inside the field fails critically');
 });
+
+// ── Prone ──────────────────────────────────────────────────────────────────
+
+test('Crushing Weight and Earthquake Slam knock a foe prone, which puts every d20 at disadvantage', async () => {
+  await newFight({ teamA: ['Bentei', 'Maya'], teamB: ['Kadgar'], seed: 3 });
+  const bentei = byName('Bentei'), maya = byName('Maya'), kadgar = byName('Kadgar');
+  for (const [who, name] of [[maya, 'Crushing Weight'], [bentei, 'Earthquake Slam']]) {
+    const ab = who.abilities.find(a => a.name === name);
+    assert.ok(ab && /prone/.test(ab.effect), `${name} carries a prone rider`);
+  }
+  L.applyStatus(kadgar, 'prone');
+  assert.ok(kadgar.statusEffects.some(e => e.name.toLowerCase() === 'prone'));
+  const { setRandom } = await import('../js/rng.js');
+  const rolls = [];
+  let n = 0;
+  setRandom(() => { n++; return (n % 2 ? 19 : 4) / 20 - 0.025; });   // alternate a 19 and a 4: disadvantage keeps the 4
+  try { for (let i = 0; i < 6; i++) rolls.push(L.rollD20For(kadgar, false, false, 'atk').value); } finally { setRandom(Math.random); }
+  assert.ok(rolls.every(v => v <= 5), `disadvantage keeps the lower die: ${rolls}`);
+});
+
+test('the immovable cannot be knocked prone: Nokt, Bentei and Black Turtle', async () => {
+  for (const name of ['Nokt', 'Bentei', 'Black Turtle']) {
+    await newFight({ teamA: [name], teamB: ['Kadgar'], seed: 3 });
+    const u = byName(name);
+    L.applyStatus(u, 'prone');
+    assert.ok(!u.statusEffects.some(e => e.name.toLowerCase() === 'prone'), `${name} stays on his feet`);
+  }
+});
+
+test('prone is a hindrance: a cleanse lifts it', async () => {
+  await newFight({ teamA: ['Rox'], teamB: ['Kadgar'], seed: 3 });
+  const kadgar = byName('Kadgar');
+  L.applyStatus(kadgar, 'prone');
+  L.applyCleanse(kadgar);
+  assert.ok(!kadgar.statusEffects.some(e => e.name.toLowerCase() === 'prone'));
+});

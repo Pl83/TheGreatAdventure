@@ -4538,7 +4538,7 @@
           "immovable"
         ],
         "applyOn": [],
-        "description": "Cannot be knocked prone or pushed back."
+        "description": "Cannot be knocked prone or pushed back (immovable)."
       },
       {
         "nom": "Tectonic Skin",
@@ -5147,9 +5147,9 @@
           "atkRoll"
         ],
         "condition": {
-          "targetHasTag": "stun"
+          "targetHasAnyTag": ["stun", "prone"]
         },
-        "description": "Also applies to prone enemies."
+        "description": "+1d8 damage against stunned or prone enemies."
       },
       {
         "nom": "Iron Sentinel",

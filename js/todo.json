@@ -932,7 +932,8 @@
       "title": "Mountain's Weight and prone",
       "who": "Bentei, Nokt, Maya",
       "detail": "Immovable units are now immune to the root status as well as knockback and pulls (Nokt, Bentei, Maya). Cannot be knocked prone or pushed back (immovable tag). Prone is not an engine status, so Earthquake Slam and Crushing Weight only have a text effect.",
-      "where": "characters.json · Google Doc import"
+      "where": "characters.json · Google Doc import",
+      "resolution": "Done. Immovable units (Nokt, Bentei, Black Turtle) cannot be pushed back, pulled, rooted or knocked prone. Prone is now a status: Maya's Crushing Weight and Bentei's Earthquake Slam each give a 1d2 chance of it, it lasts through the target's next turn, and for now it simply puts every d20 of its owner at disadvantage (the user's call; standing up and the melee advantage against it are not modelled). A cleanse lifts it, and Opportunist (Argo) now reads stunned or prone. Maya is not immovable, only the owner of the prone move."
     },
     {
       "id": "mech-aquiel-overdrive",

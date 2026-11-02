@@ -1977,8 +1977,8 @@ export function applyStatus(combatant, effectStr, defaultTurns = 2) {
         addLog(`🛡 ${combatant.name} is immune to ${effName}!`, 'info');
         continue;
       }
-      if (key === 'root' && isImmovable(combatant)) {
-        addLog(`⚓ ${combatant.name} cannot be immobilised.`, 'info');
+      if ((key === 'root' || key === 'prone') && isImmovable(combatant)) {
+        addLog(`⚓ ${combatant.name} cannot be ${key === 'prone' ? 'knocked prone' : 'immobilised'}.`, 'info');
         continue;
       }
       if (DOTS[key]?.base === 'bleed' && unitHasTag(combatant, 'mecha')) {
@@ -2098,7 +2098,7 @@ export function removeFlying(target) {
   }
 }
 
-const NEGATIVE_STATUSES = ['para','gel','freeze','burn','calcinated','bleed','hemoragie','stun','root','fear','silence','blind','toxic','poison'];
+const NEGATIVE_STATUSES = ['prone','para','gel','freeze','burn','calcinated','bleed','hemoragie','stun','root','fear','silence','blind','toxic','poison'];
 const isDebuff = e => NEGATIVE_STATUSES.some(n => e.name.toLowerCase().includes(n));
 // A chain's hold is no ordinary status: Cleanse (Zhuqiao, Nya) cannot lift it, only damage to the chain does
 const cleansable = e => isDebuff(e) && e.chainOf == null && e.cageOf == null && !e.sticky;   // a chain, a cage and Rox's own debuffs (Theroxian Mastery) cannot be cleansed
@@ -2214,6 +2214,7 @@ function passiveConditionMet(p, owner, other, ability) {
   if (cond.selfBelow50pct) return owner.currentHp <= owner.maxHp * 0.5;
   if (cond.is1v1)          return livingCombatants(0).length === 1 && livingCombatants(1).length === 1;
   if (cond.targetArmored)  return (other.sourceChar.passif ?? []).some(q => /armou?r/i.test(q.nom) && q.applyOn?.includes('defRoll'));
+  if (cond.targetHasAnyTag) return cond.targetHasAnyTag.some(t => unitHasTag(other, t));
   if (cond.targetHasTag) {
     // a character `tags` list (when the data provides one) or a status the target is under (e.g. "stun")
     const tag = cond.targetHasTag.toLowerCase();
@@ -2728,7 +2729,7 @@ function pushStatus(c, eff, beneficial = false) {
 
 // A d20 for one of the combatant's own attack or defense rolls. Advantage and disadvantage cancel out;
 // Gravity's one-shot statuses are spent by the roll, Smoke Screen's disadvantage lasts.
-function rollD20For(c, baseAdv = false, baseDis = false, role = null) {
+export function rollD20For(c, baseAdv = false, baseDis = false, role = null) {
   const roll = rollD20Raw(c, baseAdv, baseDis, role);
   // Djinn's Luck: a 1 is rolled again, once per turn
   if (roll.isNat1 && !c.luckSpent && c.sourceChar.passif?.some(p => p.tags?.includes('rerollOne') && !passiveLost(c, p))) {
@@ -2752,6 +2753,7 @@ function rollD20Raw(c, baseAdv, baseDis, role) {
   // Hindrances from disv moves: every roll, attack rolls only, or the next defense roll only
   const nextDef = role === 'def' ? c.statusEffects.find(e => e.name === 'hindered_def') : null;
   const dis = baseDis || !!disEff || !!nextDef
+    || c.statusEffects.some(e => e.name.toLowerCase() === 'prone')   // knocked prone: every d20 at disadvantage, for now
     || c.statusEffects.some(e => e.name === 'smoke_screen' || e.name === 'hindered' || (role === 'atk' && e.name === 'hindered_atk'));
   for (const e of [advEff, disEff]) {
     if (e && --e.uses <= 0) c.statusEffects = c.statusEffects.filter(x => x !== e);
