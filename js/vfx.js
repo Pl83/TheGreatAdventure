@@ -7,7 +7,7 @@
    while an effect is alive. Nothing here touches the game state.
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import { createFrame, clearFrame, createFx, composite } from './vendor/pixelfx/core/index.js';
+import { createFrame, clearFrame, createFx } from './vendor/pixelfx/core/index.js';
 import * as hitSpark   from './vendor/pixelfx/fx/impacts/hit-spark.js';
 import * as bluntHit   from './vendor/pixelfx/fx/impacts/blunt-hit.js';
 import * as critHit    from './vendor/pixelfx/fx/impacts/crit-hit.js';
@@ -78,6 +78,7 @@ export function setFxEnabled(on) {
 
 // ── Live effects ───────────────────────────────────────────────────────────
 const live = [];     // { fx, gx, gy, dy, cap }
+const REDRAW_MS = 1000 / 30, FRAME_BUDGET_MS = 8, MAX_LIVE = 10;
 let raf = 0, last = 0, seedN = 1, cellPx = 70;
 
 /** Start the effect `kind` on `unit` (any { x, y } grid cell; `cp` is the map's cell size in canvas px). Safe to call any time. */
@@ -87,6 +88,7 @@ export function playFx(kind, unit, cp) {
   const opts = { seed: seedN++ };
   if (def.palette) opts.palette = def.palette;
   cellPx = cp || cellPx;
+  while (live.length >= MAX_LIVE) live.shift();   // a burst of effects drops the oldest
   // A hit and the status it carries land together: one effect per kind per cell is enough
   if (live.some(e => e.kind === kind && e.gx === unit.x && e.gy === unit.y && e.fx.t < 0.35)) return;
   live.push({ kind, fx: createFx(def.mod, opts), gx: unit.x, gy: unit.y, dy: def.dy ?? 0, cap: def.cap });
@@ -94,7 +96,7 @@ export function playFx(kind, unit, cp) {
 }
 
 // ── Overlay canvas ─────────────────────────────────────────────────────────
-let overlay = null, off = null, frame = null, img = null, scale = 2;
+let overlay = null, scale = 2;
 
 /** The overlay on the current map canvas, (re)built when the combat screen was re-rendered or the map resized. */
 function syncOverlay() {
@@ -106,13 +108,7 @@ function syncOverlay() {
     overlay.setAttribute('aria-hidden', 'true');
     map.parentNode.appendChild(overlay);
   }
-  if (overlay.width !== map.width || overlay.height !== map.height) {
-    overlay.width = map.width; overlay.height = map.height;
-    const fw = Math.ceil(map.width / scale), fh = Math.ceil(map.height / scale);
-    frame = createFrame(fw, fh);
-    img = new ImageData(fw, fh);
-    off = document.createElement('canvas'); off.width = fw; off.height = fh;
-  }
+  if (overlay.width !== map.width || overlay.height !== map.height) { overlay.width = map.width; overlay.height = map.height; }
   Object.assign(overlay.style, {
     left: map.offsetLeft + 'px', top: map.offsetTop + 'px',
     width: map.clientWidth + 'px', height: map.clientHeight + 'px',
@@ -123,6 +119,43 @@ function syncOverlay() {
 /** The map is drawn turned a quarter-turn (see drawMap): grid (gx, gy) lands at canvas (gy, H − gx) in cell units. */
 function cellCentre(gx, gy, cp, H) {
   return [(gy + 0.5) * cp, H - (gx + 0.5) * cp];
+}
+
+/**
+ * pixelfx's composite() visits every pixel of the frame; ours skips the empty ones, which are nearly all of them
+ * (the same maths for the rest, over a transparent background). `out` is cleared first.
+ */
+function compositeSparse(f, out) {
+  out.fill(0);
+  const n = f.w * f.h, C = f.color, L = f.light;
+  for (let i = 0; i < n; i++) {
+    const c = C[i], l = L[i] & 0xffffff;
+    if (!c && !l) continue;
+    let r = c & 255, g = (c >>> 8) & 255, b = (c >>> 16) & 255, a = c >>> 24;
+    if (l) {
+      const lr = l & 255, lg = (l >>> 8) & 255, lb = (l >>> 16) & 255;
+      if (a < 255) {
+        const pa = a / 255, pr = r * pa + lr, pg = g * pa + lg, pb = b * pa + lb;
+        const na = Math.min(1, Math.max(pa, Math.max(lr, lg, lb) / 255));
+        if (na > 0) { r = Math.min(255, pr / na); g = Math.min(255, pg / na); b = Math.min(255, pb / na); a = na * 255; }
+      } else {
+        r = Math.min(255, r + lr); g = Math.min(255, g + lg); b = Math.min(255, b + lb);
+      }
+    }
+    const j = i * 4;
+    out[j] = r; out[j + 1] = g; out[j + 2] = b; out[j + 3] = a;
+  }
+}
+
+/** Each effect draws into a frame just as big as its author declared (meta.size) and is stamped onto the overlay. */
+function surfaceOf(e) {
+  if (e.frame) return e;
+  const [w, h] = e.fx.meta.size, [ox, oy] = e.fx.meta.origin;
+  e.frame = createFrame(w, h, -ox, -oy);
+  e.img = new ImageData(w, h);
+  e.off = document.createElement('canvas'); e.off.width = w; e.off.height = h;
+  e.offCtx = e.off.getContext('2d');
+  return e;
 }
 
 function tick(now) {
@@ -138,23 +171,28 @@ function tick(now) {
   const map = syncOverlay();
   if (map) {
     // A token is about 0.7 cell wide and the library's stock character is 24 px: that sets the zoom
-    const cp = cellPx;
-    const s = Math.max(1, Math.round(cp * 0.7 / 24));
-    if (s !== scale) { scale = s; overlay.width = 0; syncOverlay(); }
-    clearFrame(frame);
-    for (const e of live) {
-      const [px, py] = cellCentre(e.gx, e.gy, cp, map.height);
-      e.fx.options.x = Math.round(px / scale);
-      e.fx.options.y = Math.round(py / scale + e.dy);
-      e.fx.draw(frame, 'back');
-    }
-    for (const e of live) e.fx.draw(frame, 'front');
-    composite(frame, img.data, null);
-    off.getContext('2d').putImageData(img, 0, 0);
+    scale = Math.max(1, Math.round(cellPx * 0.7 / 24));
     const ctx = overlay.getContext('2d');
     ctx.clearRect(0, 0, overlay.width, overlay.height);
     ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(off, 0, 0, off.width * scale, off.height * scale);
+    // Drawing an effect costs 1–25 ms on a slow machine. Each is redrawn at most 30 times a second (the rate they are
+    // authored for), and once the frame's budget is spent the late ones stamp their last picture again.
+    const started = performance.now();
+    for (const e of live) {
+      surfaceOf(e);
+      const due = !e.drawnAt || now - e.drawnAt >= REDRAW_MS;
+      if (due && (!e.drawnAt || performance.now() - started < FRAME_BUDGET_MS)) {
+        clearFrame(e.frame);
+        e.fx.draw(e.frame, 'back');
+        e.fx.draw(e.frame, 'front');
+        compositeSparse(e.frame, e.img.data);
+        e.offCtx.putImageData(e.img, 0, 0);
+        e.drawnAt = now;
+      }
+      const [px, py] = cellCentre(e.gx, e.gy, cellPx, map.height);
+      const [w, h] = e.fx.meta.size, [ox, oy] = e.fx.meta.origin;
+      ctx.drawImage(e.off, Math.round(px - ox * scale), Math.round(py + e.dy * scale - oy * scale), w * scale, h * scale);
+    }
   }
   if (live.length) raf = requestAnimationFrame(tick);
 }
