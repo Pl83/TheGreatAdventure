@@ -17,6 +17,7 @@ export const _R = {
   renderFreeActionOverlay: () => {},
   renderVictoryScreen: () => {},
   appendLog:           () => {},
+  fx:                  () => {},   // (kind, combatant, extra): a visual effect on the map; never touches the state
 };
 
 // Headless mode (simulations): no timers, no DOM, no render hooks
@@ -1685,6 +1686,7 @@ export function applyHeal(combatant, diceExpr, label = null, repair = false, shi
   const healed = Math.min(amount, combatant.maxHp - combatant.currentHp);
   combatant.currentHp = Math.min(combatant.maxHp, combatant.currentHp + amount);
   if (shieldOverheal) overhealToShield(combatant, amount - healed);
+  if (healed > 0) R.fx('heal', combatant);
   if (healed > 0)
     addLog(`💚 ${combatant.name}${label ? ` [${label}]` : ''} recovers ${healed} HP! (${combatant.currentHp}/${combatant.maxHp}) [${r.breakdown}]`, 'heal');
   updateCombatantCardDOM(combatant);
@@ -1697,6 +1699,7 @@ export function applyHeal(combatant, diceExpr, label = null, repair = false, shi
 export function applyDamage(combatant, amount, damType = null, atkTags = [], ignoreDR = false) {
   const before = combatant.currentHp;
   const dealt = applyDamageCore(combatant, amount, damType, atkTags, ignoreDR);
+  if (dealt > 0) R.fx('hit', combatant, { damType, atkTags, dealt });
   if (dealt > 0 && !combatant.isKO) {
     for (const p of combatant.sourceChar.passif ?? []) {
       if (p.applyOn?.includes('hpPerDamageTaken') && p.dices && !passiveLost(combatant, p)) applyHeal(combatant, p.dices, p.nom);   // Kaelgrym's Cauterise
@@ -1938,6 +1941,7 @@ function applyDamageCore(combatant, amount, damType = null, atkTags = [], ignore
       rebornAs(combatant);
     } else if (!survived) {
       combatant.isKO = true;
+      R.fx('death', combatant);
       noteFallen(combatant);
       combatant.statusEffects = [];   // the dead keep no buffs or damage-over-time
       addLog(`💀 ${combatant.name} is KO!`, 'death');

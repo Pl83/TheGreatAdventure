@@ -14,6 +14,7 @@ import {
   addLog, goToMapChoice,
 } from './combat-logic.js';
 
+import { setFxEnabled, fxEnabled } from './vfx.js';
 import { setAiTeam } from './combat-ai-driver.js';
 import { abilityPreviewHTML, abilityFireLabel, pickAbility, renderCombatScreen, renderSelectionScreen } from './combat-render.js';
 
@@ -141,6 +142,12 @@ export function bindCombatEvents() {
   });
   document.getElementById('btn-cancel-move')?.addEventListener('click', () => {
     exitMoveMode(); renderCombatScreen();
+  });
+
+  document.getElementById('btn-fx-toggle')?.addEventListener('click', e => {
+    setFxEnabled(!fxEnabled());
+    e.currentTarget.classList.toggle('active', fxEnabled());
+    e.currentTarget.setAttribute('aria-pressed', String(fxEnabled()));
   });
 
   // Map view toggle
