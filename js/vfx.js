@@ -42,6 +42,7 @@ const FX = {
   radiant:   { mod: smite,      cap: 1.2, dy: 8 },
   heal:      { mod: bloom,      cap: 1.5, dy: 8 },
   death:     { mod: poof,       cap: 1.2, dy: 8 },
+  teleport:  { mod: manaBurst,  cap: 0.9, dy: 6 },
 };
 const ALIAS = { necro: 'dark', holy: 'radiant' };
 
@@ -51,6 +52,14 @@ export function hitKind(damType, atkTags = [], dealt = 0, maxHp = 1) {
   if (pick) return pick;
   return dealt >= maxHp * 0.4 ? 'critical' : dealt >= maxHp * 0.25 ? 'heavy' : 'physical';
 }
+
+// A status, when it first lands, shows the element it belongs to
+const STATUS_FX = {
+  burn: 'fire', calcinated: 'fire', poison: 'poison', toxic: 'poison', freeze: 'ice', gel: 'ice',
+  stun: 'lightning', para: 'lightning', root: 'earth', fear: 'dark', silence: 'psy', wet: 'water',
+  bleed: 'physical', hemoragie: 'physical', prone: 'heavy',
+};
+export const statusKind = key => STATUS_FX[String(key ?? '').toLowerCase()] ?? null;
 
 // ── Switch ─────────────────────────────────────────────────────────────────
 const reduced = () => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; } };
@@ -78,7 +87,9 @@ export function playFx(kind, unit, cp) {
   const opts = { seed: seedN++ };
   if (def.palette) opts.palette = def.palette;
   cellPx = cp || cellPx;
-  live.push({ fx: createFx(def.mod, opts), gx: unit.x, gy: unit.y, dy: def.dy ?? 0, cap: def.cap });
+  // A hit and the status it carries land together: one effect per kind per cell is enough
+  if (live.some(e => e.kind === kind && e.gx === unit.x && e.gy === unit.y && e.fx.t < 0.35)) return;
+  live.push({ kind, fx: createFx(def.mod, opts), gx: unit.x, gy: unit.y, dy: def.dy ?? 0, cap: def.cap });
   if (!raf) { last = 0; raf = requestAnimationFrame(tick); }
 }
 

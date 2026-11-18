@@ -1335,7 +1335,9 @@ export function handleTeleportClick(gx, gy) {
   addLog(`✦ ${actor.name} teleports to (${gx}, ${gy})!`, 'spell');
   const origin = { x: actor.x, y: actor.y };
   const group  = S.teleportGroup;
+  R.fx('teleport', origin);
   actor.x = gx; actor.y = gy;
+  R.fx('teleport', actor);
   S.lastTeleportedIds = group ? relocateAllies(actor, origin, group.radius || 1) : null;
   const reactAbility = S.pendingTeleportReact;
   S.pendingTeleportReact = null;
@@ -2083,6 +2085,7 @@ export function applyStatus(combatant, effectStr, defaultTurns = 2) {
         notes:     eff?.notes ?? '',
       });
       addLog(`${combatant.name} is now affected by ${eff ? eff.name : effName} (${turns}t)!`, 'status');
+      R.fx('status', combatant, { status: key });
     }
   }
 }

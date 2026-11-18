@@ -2,7 +2,7 @@
    js/combat-render.js — HTML generation and screen rendering
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import { playFx, hitKind, fxEnabled } from './vfx.js';
+import { playFx, hitKind, statusKind, fxEnabled } from './vfx.js';
 import { cellPxOf } from './dungeon-loader.js';
 import {
   _R, S, SPELL_RANGE, allChars,
@@ -933,5 +933,7 @@ _R.renderVictoryScreen = renderVictoryScreen;
 _R.appendLog           = appendLog;
 _R.fx                  = (kind, unit, extra = {}) => {
   const cp = S.currentMap ? cellPxOf(S.currentMap) : 0;
-  playFx(kind === 'hit' ? hitKind(extra.damType, extra.atkTags, extra.dealt, unit.maxHp) : kind, unit, cp);
+  const k = kind === 'hit' ? hitKind(extra.damType, extra.atkTags, extra.dealt, unit.maxHp)
+          : kind === 'status' ? statusKind(extra.status) : kind;
+  if (k) playFx(k, unit, cp);
 };

@@ -34,3 +34,10 @@ test('every effect draws something and ends once told to', () => {
 test('playFx is a no-op without a DOM (headless)', () => {
   assert.doesNotThrow(() => playFx('fire', { x: 1, y: 1 }, 70));
 });
+
+import { statusKind } from '../js/vfx.js';
+test('statusKind maps every DOT and control status to a known effect', () => {
+  for (const s of ['burn', 'calcinated', 'poison', 'toxic', 'freeze', 'gel', 'stun', 'para', 'root', 'fear', 'silence', 'wet', 'bleed', 'hemoragie', 'prone'])
+    assert.ok(FX_DEFS[statusKind(s)], `${s} has no effect`);
+  assert.equal(statusKind('ward'), null);
+});
