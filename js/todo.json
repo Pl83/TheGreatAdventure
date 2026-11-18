@@ -1225,6 +1225,62 @@
       "detail": "Hits, heals and deaths play a pixel art effect on the token's cell.",
       "evidence": "tests/vfx.test.mjs",
       "where": "js/vfx.js; js/vendor/pixelfx; combat-logic.js · _R.fx; combat-render.js · _R.fx, renderMapToggleHTML"
+    },
+    {
+          "id": "fx-movement",
+          "cat": "mechanics",
+          "sev": "low",
+          "title": "Pixel effects: no effect on movement",
+          "detail": "Units walk silently: no dust or step effect when a token moves, and none on a dash, a charge or a forced push.",
+          "where": "js/vfx.js; combat-logic.js · move handlers, push / pull helpers; an R.fx('move') hook"
+    },
+    {
+          "id": "fx-domains",
+          "cat": "mechanics",
+          "sev": "low",
+          "title": "Pixel effects: domains and fields have no effect",
+          "detail": "A domain opening or closing, and a lingering field, are still flat coloured squares on the map. pixelfx has loops (magic circle, rune circle, eclipse) that could mark the centre.",
+          "where": "js/vfx.js; combat-logic.js · activateDomain, suppressDomain, S.fields, drawMap"
+    },
+    {
+          "id": "fx-abilities",
+          "cat": "mechanics",
+          "sev": "low",
+          "title": "Pixel effects: no effect specific to an ability",
+          "detail": "Every blow plays the effect of its damage type, so two different fire spells look the same. Signature moves (Kyros' relics, Geminy, the Nexo power, Taboo...) could name their own effect, with a projectile or a beam between caster and target.",
+          "where": "js/vfx.js; characters.json · an optional fx field on a move; combat-logic.js · handleCastAbility; pixelfx has projectiles, moves and chain()"
+    },
+    {
+          "id": "fx-ko-paths",
+          "cat": "mechanics",
+          "sev": "low",
+          "title": "Pixel effects: some KOs play nothing",
+          "detail": "Only a KO from applyDamage plays the death effect. The other places that set isKO (sacrifices, instant kills, summons expiring, Rewind and Reborn) stay silent.",
+          "where": "combat-logic.js · every isKO = true outside applyDamageCore (roughly lines 564, 602, 632, 2906, 2925)"
+    },
+    {
+          "id": "fx-more-statuses",
+          "cat": "mechanics",
+          "sev": "low",
+          "title": "Pixel effects: statuses play once and leave nothing on the unit",
+          "detail": "A status shows one burst when it lands, then nothing, and the buffs (regen, ward, fly, invisible, domain regen) show nothing at all. pixelfx has loops (burning, frozen, poisoned, halo) but they draw its stock dummy, so they need an actor-less variant or a recoloured aura.",
+          "where": "js/vfx.js · STATUS_FX; combat-logic.js · applyStatus; js/vendor/pixelfx/fx/status"
+    },
+    {
+          "id": "fx-tuning",
+          "cat": "mechanics",
+          "sev": "low",
+          "title": "Pixel effects: scale, volume and speed are fixed",
+          "detail": "The zoom follows the token size, so effects look small on a big map in a narrow column. The effect scale, a volume (fewer, simpler effects) and the perf constants (30 fps cap, 8 ms budget, 10 live) have no setting beyond the FX on/off button.",
+          "where": "js/vfx.js · REDRAW_MS, FRAME_BUDGET_MS, MAX_LIVE, scale; combat-render.js · renderMapToggleHTML"
+    },
+    {
+          "id": "fx-selection-ui",
+          "cat": "mechanics",
+          "sev": "low",
+          "title": "Pixel effects: nothing outside the combat map",
+          "detail": "pixelfx also has UI effects (combo counter, crit number, confetti, achievement, transitions) that could dress the victory screen, the initiative roll and the screen changes.",
+          "where": "combat-render.js · renderVictoryScreen, renderInitiativeScreen; pixelfx ui and transitions"
     }
   ]
 }
