@@ -2,6 +2,8 @@
    js/combat-render.js — HTML generation and screen rendering
    ═══════════════════════════════════════════════════════════════════════════ */
 
+import { playFx, hitKind, statusKind, fxEnabled } from './vfx.js';
+import { cellPxOf } from './dungeon-loader.js';
 import {
   _R, S, SPELL_RANGE, allChars,
   activeCombatant, livingCombatants, koAllies, getCombatant,
@@ -537,8 +539,9 @@ export function renderMapToggleHTML() {
   const btns = opts.map(o =>
     `<button class="map-toggle-btn${S.mapViewFilter === o.val ? ' active' : ''}" data-filter="${o.val}">${o.label}</button>`
   ).join('');
+  const fxBtn = `<button class="map-fx-btn${fxEnabled() ? ' active' : ''}" id="btn-fx-toggle" aria-pressed="${fxEnabled()}" title="Pixel effects on the map">FX</button>`;
   const mapName = S.currentMap ? `<span class="map-name-badge">📍 ${S.currentMap.name}</span>` : '';
-  return `<div class="map-toggle-row">${btns}${mapName}</div>`;
+  return `<div class="map-toggle-row">${btns}${fxBtn}${mapName}</div>`;
 }
 
 
@@ -928,3 +931,9 @@ _R.renderReactOverlay  = renderReactOverlay;
 _R.renderFreeActionOverlay = renderFreeActionOverlay;
 _R.renderVictoryScreen = renderVictoryScreen;
 _R.appendLog           = appendLog;
+_R.fx                  = (kind, unit, extra = {}) => {
+  const cp = S.currentMap ? cellPxOf(S.currentMap) : 0;
+  const k = kind === 'hit' ? hitKind(extra.damType, extra.atkTags, extra.dealt, unit.maxHp)
+          : kind === 'status' ? statusKind(extra.status) : kind;
+  if (k) playFx(k, unit, cp);
+};

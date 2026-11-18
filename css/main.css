@@ -2528,6 +2528,16 @@ header.nav-open .nav-toggle span:nth-child(3) { transform: translateY(-9px) rota
   gap: var(--tga-s-2);
   flex-wrap: wrap;
 }
+.map-fx-btn {
+  margin-left: var(--tga-s-2, 8px);
+  font: inherit; font-size: .75rem; letter-spacing: .08em;
+  padding: 3px 10px; cursor: pointer;
+  background: transparent; color: var(--tga-text-muted, inherit);
+  border: 1px solid var(--tga-bronze); border-radius: var(--tga-r-xs);
+}
+.map-fx-btn:hover { background: var(--tga-vellum-2); color: var(--tga-text); }
+.map-fx-btn.active { background: var(--tga-ink); color: var(--tga-gold-bright); border-color: var(--tga-ink); }
+.vfx-overlay { position: absolute; pointer-events: none; z-index: 2; image-rendering: pixelated; }
 .map-name-badge {
   font-family: var(--tga-font-display);
   font-size: 12px;

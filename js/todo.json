@@ -1215,6 +1215,16 @@
       "detail": "Taboo was usable during an enemy's attack and did not use her turn.",
       "evidence": "tests/summons.test.mjs",
       "where": "characters.json"
+    },
+    {
+      "id": "feat-pixelfx-combat",
+      "resolution": "Done on branch feature/pixelfx, first pass. pixelfx (MIT) is vendored in js/vendor/pixelfx (core + 13 effects, unmodified). js/vfx.js draws them on a transparent canvas laid over the combat map, one pixel frame scaled up without smoothing, anchored by grid cell so re-renders do not lose them. Hooks go through _R.fx (a no-op headless, so simulations and tests are untouched): applyDamage (effect picked by damage type or tag, heavier at 25% / 40% of max HP), applyHeal, KO by damage. An FX button next to the map filter turns it off (localStorage, off by default under prefers-reduced-motion). Checked in a browser: placement matches the rotated map, the overlay survives re-renders, the FX button works, no console errors. Statuses (when first applied: burn, poison, freeze, stun, para, root, fear, silence, wet, bleed, prone) and teleports (burst on both cells) also play one, and a hit plus its status on one cell play only one. Perf (measured in Chrome): drawing one effect costs 0.4 to 24 ms a frame, so each effect has its own small frame, a sparse composite, a 30 fps redraw cap, an 8 ms frame budget and a ceiling of 10 live effects; 6 effects every 400 ms went from 174 ms to 48 ms a frame. Not done: movement, domains, per-ability effects, the other KO paths.",
+      "cat": "mechanics",
+      "sev": "low",
+      "title": "Pixel effects on the combat map",
+      "detail": "Hits, heals and deaths play a pixel art effect on the token's cell.",
+      "evidence": "tests/vfx.test.mjs",
+      "where": "js/vfx.js; js/vendor/pixelfx; combat-logic.js · _R.fx; combat-render.js · _R.fx, renderMapToggleHTML"
     }
   ]
 }
